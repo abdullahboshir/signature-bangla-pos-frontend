@@ -38,6 +38,13 @@ export function BusinessUnitSwitcher({
 
   const businessUnits: BusinessUnit[] = [
     {
+      id: "all-business-units",
+      name: "All Business Units",
+      role: "super-admin",
+      icon: Store,
+      color: "text-yellow-600",
+    },
+    {
       id: "telemedicine",
       name: "Telemedicine",
       role: "business-admin",
@@ -66,7 +73,7 @@ export function BusinessUnitSwitcher({
       color: "text-orange-600",
     },
   ]
-
+console.log('currentRole', currentRole)
   const currentUnit = businessUnits.find(unit => unit.id === currentBusinessUnit)
 
   return (
@@ -104,7 +111,7 @@ export function BusinessUnitSwitcher({
               )}
               onClick={() => {
                 // Navigate to the business unit dashboard
-                router.push(`/${unit.id}/${unit.role}`)
+                router.push(`/${unit.role}/${unit.id}`)
               }}
             >
               <Icon className={cn("h-4 w-4", unit.color)} />

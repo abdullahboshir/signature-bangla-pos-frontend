@@ -12,7 +12,7 @@ const authApi = baseApi.injectEndpoints({
             }),
             invalidatesTags: [tagTypes.auth]
         }),
-        register: build.mutation({
+        userRegister: build.mutation({
             query: (data: unknown) => ({
                 url: '/auth/register',
                 method: 'POST',
@@ -30,11 +30,10 @@ const authApi = baseApi.injectEndpoints({
             invalidatesTags: [tagTypes.auth]
         }),
         refreshToken: build.mutation({
-            query: (data: { refreshToken: string }) => ({
+            query: () => ({
                 url: '/auth/refresh-token',
                 method: 'POST',
-                contentType: 'application/json',
-                data
+                withCredentials: true
             }),
         }),
     }),
@@ -43,7 +42,7 @@ const authApi = baseApi.injectEndpoints({
 
 export const {
     useLoginMutation,
-    useRegisterMutation,
+    useUserRegisterMutation,
     useLogoutMutation,
     useRefreshTokenMutation
 } = authApi;

@@ -6,7 +6,7 @@ const adminApi = baseApi.injectEndpoints({
     // User Management
     getUsers: build.query({
       query: () => ({
-        url: "/admin/users",
+        url: "/super-admin/users/getUsers",
         method: "GET",
       }),
       providesTags: [tagTypes.admin],
@@ -99,4 +99,3 @@ export const {
   useUpdateBusinessUnitMutation,
   useDeleteBusinessUnitMutation,
 } = adminApi;
-

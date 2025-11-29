@@ -1,19 +1,8 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
 import "./globals.css";
 import Container from "@/components/layouts/Container";
 import Providers from "@/lib/providers/Providers";
 
-const glatic = localFont({
-  src: [
-    {
-      path: "../../public/fonts/Glatic-Bold.woff",
-      weight: "400", 
-      style: "normal",
-    },
-  ],
-  variable: "--font-glatic",
-});
 
 
 export const metadata: Metadata = {
@@ -31,8 +20,9 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  
   return (
-    <html lang="en" suppressHydrationWarning className={`${glatic.variable}`}>
+    <html lang="en">
       <body className="font-sans">
         <Providers>
           <Container>{children}</Container>

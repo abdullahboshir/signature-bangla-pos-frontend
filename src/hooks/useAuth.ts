@@ -1,133 +1,98 @@
-// src/hooks/useAuth.ts
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { decodedToken } from "@/utils/jwt"
-import { getFromLocalStorage, removeFromLocalStorage } from "@/utils/localStorage"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import {
+  login as authLogin,
+  restoreAuthSession,
+  clearAuthSession,
+  getCurrentUser,
+  User,
+  LoginResponse,
+} from "@/services/auth/authService";
 
-export interface User {
-  id: string
-  name: string
-  email: string
-  role: string
-  avatar?: string
-  accessibleBusinessUnits?: string[]
-  permissions?: string[]
-}
-
-interface UseAuthReturn {
-  user: User | null
-  isLoading: boolean
-  isAuthenticated: boolean
-  logout: () => Promise<void>
-  login: (token: string, userData?: User) => void
-}
-
-export function useAuth(): UseAuthReturn {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const router = useRouter()
+export function useAuth() {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
-    const initializeAuth = () => {
-      try {
-        // Check if we're in browser environment
-        if (typeof window === "undefined") {
-          setIsLoading(false)
-          return
-        }
-
-        const token = getFromLocalStorage()
-        
-        if (!token) {
-          setIsLoading(false)
-          return
-        }
-
-        // Decode token to get user info
-        const decoded = decodedToken(token) as {
-          id?: string
-          userId?: string
-          email?: string
-          role?: string
-          name?: string
-          accessibleBusinessUnits?: string[]
-          permissions?: string[]
-          exp?: number
-        }
-
-        // Check if token is expired
-        if (decoded.exp && decoded.exp * 1000 < Date.now()) {
-          removeFromLocalStorage()
-          setIsLoading(false)
-          return
-        }
-
-        // Create user object from token
-        const userData: User = {
-          id: decoded.id || decoded.userId || "",
-          name: decoded.name || decoded.email || "",
-          email: decoded.email || "",
-          role: decoded.role || "",
-          accessibleBusinessUnits: decoded.accessibleBusinessUnits || [],
-          permissions: decoded.permissions || [],
-        }
-
-        setUser(userData)
-      } catch (error) {
-        console.error("Auth initialization error:", error)
-        removeFromLocalStorage()
-        setUser(null)
-      } finally {
-        setIsLoading(false)
-      }
+    if (user) {
+      console.log("✅ User authenticated:", user.email);
     }
+  }, [user]);
 
-    initializeAuth()
-  }, [])
+  useEffect(() => {
+    (async () => {
+      const restoredUser = await restoreAuthSession();
+      setUser(restoredUser);
+      setIsLoading(false);
+    })();
+  }, []);
 
-  const login = (token: string, userData?: User) => {
-    // Token should already be stored by login service
-    // Just decode and set user if provided
-    if (userData) {
-      setUser(userData)
-    } else {
-      const decoded = decodedToken(token) as {
-        id?: string
-        userId?: string
-        email?: string
-        role?: string
-        name?: string
-        accessibleBusinessUnits?: string[]
-        permissions?: string[]
+
+  const login = async (formData: any): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response: LoginResponse = await authLogin(formData);
+
+      if (!response.success || !response.user) {
+        setError(response.message || "Login failed");
+        setUser(null);
+        return false;
       }
 
-      setUser({
-        id: decoded.id || decoded.userId || "",
-        name: decoded.name || decoded.email || "",
-        email: decoded.email || "",
-        role: decoded.role || "",
-        accessibleBusinessUnits: decoded.accessibleBusinessUnits || [],
-        permissions: decoded.permissions || [],
-      })
-    }
-  }
+      // Fetch fresh user data
+      const userData = await getCurrentUser();
+      setUser(userData);
+      setError(null);
 
-  const logout = async () => {
-    removeFromLocalStorage()
-    setUser(null)
-    if (typeof window !== "undefined") {
-      router.push("/auth/login")
+      // Redirect if needed
+      if (response.redirect) {
+        router.push(response.redirect);
+      }
+
+      return true;
+    } catch (err: any) {
+      setError(err?.message || "Login failed");
+      setUser(null);
+      return false;
+    } finally {
+      setIsLoading(false);
     }
-  }
+  };
+
+  // ✅ Logout function
+  const logout = () => {
+    clearAuthSession();
+    setUser(null);
+    setError(null);
+    router.push("/auth/login");
+  };
+
+  // ✅ Manual refresh token
+  const refreshSession = async (): Promise<boolean> => {
+    try {
+      const user = await restoreAuthSession();
+      setUser(user);
+      return !!user;
+    } catch (err: any) {
+      setError("Session refresh failed");
+      setUser(null);
+      return false;
+    }
+  };
 
   return {
     user,
     isLoading,
+    error,
     isAuthenticated: !!user,
-    logout,
     login,
-  }
+    logout,
+    refreshSession,
+  };
 }
-

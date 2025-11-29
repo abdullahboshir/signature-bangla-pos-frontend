@@ -5,7 +5,7 @@ interface DashboardLayoutProps {
   children: React.ReactNode
   params: Promise<{
     "business-unit": string
-    role: string
+    roles: string
   }>
 }
 
@@ -13,7 +13,7 @@ export default async function DashboardLayout({
   children,
   params,
 }: DashboardLayoutProps) {
-  const { "business-unit": businessUnit, role } = await params
+  const { "business-unit": businessUnit, roles } = await params
   
   return <div>{children}</div>
 }

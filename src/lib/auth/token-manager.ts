@@ -13,6 +13,7 @@ function getToken(): string | null {
   }
 
   const cookies = document.cookie.split(";")
+  console.log('ddddddddddddddddddddddddddd', document.cookie)
   const tokenCookie = cookies.find((cookie) => cookie.trim().startsWith(`${authKey}=`))
   
   if (!tokenCookie) {
@@ -38,7 +39,8 @@ function removeToken(): void {
  */
 export async function verifyToken(): Promise<boolean> {
   try {
-    const token = getToken()
+      const token = sessionStorage.getItem("accessToken");
+
     
     if (!token) {
       return false
@@ -68,7 +70,7 @@ export async function verifyToken(): Promise<boolean> {
  */
 export function getTokenExpiration(): Date | null {
   try {
-    const token = getToken()
+     const token = sessionStorage.getItem("accessToken");
     
     if (!token) {
       return null

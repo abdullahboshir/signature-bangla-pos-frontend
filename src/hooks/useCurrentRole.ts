@@ -6,23 +6,19 @@ import { useAuth } from "./useAuth"
 
 export function useCurrentRole() {
   const params = useParams()
-  const { user, isLoading: authLoading } = useAuth()
+  const { user, isLoading: roleLoading } = useAuth()
   
-  // Handle both "role" and dynamic route param access
-  const currentRole = (params.role || params["role"]) as string | undefined
-  const userRole = user?.role
-  
-  const hasRoleAccess = currentRole ? currentRole === userRole : false
+  if(roleLoading) return 'loading...';
 
-  // const currentRole = 'admin'
-  // const userRole = 'admin'
-  
-  // const hasRoleAccess = 'admin'
-  
+  const currentRole = (params.role || params["roles"]) as string | undefined
+  const userRole = user?.roles.map((role: any) => role.name) || []
+  const hasRoleAccess = currentRole ? userRole.includes(currentRole) : false
+  console.log('checkkkkkkkkkkkkkkkk', userRole, hasRoleAccess, user?.roles)
+
   return {
     currentRole: currentRole || null,
     userRole: userRole || null,
     hasRoleAccess,
-    isLoading: authLoading || !user,
+    isLoading: roleLoading || !user,
   }
 }

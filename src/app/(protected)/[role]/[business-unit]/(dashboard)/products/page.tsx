@@ -1,4 +1,4 @@
-// app/[businessUnit]/[role]/(dashboard)/products/page.tsx
+
 import { ProductList } from "@/components/modules/products/ProductList"
 import { Button } from "@/components/ui/button"
 // import { getProducts } from "@/lib/api/endpoints/products"

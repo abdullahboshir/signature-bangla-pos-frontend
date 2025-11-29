@@ -1,21 +1,21 @@
 // components/layout/AppLayout.tsx
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Header } from "./header/Header"
-import { Sidebar } from "./sidebar/Sidebar"
-import { Footer } from "./Footer"
-import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer"
-import { Button } from "@/components/ui/button"
-import { Menu } from "lucide-react"
+import { useState } from "react";
+import { Header } from "./header/Header";
+import { Sidebar } from "./sidebar/Sidebar";
+import { Footer } from "./Footer";
+import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
+import { Button } from "@/components/ui/button";
+import { Menu } from "lucide-react";
 
 interface AppLayoutProps {
-  children: React.ReactNode
-  showFooter?: boolean
+  children: React.ReactNode;
+  showFooter?: boolean;
 }
 
 export function AppLayout({ children, showFooter = true }: AppLayoutProps) {
-  const [mobileOpen, setMobileOpen] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -43,13 +43,11 @@ export function AppLayout({ children, showFooter = true }: AppLayoutProps) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         <Header onMenuClick={() => setMobileOpen(true)} />
-        
-        <main className="flex-1 overflow-auto">
-          {children}
-        </main>
+
+        <main className="flex-1 overflow-auto">{children}</main>
 
         {showFooter && <Footer />}
       </div>
     </div>
-  )
+  );
 }

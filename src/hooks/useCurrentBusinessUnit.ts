@@ -8,12 +8,13 @@ export function useCurrentBusinessUnit() {
   const params = useParams()
   const { user, isLoading: authLoading } = useAuth()
   
-  // Handle both "business-unit" and "businessUnit" params
+
+  console.log('userrrrrrrrrr from business unit', user)
+
   const currentBusinessUnit = (params["business-unit"] || params.businessUnit) as string | undefined
   const userBusinessUnits = user?.accessibleBusinessUnits || []
   
   const hasUnitAccess = currentBusinessUnit ? userBusinessUnits.includes(currentBusinessUnit) : false
-  
   return {
     currentBusinessUnit: currentBusinessUnit || null,
     userBusinessUnits,

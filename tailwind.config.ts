@@ -13,7 +13,7 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Glatic", ...fontFamilyWithType.sans], // ✅ make Glatic default
+        sans: ["Poppins", ...fontFamilyWithType.sans],
       },
     },
   },

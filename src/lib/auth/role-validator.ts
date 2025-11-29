@@ -15,6 +15,8 @@ export async function hasRouteAccess(
       return false
     }
 
+
+    
     // Define route access rules based on roles
     const routeAccessRules: Record<string, string[]> = {
       // Super admin can access everything
@@ -50,15 +52,15 @@ export async function hasRouteAccess(
         "/my-sales",
       ],
     }
-
+    
     // Get allowed routes for user's role
     const allowedRoutes = routeAccessRules[userRole] || []
-
+    
     // Super admin has access to everything
     if (allowedRoutes.includes("*")) {
       return true
     }
-
+    
     // Check if pathname matches any allowed route
     const pathSegments = pathname.split("/").filter(Boolean)
     
@@ -68,6 +70,7 @@ export async function hasRouteAccess(
         return true
       }
     }
+    console.log("user from role validator hook", allowedRoutes, userRole, pathname);
 
     // Check permissions if route is not in role-based list
     // This is a simple implementation - can be enhanced

@@ -9,29 +9,37 @@ import Swal from "sweetalert2";
 import FormWrapper from "@/components/forms/FormWrapper";
 import InputField from "@/components/forms/InputField";
 
-// import logo from "../../../../public/images/logo.png";
-import { Login } from "@/services/auth/authService";
-// import Spinner from "@/components/ui/spinner";
+import { login } from "@/services/auth/authService";
+import { useUserRegisterMutation } from "@/redux/api/authApi";
 
 const LoginForm = () => {
   const [isLoggedin, setIsLoggedin] = useState(true);
   const [loginError, setLoginError] = useState("");
   const [passError, setPassError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  //   const { data: session, status } = useSession();
+  const [register, { isLoading: registerLoading, isSuccess }] = useUserRegisterMutation();
   const router = useRouter();
 
   const handleLogin = async (data: any) => {
+ 
+    
     try {
       setIsLoading(true);
-
-      const res = await Login(data);
+      
+      let res;
+      
+      if (!isLoggedin) {
+        res = await register(data);
+      }
+      
+      res = await login(data);
 
       setIsLoading(false);
-      setLoginError(res?.error);
+      // setLoginError(res?.error);
 
-      if (res?.data?.accessToken) {
-        router.push("/");
+      if (res?.accessToken) { 
+        res
+        router.push(res?.redirect || "/super-admin/telemedicine");
         Swal.fire({
           position: "top-end",
           icon: "success",
@@ -52,27 +60,7 @@ const LoginForm = () => {
 
   return (
     <div className="min-h-screen bg-base-200 flex items-center justify-center">
-      <div className="relative flex flex-col lg:flex-row shadow-2xl rounded-2xl w-[60vw] max-w-6xl overflow-hidden">
-        {/* Left Image Panel */}
-        <div className="w-full lg:w-1/2 relative">
-          {/* <Image src={loginImg.src} fill alt="Tour" className="object-cover" /> */}
-          <div className="absolute inset-0 bg-black/50 p-3 flex flex-col justify-between text-white">
-            <div>
-              {/* <Image src={logo.src} width={80} height={80} alt="Logo" /> */}
-            </div>
-            <div className="text-center">
-              <h2 className="text-3xl font-bold">FruitScape</h2>
-              <p className="text-sm mt-2">
-                Fruits Original Prescription for Lifelong Health.
-              </p>
-            </div>
-            <div className="text-center">
-              {/* <SocialLogin /> */}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Form Panel */}
+      <div className="relative flex justify-center items-center rounded-2xl w-full max-w-6xl overflow-hidden">
         <div className="w-full lg:w-1/2 bg-white p-8 space-y-3">
           {loginError && (
             <div>
@@ -110,7 +98,7 @@ const LoginForm = () => {
 
               {isLoggedin ? (
                 <div className="text-sm text-red-500">
-                  <Link href="/" className="!underline text-blue-600">
+                  <Link href="/" className="underline text-blue-600">
                     Forgot Password?
                   </Link>
                 </div>
@@ -127,14 +115,14 @@ const LoginForm = () => {
           <div className="text-center">
             {isLoggedin ? (
               <p
-                className="text-sm !underline hover:underline cursor-pointer"
+                className="text-sm underline! hover:underline cursor-pointer"
                 onClick={() => setIsLoggedin(false)}
               >
                 Create a new account
               </p>
             ) : (
               <p
-                className=" text-sm !underline cursor-pointer"
+                className=" text-sm underline cursor-pointer"
                 onClick={() => setIsLoggedin(true)}
               >
                 Already have an account?

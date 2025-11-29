@@ -1,100 +1,105 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { axiosInstance } from "@/lib/axios/axiosInstance";
+import { jwtDecode } from "jwt-decode";
 
-import { authKey } from '@/constant/authKey';
-import { instance as axiosInstance } from '@/lib/axios/axiosInstance';
-import { baseURL } from '@/redux/api/base/baseApi';
-import { deleteCookies, setAccessTokenToCookies } from '@/utils/cookies';
-import { getFromLocalStorage, removeFromLocalStorage, setToLocalStorage } from '@/utils/localStorage';
-import { jwtDecode } from 'jwt-decode';
-import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
-import { FieldValues } from 'react-hook-form';
-
-
-
-export const Login = async (formData: FieldValues) => {
-  try {
-  
- let res: Response;
- 
-    try {
-   res = await fetch(
-    `${baseURL}/auth/login`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(formData),
-      // cache: "no-store",
-      credentials: "include",
-    }
-  );
-   } catch (fetchError: any) {
-      throw new Error(`Network error. ${fetchError.message || " Server may be down or unreachable."}`);
-    }
- 
-  const user = await res.json();
-  const accessToken = user?.data?.accessToken;
-
-
-
-
-   if (accessToken) {
-  const passwordChangeRequired = user?.data?.needsPasswordChange;
-     const decoded = jwtDecode(accessToken!) as any;
-
-           const redirection =
-        decoded?.role === 'customer'
-          ? `/`
-          : '/dashboard';
-
-      setAccessTokenToCookies(accessToken, {
-         redirect: redirection,
-        //  passwordChangeRequired,
-      });
-
-      setToLocalStorage(accessToken)
-   }
-
-
-  return user;
-
-    } catch (error: any) {
-      console.error("Login error:", error);
-
-      return{
-        success: false,
-        message: error?.message || "Login failed. Please try again.",
-        data: null
-      }
-      
-    }
-};
-
-
-
-
-export const logout = (router: AppRouterInstance) => {
-   removeFromLocalStorage();
-   deleteCookies([authKey, 'refreshToken']);
-   router.push('/login');
-   router.refresh();
-};
-
-
-
-export const isLoggedIn = () => {
-    const token = getFromLocalStorage();
-    if(token) return !!token
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  roles: string[];
+  isLoading: boolean;
+  avatar?: string;
+  accessibleBusinessUnits?: string[];
+  permissions?: string[];
 }
 
+export interface LoginResponse {
+  success: boolean;
+  accessToken?: string;
+  user?: User;
+  redirect?: string;
+  message?: string;
+}
 
+// ✅ Login with email/password
+export const login = async (formData: any): Promise<LoginResponse> => {
+  try {
+    const res = await axiosInstance.post("/auth/login", formData);
+    const { accessToken, user } = res.data.data;
 
-export const getNewAccessToken = async () => {
-  return await axiosInstance({
-    url: `${baseURL}/auth/refresh-token`,
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    withCredentials: true,
-  });
+    if (accessToken) {
+      sessionStorage.setItem("accessToken", accessToken);
+      
+      const decoded = jwtDecode(accessToken) as any;
+      const redirectPath =
+        decoded?.role === "customer" ? "/" : "/super-admin/telemedicine";
+
+      return {
+        success: true,
+        accessToken,
+        user,
+        redirect: redirectPath,
+      };
+    }
+
+    return { success: false, message: "Invalid login" };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error?.response?.data?.message || "Login failed",
+    };
+  }
+};
+
+// ✅ Get new access token using refresh token
+export const refreshAccessToken = async (): Promise<string | null> => {
+  try {
+    const res = await axiosInstance.post("/auth/refresh-token");
+    const newToken = res?.data?.data?.accessToken;
+    if (newToken) {
+      sessionStorage.setItem("accessToken", newToken);
+      return newToken;
+    }
+
+    return null;
+  } catch (error: any) {
+    console.error("❌ Refresh token failed:", error.message);
+    sessionStorage.removeItem("accessToken");
+    return null;
+  }
+};
+
+// ✅ Fetch current logged-in user
+export const getCurrentUser = async (): Promise<User | null> => {
+  try {
+    const res = await axiosInstance.get("/auth/me");
+    return res?.data?.data || null;
+  } catch (error: any) {
+    console.error("❌ Get current user failed:", error.message);
+    return null;
+  }
+};
+
+// ✅ Logout helper
+export const clearAuthSession = () => {
+  sessionStorage.removeItem("accessToken");
+};
+
+// ✅ Restore session (combines refresh + getCurrentUser)
+export const restoreAuthSession = async (): Promise<User | null> => {
+  const token = await refreshAccessToken();
+
+  // 
+  if (!token) {
+    clearAuthSession();
+    return null;
+  }
+
+  const user = await getCurrentUser();
+  
+  if (!user) {
+    clearAuthSession();
+    return null;
+  }
+
+  return user;
 };

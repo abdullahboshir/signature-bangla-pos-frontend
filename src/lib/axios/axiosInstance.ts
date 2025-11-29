@@ -1,65 +1,53 @@
-import { getNewAccessToken } from "@/services/auth/authService";
-
-import { TGenericErrorResponse, TResponseSuccess } from "@/types";
-import { setAccessTokenToCookies } from "@/utils/cookies";
-import { getFromLocalStorage, setToLocalStorage } from "@/utils/localStorage";
-
 import axios from "axios";
+import { baseURL } from "@/redux/api/base/baseApi";
+import { refreshAccessToken } from "@/services/auth/authService";
 
-const instance = axios.create();
-
-instance.defaults.headers.post["Content-Type"] = "application/json";
-instance.defaults.headers["Accept"] = "application/json";
-instance.defaults.timeout = 15000;
-
-// Add a request interceptor
-instance.interceptors.request.use(
-  function (config) {
-    const accessToken = getFromLocalStorage();
-    if (accessToken) {
-      config.headers.Authorization = accessToken;
-    }
-    return config;
+export const axiosInstance = axios.create({
+  baseURL,
+  withCredentials: true, 
+  headers: {
+    "Content-Type": "application/json",
+    Accept: "application/json",
   },
-  
-  function (error) {
-    // Do something with request error
+  timeout: 15000,
+});
+
+// REQUEST INTERCEPTOR
+axiosInstance.interceptors.request.use((config) => {
+  const token = sessionStorage.getItem("accessToken");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// RESPONSE INTERCEPTOR
+axiosInstance.interceptors.response.use(
+  (response) => {
+    return response.data; // normalized
+  },
+
+  async (error) => {
+    const originalRequest = error.config;
+
+    // JWT expired → backend will return 401
+    if (error?.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      const refreshed = await refreshAccessToken();
+
+      if (!refreshed) {
+        return Promise.reject(error);
+      }
+
+      if (refreshed) {
+        sessionStorage.setItem("accessToken", refreshed);
+        originalRequest.headers.Authorization = `Bearer ${refreshed}`;
+      }
+
+      return axiosInstance(originalRequest);
+    }
+
     return Promise.reject(error);
   }
 );
-
-// Add a response interceptor
-instance.interceptors.response.use(
-  // @ts-expect-error no need to worry about this error
-  function (response) {
-    const responseObject: TResponseSuccess = {
-      data: response?.data?.data,
-      meta: response?.data?.meta,
-    };
-
-    return responseObject;
-  },
-
-  async function (error) {
-    const config = error.config;
-    console.log("GOT AN ERROR FROM axios Instance File", error);
-    if (error?.response?.status === 500 && !config.sent) {
-      config.sent = true;
-      const response = await getNewAccessToken();
-      const accessToken = response?.data?.accessToken;
-      config.headers["Authorization"] = accessToken;
-      setToLocalStorage(accessToken);
-      setAccessTokenToCookies(accessToken);
-      return instance(config);
-    } else {
-      const responseErrorObject: TGenericErrorResponse = {
-        statusCode: error?.response?.status || 500,
-        message: error?.response?.data?.message || "Something went wrong!!",
-        errorMessages: error?.response?.data?.message,
-      };
-      return Promise.reject(responseErrorObject);
-    }
-  }
-);
-
-export { instance };

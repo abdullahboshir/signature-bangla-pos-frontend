@@ -39,6 +39,8 @@ export function UserMenu({ user }: UserMenuProps) {
     console.log("Logging out...")
   }
 
+console.log('user in UserMenu', user);
+
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
       case "super-admin": return "destructive"
@@ -127,7 +129,10 @@ export function UserMenu({ user }: UserMenuProps) {
 
         {/* Business Info */}
         <div className="px-2 py-1.5 text-xs text-muted-foreground">
-          <p>Business Unit: <span className="font-medium capitalize">{user.businessUnit.replace('-', ' ')}</span></p>
+          <p>Business Unit: <span className="font-medium capitalize">
+            {/* {user.businessUnit.replace('-', ' ')} */}
+            {user.businessUnit}
+            </span></p>
         </div>
 
         <DropdownMenuSeparator />
