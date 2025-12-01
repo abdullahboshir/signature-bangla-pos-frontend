@@ -26,12 +26,14 @@ interface BusinessUnit {
 
 interface BusinessUnitSwitcherProps {
   currentBusinessUnit: string
-  currentRole: string
+  currentRole: string,
+  user: any
 }
 
 export function BusinessUnitSwitcher({ 
   currentBusinessUnit, 
-  currentRole 
+  currentRole,
+  user
 }: BusinessUnitSwitcherProps) {
   const [open, setOpen] = useState(false)
   const router = useRouter()
@@ -40,35 +42,35 @@ export function BusinessUnitSwitcher({
     {
       id: "all-business-units",
       name: "All Business Units",
-      role: "super-admin",
+      role: user.role[0],
       icon: Store,
       color: "text-yellow-600",
     },
     {
       id: "telemedicine",
       name: "Telemedicine",
-      role: "business-admin",
+        role: user.role[0],
       icon: Store,
       color: "text-blue-600",
     },
     {
       id: "clothing",
       name: "Clothing Store",
-      role: "business-admin", 
+        role: user.role[0], 
       icon: Store,
       color: "text-purple-600",
     },
     {
       id: "grocery",
       name: "Grocery Mart",
-      role: "store-manager",
+       role: user.role[0],
       icon: Store,
       color: "text-green-600",
     },
     {
       id: "books",
       name: "Book Store", 
-      role: "cashier",
+       role: user.role[0],
       icon: Store,
       color: "text-orange-600",
     },

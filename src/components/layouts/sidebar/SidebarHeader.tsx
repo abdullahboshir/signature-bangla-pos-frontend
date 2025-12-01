@@ -6,8 +6,6 @@ import { Bell, Utensils, Search, Menu } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-
-
 import { cn } from "@/lib/utils"
 import { UserMenu } from "../header/UserMenu"
 import { BusinessUnitSwitcher } from "../header/BusinessUnitSwitcher"
@@ -24,7 +22,7 @@ export function Header({ onMenuClick, className }: HeaderProps) {
   const role = params.role as string
 
   // Mock user data - replace with actual auth context
-  const userData = {
+  const userData: any = {
     fullName: "John Doe",
     profileImg: "/avatars/01.png",
     designation: "Business Admin",
@@ -85,6 +83,7 @@ export function Header({ onMenuClick, className }: HeaderProps) {
         <BusinessUnitSwitcher 
           currentBusinessUnit={businessUnit}
           currentRole={role}
+          user={userData}
         />
 
         {/* Notifications */}

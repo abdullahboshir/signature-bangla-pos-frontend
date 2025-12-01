@@ -22,13 +22,13 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
   const pathname = usePathname();
   const { user, isLoading: authLoading, logout } = useAuth();
   const { currentRole, isLoading: roleLoading } = useCurrentRole();
-  const { currentBusinessUnit, isLoading: unitLoading } = useCurrentBusinessUnit();
+  const { userBusinessUnits, isLoading: unitLoading } = useCurrentBusinessUnit();
   const { hasPermission, isLoading: permissionLoading } = usePermissions();
 
   const [isChecking, setIsChecking] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(true);
 
-  // Extract route segments for validation
+ 
   const pathSegments = pathname.split("/").filter(Boolean);
 
   const roleFromPath = pathSegments[0]; // /[role]
@@ -36,16 +36,12 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
 
   useEffect(() => {
     const checkAccess = async () => {
-      // Don't run check if hooks are still loading
      
       if (authLoading  || unitLoading || permissionLoading) {
-        return;
+        return 'loading...';
       }
       
-      
       try {
-        setIsAuthorized(true)
-        // 1. Check if user is authenticated
         if (!user) {
           setIsAuthorized(false);
           router.push("/auth/login");
@@ -65,7 +61,7 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
         // 3. Check if user has access to this business unit
         if (
           businessUnitFromPath &&
-          !user.accessibleBusinessUnits?.includes(businessUnitFromPath)
+          !userBusinessUnits?.includes(businessUnitFromPath)
         ) {
           setIsAuthorized(false);
           return;
@@ -73,7 +69,7 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
         
         
         // 4. Check if user has this role
-        if (roleFromPath && !currentRole.includes(roleFromPath) ) {
+        if (roleFromPath && !currentRole?.includes(roleFromPath) ) {
           setIsAuthorized(false);
           return;
         }
@@ -83,10 +79,8 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
         const routeAccess = await hasRouteAccess(
           pathname,
           currentRole,
-          user.permissions
+          user.roles.map((role: any) => role.permissions)
         );
-        
-        
       
 
         if (!routeAccess) {
@@ -120,8 +114,7 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
   ]);
 
 
-    console.log('checkingggggggggggggggggg from layout', user, isAuthorized, isChecking);
-
+  
   // Show loading state
   if (
     authLoading ||
@@ -141,7 +134,8 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
       </div>
     );
   }
-
+  
+  console.log('checkingggggggggggggggggg from layout', roleFromPath, isAuthorized, businessUnitFromPath, currentRole, userBusinessUnits);
   // Show unauthorized state
   if (!isAuthorized) {
     return (
@@ -150,7 +144,7 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
           requiredRole={roleFromPath}
           requiredBusinessUnit={businessUnitFromPath}
           userRole={currentRole}
-          userBusinessUnits={user?.accessibleBusinessUnits}
+          userBusinessUnits={userBusinessUnits}
         />
       </div>
     );

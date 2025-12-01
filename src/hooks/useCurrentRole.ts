@@ -1,24 +1,28 @@
-// src/hooks/useCurrentRole.ts
 "use client"
 
 import { useParams } from "next/navigation"
 import { useAuth } from "./useAuth"
 
-export function useCurrentRole() {
+interface UseCurrentRoleResult {
+  currentRole?: string
+  userRole: string[]
+  hasRoleAccess: boolean
+  isLoading: boolean
+}
+
+export function useCurrentRole(): UseCurrentRoleResult {
   const params = useParams()
-  const { user, isLoading: roleLoading } = useAuth()
-  
-  if(roleLoading) return 'loading...';
+  const { user, isLoading } = useAuth()
 
   const currentRole = (params.role || params["roles"]) as string | undefined
-  const userRole = user?.roles.map((role: any) => role.name) || []
+  const userRole = user?.roles?.map((role: any) => role.name) || []
+
   const hasRoleAccess = currentRole ? userRole.includes(currentRole) : false
-  console.log('checkkkkkkkkkkkkkkkk', userRole, hasRoleAccess, user?.roles)
 
   return {
-    currentRole: currentRole || null,
-    userRole: userRole || null,
+    currentRole,
+    userRole,
     hasRoleAccess,
-    isLoading: roleLoading || !user,
+    isLoading: isLoading || !user,
   }
 }

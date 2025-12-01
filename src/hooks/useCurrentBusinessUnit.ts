@@ -9,12 +9,12 @@ export function useCurrentBusinessUnit() {
   const { user, isLoading: authLoading } = useAuth()
   
 
-  console.log('userrrrrrrrrr from business unit', user)
-
+  
   const currentBusinessUnit = (params["business-unit"] || params.businessUnit) as string | undefined
-  const userBusinessUnits = user?.accessibleBusinessUnits || []
+  const userBusinessUnits = user?.businessUnits?.map((unit: any) => unit?.name.toLowerCase()) || []
   
   const hasUnitAccess = currentBusinessUnit ? userBusinessUnits.includes(currentBusinessUnit) : false
+ 
   return {
     currentBusinessUnit: currentBusinessUnit || null,
     userBusinessUnits,

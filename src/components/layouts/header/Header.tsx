@@ -21,29 +21,35 @@ interface HeaderProps {
 
 export function Header({ onMenuClick, className }: HeaderProps) {
   const params = useParams();
-  // Handle both "business-unit" and "businessUnit" params
   const businessUnit = (params["business-unit"] ||
     params.businessUnit) as string;
   const role = params.role as string;
 
   const { user, isLoading: authLoading, logout } = useAuth();
-  console.log("user from useAuth hook", user);
-
+  
   if (authLoading) {
     return "loaiding...";
   }
+  
+  const businessUnits = user?.businessUnits?.map((unit: any) => unit.name.toLowerCase());
+  const roles = user?.roles?.map((unit: any) => unit.name.toLowerCase());
 
-  // const isAllow = user?.accessibleBusinessUnits?.includes(businessUnit);
+  if (!businessUnits?.includes(businessUnit)) {
+    return "You don't have access to this business unit";
+  }
+
+  if (!roles?.includes(role)) {
+    return "You don't have access to this role";
+  }
 
 
-  // console.log("Headerrrrrrrrrrrrrrrrrrr params:", isAllow);
-
-  const userData = {
+  
+  const userData: any = {
     fullName: user?.id || user?.email || "John Doe",
     profileImg: "/avatars/01.png",
-    designation: user?.role || "Employee",
-    role: 'super-admin',
-    businessUnit: businessUnit,
+    designation: user?.roles?.map((role: any) => role.name) || "Employee",
+    role: user?.roles?.map((role: any) => role.name) || "Employee",
+    businessUnit: businessUnits,
   };
 
   return (
@@ -98,6 +104,7 @@ export function Header({ onMenuClick, className }: HeaderProps) {
         <BusinessUnitSwitcher
           currentBusinessUnit={businessUnit}
           currentRole={role}
+          user={userData}
         />
 
         {/* Notifications */}

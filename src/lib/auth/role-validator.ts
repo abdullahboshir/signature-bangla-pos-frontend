@@ -14,8 +14,7 @@ export async function hasRouteAccess(
     if (!userRole || !userPermissions) {
       return false
     }
-
-
+    
     
     // Define route access rules based on roles
     const routeAccessRules: Record<string, string[]> = {
@@ -70,7 +69,6 @@ export async function hasRouteAccess(
         return true
       }
     }
-    console.log("user from role validator hook", allowedRoutes, userRole, pathname);
 
     // Check permissions if route is not in role-based list
     // This is a simple implementation - can be enhanced

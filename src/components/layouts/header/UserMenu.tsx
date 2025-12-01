@@ -26,7 +26,7 @@ interface UserData {
   profileImg?: string
   designation: string
   role: string
-  businessUnit: string
+  businessUnit: string[]
 }
 
 interface UserMenuProps {
@@ -91,7 +91,7 @@ console.log('user in UserMenu', user);
                 variant={getRoleBadgeVariant(user.role)} 
                 className="mt-1 text-xs capitalize"
               >
-                {user.role.replace('-', ' ')}
+                {user.role[0].replace('-', ' ')}
               </Badge>
             </div>
           </div>
@@ -131,7 +131,7 @@ console.log('user in UserMenu', user);
         <div className="px-2 py-1.5 text-xs text-muted-foreground">
           <p>Business Unit: <span className="font-medium capitalize">
             {/* {user.businessUnit.replace('-', ' ')} */}
-            {user.businessUnit}
+            {user.businessUnit?.map((unit: string) => unit.replace('-', ' ')).join(', ')}
             </span></p>
         </div>
 

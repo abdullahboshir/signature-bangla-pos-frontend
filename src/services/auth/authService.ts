@@ -8,7 +8,7 @@ export interface User {
   roles: string[];
   isLoading: boolean;
   avatar?: string;
-  accessibleBusinessUnits?: string[];
+  businessUnits?: string[];
   permissions?: string[];
 }
 
