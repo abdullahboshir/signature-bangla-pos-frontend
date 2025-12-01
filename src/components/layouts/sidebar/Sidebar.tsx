@@ -5,8 +5,9 @@ import { useState } from "react"
 import { useParams, usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { getSidebarMenu, getBusinessUnitInfo } from "@/config/sidebar-menu"
-// import { SidebarHeader } from "./SidebarHeader"
+
 import { SidebarMenu } from "./SidebarMenu"
+import { SidebarHeader } from "./SidebarHeader"
 // import { SidebarFooter } from "./SidebarFooter"
 
 interface SidebarProps {
@@ -26,6 +27,8 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
   const menuItems = getSidebarMenu(role, businessUnit || "")
   const businessUnitInfo = businessUnit ? getBusinessUnitInfo(businessUnit) : undefined
 
+
+
   return (
     <div
       className={cn(
@@ -40,7 +43,7 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
         isCollapsed={isCollapsed}
       /> */}
 
-      {/* Navigation Menu */}
+      
       <div className="flex-1 overflow-auto">
         <SidebarMenu
           items={menuItems}

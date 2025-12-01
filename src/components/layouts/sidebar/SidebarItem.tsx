@@ -31,14 +31,16 @@ export function SidebarItem({
   const hasChildren = item.children && item.children.length > 0
   const Icon = item.icon
   
-  // Build the full path
-  const fullPath = `/${businessUnit}/${role}${item.path ? `/${item.path}` : ''}`
+ 
+  const fullPath = `/${role}/${businessUnit}${item.path ? `/${item.path}` : ''}`
   
+ 
   // Check if current path matches
   const isActive = item.exact 
     ? currentPath === fullPath
     : currentPath.startsWith(fullPath)
 
+    console.log('pathhhhhhhhh', fullPath, 'currentPat', currentPath, 'isActive', isActive)
   // For items with children
   if (hasChildren) {
     return (
@@ -70,7 +72,7 @@ export function SidebarItem({
         <CollapsibleContent>
           <div className={cn("ml-4 mt-1 space-y-1", isCollapsed && "ml-0")}>
             {item.children.map((child: any, index: number) => {
-              const childFullPath = `/${businessUnit}/${role}${child.path ? `/${child.path}` : ''}`
+              const childFullPath = `/${role}/${businessUnit}${child.path ? `/${child.path}` : ''}`
               const isChildActive = currentPath === childFullPath
               
               return (
@@ -100,7 +102,7 @@ export function SidebarItem({
     )
   }
 
-  // For single items without children
+
   return (
     <Link
       href={fullPath}

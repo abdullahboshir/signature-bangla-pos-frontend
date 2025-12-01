@@ -85,20 +85,20 @@ export const sidebarMenuConfig = {
       },
       {
         title: "User Management",
-        path: "users",
+        path: "user-management",
         icon: Users,
         children: [
           {
             title: "All Users",
-            path: "users",
+            path: "user-management/all-users",
           },
           {
             title: "Add User",
-            path: "users/new",
+            path: "user-management/add-user",
           },
           {
             title: "Roles & Permissions",
-            path: "users/roles",
+            path: "user-management/roles-permissions",
           },
         ],
       },

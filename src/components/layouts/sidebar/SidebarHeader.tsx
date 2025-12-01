@@ -16,7 +16,7 @@ interface HeaderProps {
   className?: string
 }
 
-export function Header({ onMenuClick, className }: HeaderProps) {
+export function SidebarHeader({ onMenuClick, className }: HeaderProps) {
   const params = useParams()
   const businessUnit = params.businessUnit as string
   const role = params.role as string
@@ -45,7 +45,7 @@ export function Header({ onMenuClick, className }: HeaderProps) {
         <Menu className="h-5 w-5" />
       </Button>
 
-      {/* Breadcrumb & Title */}
+     
       <div className="flex flex-1 items-center gap-4">
         <div className="flex-1">
           <h1 className="text-xl font-semibold capitalize">

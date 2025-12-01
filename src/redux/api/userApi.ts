@@ -4,6 +4,13 @@ import { baseApi } from "./base/baseApi";
 const userApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     // Profile
+    getAllUsers: build.query({
+      query: () => ({
+        url: "/super-admin/users/all-users",
+        method: "GET",
+      }),
+      providesTags: [tagTypes.user],
+    }),
     getProfile: build.query({
       query: () => ({
         url: "/user/profile",
@@ -51,6 +58,7 @@ const userApi = baseApi.injectEndpoints({
 
 export const {
   useGetProfileQuery,
+  useGetAllUsersQuery,
   useUpdateProfileMutation,
   useChangePasswordMutation,
   useGetSettingsQuery,
