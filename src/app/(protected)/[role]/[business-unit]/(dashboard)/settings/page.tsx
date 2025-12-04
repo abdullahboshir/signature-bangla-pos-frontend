@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Settings, User, Bell, Shield, Store, Palette } from "lucide-react"
 import { useParams } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useThemeSettings } from "@/lib/providers/ThemeSettingsProvider"
 
 export default function SettingsPage() {
@@ -21,13 +21,41 @@ export default function SettingsPage() {
   const [secondary, setSecondary] = useState(theme.secondary || "")
   const [radius, setRadius] = useState(theme.radius ?? 10)
   const [fontScale, setFontScale] = useState(theme.fontScale ?? 1)
+  const [buttonScale, setButtonScale] = useState(theme.buttonScale ?? 1)
 
-  const handleThemeSave = async () => {
+  useEffect(() => {
+    if (!themeLoading) {
+      setPrimary(theme.primary || "")
+      setSecondary(theme.secondary || "")
+      setRadius(theme.radius ?? 10)
+      setFontScale(theme.fontScale ?? 1)
+      setButtonScale(theme.buttonScale ?? 1)
+    }
+  }, [theme, themeLoading])
+
+  const handleThemeSave = async (overrides?: Partial<typeof theme>) => {
     await updateTheme({
-      primary,
-      secondary,
-      radius,
-      fontScale,
+      primary: overrides?.primary ?? primary,
+      secondary: overrides?.secondary ?? secondary,
+      radius: overrides?.radius ?? radius,
+      fontScale: overrides?.fontScale ?? fontScale,
+      buttonScale: overrides?.buttonScale ?? buttonScale,
+    })
+  }
+
+  const handleReset = async () => {
+    setPrimary("")
+    setSecondary("")
+    setRadius(10)
+    setFontScale(1)
+    setButtonScale(1)
+
+    await handleThemeSave({
+      primary: "",
+      secondary: "",
+      radius: 10,
+      fontScale: 1,
+      buttonScale: 1,
     })
   }
 
@@ -79,10 +107,10 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="businessName">Business Name</Label>
-              <Input 
-                id="businessName" 
-                placeholder="Business Name" 
-                defaultValue={businessUnit ? businessUnit.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) : ''} 
+              <Input
+                id="businessName"
+                placeholder="Business Name"
+                defaultValue={businessUnit ? businessUnit.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) : ''}
               />
             </div>
             <div className="space-y-2">
@@ -160,6 +188,7 @@ export default function SettingsPage() {
         </Card>
       </div>
 
+
       {/* System / Theme settings - only super-admin can see */}
       {role === "super-admin" && (
         <Card>
@@ -172,51 +201,134 @@ export default function SettingsPage() {
               Configure global colors and typography for your POS dashboard
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Color Palette</Label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { name: "Default", primary: "", secondary: "" },
+                    { name: "Blue", primary: "oklch(0.623 0.214 259.815)", secondary: "oklch(0.96 0.01 260)" },
+                    { name: "Green", primary: "oklch(0.627 0.194 149.214)", secondary: "oklch(0.96 0.01 150)" },
+                    { name: "Red", primary: "oklch(0.637 0.237 25.331)", secondary: "oklch(0.96 0.01 25)" },
+                    { name: "Orange", primary: "oklch(0.705 0.213 47.604)", secondary: "oklch(0.96 0.01 48)" },
+                    { name: "Purple", primary: "oklch(0.558 0.288 302.321)", secondary: "oklch(0.96 0.01 300)" },
+                  ].map((color) => (
+                    <button
+                      key={color.name}
+                      className={`h-8 w-8 rounded-full border-2 ${primary === color.primary ? "border-primary" : "border-transparent"
+                        }`}
+                      style={{ backgroundColor: color.primary || "oklch(0.205 0 0)" }}
+                      onClick={() => {
+                        setPrimary(color.primary)
+                        setSecondary(color.secondary)
+                      }}
+                      title={color.name}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="primaryColor">Primary color (oklch or CSS color)</Label>
+                  <Input
+                    id="primaryColor"
+                    placeholder="e.g. oklch(0.205 0 0) or #111827"
+                    value={primary}
+                    onChange={(e) => setPrimary(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="secondaryColor">Secondary color</Label>
+                  <Input
+                    id="secondaryColor"
+                    placeholder="e.g. oklch(0.97 0 0)"
+                    value={secondary}
+                    onChange={(e) => setSecondary(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="primaryColor">Primary color (oklch or CSS color)</Label>
-                <Input
-                  id="primaryColor"
-                  placeholder="e.g. oklch(0.205 0 0) or #111827"
-                  value={primary}
-                  onChange={(e) => setPrimary(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="secondaryColor">Secondary color</Label>
-                <Input
-                  id="secondaryColor"
-                  placeholder="e.g. oklch(0.97 0 0)"
-                  value={secondary}
-                  onChange={(e) => setSecondary(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="radius">Corner radius (px)</Label>
-                <Input
-                  id="radius"
-                  type="number"
-                  min={0}
-                  max={24}
-                  value={radius}
-                  onChange={(e) => setRadius(Number(e.target.value) || 0)}
-                />
+                <div className="flex items-center gap-4">
+                  <Input
+                    id="radius"
+                    type="number"
+                    min={0}
+                    max={24}
+                    value={radius}
+                    onChange={(e) => setRadius(Number(e.target.value) || 0)}
+                    className="w-24"
+                  />
+                  <div className="flex-1">
+                    <input
+                      type="range"
+                      min="0"
+                      max="24"
+                      value={radius}
+                      onChange={(e) => setRadius(Number(e.target.value))}
+                      className="w-full accent-primary"
+                    />
+                  </div>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="fontScale">Text size (scale)</Label>
-                <Input
-                  id="fontScale"
-                  type="number"
-                  step={0.05}
-                  min={0.8}
-                  max={1.4}
-                  value={fontScale}
-                  onChange={(e) => setFontScale(Number(e.target.value) || 1)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  1 = default, 0.9 = smaller, 1.1 = slightly larger
-                </p>
+                <div className="flex items-center gap-4">
+                  <Input
+                    id="fontScale"
+                    type="number"
+                    step={0.05}
+                    min={0.8}
+                    max={1.4}
+                    value={fontScale}
+                    onChange={(e) => setFontScale(Number(e.target.value) || 1)}
+                    className="w-24"
+                  />
+                  <div className="flex-1">
+                    <input
+                      type="range"
+                      min="0.8"
+                      max="1.4"
+                      step="0.05"
+                      value={fontScale}
+                      onChange={(e) => setFontScale(Number(e.target.value))}
+                      className="w-full accent-primary"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="buttonScale">Button Size (scale)</Label>
+                <div className="flex items-center gap-4">
+                  <Input
+                    id="buttonScale"
+                    type="number"
+                    step={0.05}
+                    min={0.8}
+                    max={1.5}
+                    value={buttonScale}
+                    onChange={(e) => setButtonScale(Number(e.target.value) || 1)}
+                    className="w-24"
+                  />
+                  <div className="flex-1">
+                    <input
+                      type="range"
+                      min="0.8"
+                      max="1.5"
+                      step="0.05"
+                      value={buttonScale}
+                      onChange={(e) => setButtonScale(Number(e.target.value))}
+                      className="w-full accent-primary"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -224,12 +336,21 @@ export default function SettingsPage() {
               <p className="text-xs text-muted-foreground">
                 Changes apply immediately and are saved with your account settings.
               </p>
-              <Button
-                onClick={handleThemeSave}
-                disabled={themeLoading || isSaving}
-              >
-                {isSaving ? "Saving..." : "Save Theme"}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleReset}
+                  disabled={themeLoading || isSaving}
+                >
+                  Reset Defaults
+                </Button>
+                <Button
+                  onClick={() => handleThemeSave()}
+                  disabled={themeLoading || isSaving}
+                >
+                  {isSaving ? "Saving..." : "Save Theme"}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

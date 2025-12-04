@@ -21,12 +21,12 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-9 px-4 py-2 has-[>svg]:px-3",
-        sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
-        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
-        icon: "size-9",
-        "icon-sm": "size-8",
-        "icon-lg": "size-10",
+        default: "h-[calc(2.25rem*var(--sb-button-scale,1))] px-[calc(1rem*var(--sb-button-scale,1))] py-[calc(0.5rem*var(--sb-button-scale,1))] has-[>svg]:px-[calc(0.75rem*var(--sb-button-scale,1))]",
+        sm: "h-[calc(2rem*var(--sb-button-scale,1))] rounded-md gap-1.5 px-[calc(0.75rem*var(--sb-button-scale,1))] has-[>svg]:px-[calc(0.625rem*var(--sb-button-scale,1))]",
+        lg: "h-[calc(2.5rem*var(--sb-button-scale,1))] rounded-md px-[calc(1.5rem*var(--sb-button-scale,1))] has-[>svg]:px-[calc(1rem*var(--sb-button-scale,1))]",
+        icon: "w-[calc(2.25rem*var(--sb-button-scale,1))] h-[calc(2.25rem*var(--sb-button-scale,1))]",
+        "icon-sm": "w-[calc(2rem*var(--sb-button-scale,1))] h-[calc(2rem*var(--sb-button-scale,1))]",
+        "icon-lg": "w-[calc(2.5rem*var(--sb-button-scale,1))] h-[calc(2.5rem*var(--sb-button-scale,1))]",
       },
     },
     defaultVariants: {

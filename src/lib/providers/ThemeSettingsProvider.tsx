@@ -16,10 +16,9 @@ import {
 type ThemeSettings = {
   primary?: string;
   secondary?: string;
-  background?: string;
-  foreground?: string;
   radius?: number;
   fontScale?: number;
+  buttonScale?: number;
 };
 
 type ThemeSettingsContextType = {
@@ -34,24 +33,27 @@ const ThemeSettingsContext = createContext<
 >(undefined);
 
 const DEFAULT_THEME: ThemeSettings = {
-  primary: "oklch(0.205 0 0)",
-  secondary: "oklch(0.97 0 0)",
-  background: "oklch(92.571% 0.00106 11.689)",
-  foreground: "oklch(0.145 0 0)",
   radius: 10,
   fontScale: 1,
+  buttonScale: 1,
 };
 
 function applyThemeToDocument(theme: ThemeSettings) {
   if (typeof document === "undefined") return;
 
   const root = document.documentElement;
-  if (theme.primary) root.style.setProperty("--primary", theme.primary);
-  if (theme.secondary) root.style.setProperty("--secondary", theme.secondary);
-  if (theme.background)
-    root.style.setProperty("--background", theme.background);
-  if (theme.foreground)
-    root.style.setProperty("--foreground", theme.foreground);
+
+  if (theme.primary) {
+    root.style.setProperty("--primary", theme.primary);
+  } else {
+    root.style.removeProperty("--primary");
+  }
+
+  if (theme.secondary) {
+    root.style.setProperty("--secondary", theme.secondary);
+  } else {
+    root.style.removeProperty("--secondary");
+  }
 
   if (typeof theme.radius === "number") {
     root.style.setProperty("--radius", `${theme.radius}px`);
@@ -59,6 +61,10 @@ function applyThemeToDocument(theme: ThemeSettings) {
 
   if (typeof theme.fontScale === "number") {
     root.style.setProperty("--sb-font-scale", String(theme.fontScale));
+  }
+
+  if (typeof theme.buttonScale === "number") {
+    root.style.setProperty("--sb-button-scale", String(theme.buttonScale));
   }
 }
 
@@ -72,13 +78,33 @@ export function ThemeSettingsProvider({ children }: { children: ReactNode }) {
   const [updateSettings, { isLoading: saving }] = useUpdateSettingsMutation();
 
   const initialTheme: ThemeSettings = useMemo(() => {
+    // Try to extract from API response
     const raw = (data as any)?.data ?? data;
-    const theme = raw?.theme ?? raw?.uiTheme ?? {};
+    const apiTheme = raw?.theme ?? raw?.uiTheme ?? {};
 
-    return {
+    // Try to get from localStorage as fallback
+    let localTheme = {};
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("theme-settings");
+        if (stored) {
+          localTheme = JSON.parse(stored);
+        }
+      } catch (e) {
+        console.error("Failed to parse theme from localStorage", e);
+      }
+    }
+
+    // Merge: API data takes precedence over localStorage
+    const mergedTheme = {
       ...DEFAULT_THEME,
-      ...theme,
+      ...localTheme,
+      ...apiTheme,
     };
+
+    console.log("Theme loaded:", { apiTheme, localTheme, mergedTheme });
+
+    return mergedTheme;
   }, [data]);
 
   const [theme, setTheme] = useState<ThemeSettings>(DEFAULT_THEME);
@@ -93,8 +119,18 @@ export function ThemeSettingsProvider({ children }: { children: ReactNode }) {
     setTheme(next);
     applyThemeToDocument(next);
 
+    // Save to localStorage immediately
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("theme-settings", JSON.stringify(next));
+      } catch (e) {
+        console.error("Failed to save theme to localStorage", e);
+      }
+    }
+
     try {
       await updateSettings({ theme: next }).unwrap();
+      console.log("Theme saved to backend:", next);
     } catch (err) {
       // Silently ignore API failure but keep local theme
       console.error("Failed to update theme settings", err);

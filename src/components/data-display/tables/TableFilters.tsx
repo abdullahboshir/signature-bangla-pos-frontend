@@ -73,7 +73,7 @@ export function TableFilters({
   // Initialize filters based on dataType
   useEffect(() => {
     const defaultFilters: Record<string, any> = {};
-    
+
     switch (dataType) {
       case 'user':
         defaultFilters.role = [];
@@ -92,7 +92,7 @@ export function TableFilters({
         defaultFilters.customerType = ['regular'];
         break;
     }
-    
+
     setFilters(prev => ({ ...defaultFilters, ...prev }));
   }, [dataType]);
 
@@ -326,7 +326,7 @@ export function TableFilters({
               <Badge
                 key={key}
                 variant="secondary"
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 dark:!text-gray-900"
               >
                 <span className="capitalize">{key}: {displayValue}</span>
                 <X
@@ -409,7 +409,7 @@ export function TableFilters({
               <h4 className="font-medium leading-none">Filters</h4>
               <div className="space-y-4">
                 {renderDataTypeSpecificFilters()}
-                
+
                 {/* Search Filter */}
                 <div className="space-y-2">
                   <Label>Search</Label>

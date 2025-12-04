@@ -218,7 +218,7 @@ export function DynamicDataTable<T extends Record<string, any>>({
                 <Button
                   variant={density === 'comfortable' ? 'secondary' : 'ghost'}
                   size="sm"
-                  className="h-8 px-3"
+                  className={cn("h-8 px-3", density === 'comfortable' && "dark:!text-gray-900")}
                   onClick={() => setDensity('comfortable')}
                 >
                   Cozy
@@ -226,7 +226,7 @@ export function DynamicDataTable<T extends Record<string, any>>({
                 <Button
                   variant={density === 'compact' ? 'secondary' : 'ghost'}
                   size="sm"
-                  className="h-8 px-3"
+                  className={cn("h-8 px-3", density === 'compact' && "dark:!text-gray-900")}
                   onClick={() => setDensity('compact')}
                 >
                   Compact
@@ -339,70 +339,70 @@ export function DynamicDataTable<T extends Record<string, any>>({
       {/* Table */}
       <div className="rounded-lg border bg-card">
         <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead
-                      key={header.id}
-                      className={cn(
-                        'whitespace-nowrap text-left align-middle font-semibold text-muted-foreground',
-                        density === 'compact' ? 'py-2 text-xs' : 'py-3 text-sm'
-                      )}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead
+                        key={header.id}
+                        className={cn(
+                          'whitespace-nowrap text-left align-middle font-semibold text-muted-foreground',
+                          density === 'compact' ? 'py-2 text-xs' : 'py-3 text-sm'
+                        )}
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
                             header.column.columnDef.header,
                             header.getContext()
                           )}
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  className={cn(
-                    'border-b last:border-b-0',
-                    density === 'compact' ? 'h-10' : 'h-14'
-                  )}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className={cn(
-                        'whitespace-nowrap align-middle',
-                        density === 'compact' ? 'py-1 text-sm' : 'py-3'
-                      )}
-                    >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
+                      </TableHead>
+                    );
+                  })}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No results found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                    className={cn(
+                      'border-b last:border-b-0',
+                      density === 'compact' ? 'h-10' : 'h-14'
+                    )}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell
+                        key={cell.id}
+                        className={cn(
+                          'whitespace-nowrap align-middle',
+                          density === 'compact' ? 'py-1 text-sm' : 'py-3'
+                        )}
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    No results found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
       </div>
 
