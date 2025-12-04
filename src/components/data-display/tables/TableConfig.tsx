@@ -26,6 +26,13 @@ export const TableConfig: Record<DataType, ITableConfig> = {
       view: true,
       export: true,
     },
+    toolbar: {
+      placeholder: 'Search users...',
+    },
+    quickFilters: [
+      { id: 'active', label: 'Active', column: 'status', value: true },
+      { id: 'inactive', label: 'Inactive', column: 'status', value: false },
+    ],
   },
   
   product: {

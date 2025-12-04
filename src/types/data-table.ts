@@ -27,6 +27,18 @@ export interface TableColumn<T = any> {
   };
 }
 
+export interface TableQuickFilter {
+  id: string;
+  label: string;
+  column: string;
+  value: string | number | boolean;
+}
+
+export interface TableToolbarConfig {
+  placeholder?: string;
+  showSearch?: boolean;
+}
+
 export interface TableConfig {
   dataType: DataType;
   columns: TableColumn[];
@@ -49,6 +61,8 @@ export interface TableConfig {
       onClick: (selectedRows: any[]) => void;
     }>;
   };
+  quickFilters?: TableQuickFilter[];
+  toolbar?: TableToolbarConfig;
 }
 
 export interface TableData<T = any> {

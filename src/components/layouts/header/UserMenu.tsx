@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { useAuth } from "@/hooks/useAuth"
 
 interface UserData {
   fullName: string
@@ -34,12 +35,12 @@ interface UserMenuProps {
 }
 
 export function UserMenu({ user }: UserMenuProps) {
+
+   const { logout } = useAuth();
   const handleLogout = () => {
-    // Add your logout logic here
-    console.log("Logging out...")
+  logout();
   }
 
-console.log('user in UserMenu', user);
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {

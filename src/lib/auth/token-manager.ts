@@ -7,13 +7,12 @@ import { authKey } from "@/constant/authKey"
 /**
  * Get token from cookies (client-side)
  */
-function getToken(): string | null {
+export function getToken(): string | null {
   if (typeof document === "undefined") {
     return null
   }
 
   const cookies = document.cookie.split(";")
-  console.log('ddddddddddddddddddddddddddd', document.cookie)
   const tokenCookie = cookies.find((cookie) => cookie.trim().startsWith(`${authKey}=`))
   
   if (!tokenCookie) {
@@ -26,7 +25,7 @@ function getToken(): string | null {
 /**
  * Remove token from cookies (client-side)
  */
-function removeToken(): void {
+export function removeToken(): void {
   if (typeof document === "undefined") {
     return
   }
@@ -39,9 +38,8 @@ function removeToken(): void {
  */
 export async function verifyToken(): Promise<boolean> {
   try {
-      const token = sessionStorage.getItem("accessToken");
+    const token = getToken();
 
-    
     if (!token) {
       return false
     }
@@ -70,7 +68,7 @@ export async function verifyToken(): Promise<boolean> {
  */
 export function getTokenExpiration(): Date | null {
   try {
-     const token = sessionStorage.getItem("accessToken");
+    const token = getToken();
     
     if (!token) {
       return null

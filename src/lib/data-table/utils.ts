@@ -14,6 +14,17 @@ import { ActionCell } from "@/components/data-display/table-cells/ActionCell";
 import { StockCell } from "@/components/data-display/table-cells/StockCell";
 
 /**
+ * Safely read nested values like "category.name" from an object
+ */
+function getNestedValue(obj: Record<string, any>, path: string): any {
+  if (!obj || !path) return undefined;
+  return path.split(".").reduce((acc: any, key: string) => {
+    if (acc === null || acc === undefined) return undefined;
+    return acc[key];
+  }, obj);
+}
+
+/**
  * Generate TanStack React Table column definitions from config
  * 
  * @param config - Column configuration
@@ -30,12 +41,20 @@ export function generateColumns<T extends Record<string, any>>(
   }
 ): ColumnDef<T>[] {
   return config.columns.map((column: TableColumn) => {
+    const hasNestedAccessor = column.accessorKey.includes(".");
+
     const columnDef: ColumnDef<T> = {
       id: column.id,
-      accessorKey: column.accessorKey,
+      // For flat fields let TanStack handle accessorKey directly.
+      // For nested paths we provide an accessorFn instead.
+      accessorKey: hasNestedAccessor ? undefined : column.accessorKey,
+      accessorFn: hasNestedAccessor
+        ? (row: T) => getNestedValue(row, column.accessorKey)
+        : undefined,
       header: column.header,
       cell: ({ row }) => {
-        const value = row.getValue(column.accessorKey);
+        // Always read by column id so it works with accessorFn as well.
+        const value = row.getValue(column.id);
         const rowData = row.original;
 
         // ====== RENDER CELL BASED ON TYPE ======

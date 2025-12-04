@@ -5,6 +5,23 @@ import { useAuth } from "./useAuth"
 
 export function usePermissions() {
   const { user, isLoading: authLoading } = useAuth()
+
+    if (authLoading) {
+    return {
+      userRole: [],
+      hasRoleAccess: false,
+      isLoading: true,
+    };
+  }
+
+
+  if (!user) {
+    return {
+      userRole: [],
+      hasRoleAccess: false,
+      isLoading: false,
+    };
+  }
   
   const hasPermission = (permission: string) => {
     return user?.permissions?.includes(permission) || false
@@ -22,6 +39,14 @@ export function usePermissions() {
     )
   }
   
+console.log("usePermissions →", {
+  permissions: user?.permissions || [],
+  hasPermission,
+  hasAnyPermission,
+  hasAllPermissions,
+  isLoading: authLoading || !user,
+})
+
   return {
     permissions: user?.permissions || [],
     hasPermission,

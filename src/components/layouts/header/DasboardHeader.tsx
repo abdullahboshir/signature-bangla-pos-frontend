@@ -19,7 +19,7 @@ interface HeaderProps {
   className?: string;
 }
 
-export function Header({ onMenuClick, className }: HeaderProps) {
+export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
   const params = useParams();
   const businessUnit = (params["business-unit"] ||
     params.businessUnit) as string;

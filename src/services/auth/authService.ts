@@ -1,14 +1,21 @@
+// src/services/authService.ts
+"use client";
+
 import { axiosInstance } from "@/lib/axios/axiosInstance";
 import { jwtDecode } from "jwt-decode";
+import { authKey } from "@/constant/authKey";
+import logger from "@/lib/providers/logger";
 
+// -----------------------------
+// Interfaces
+// -----------------------------
 export interface User {
   id: string;
   name: string;
   email: string;
-  roles: string[];
-  isLoading: boolean;
+  roles: any[];
+  businessUnits: any[];
   avatar?: string;
-  businessUnits?: string[];
   permissions?: string[];
 }
 
@@ -20,28 +27,49 @@ export interface LoginResponse {
   message?: string;
 }
 
-// ✅ Login with email/password
+// -----------------------------
+// Cookie Helpers
+// -----------------------------
+const setCookie = (name: string, value: string, days = 7) => {
+  if (typeof document === "undefined") return;
+
+  const expires = new Date(Date.now() + days * 86400 * 1000).toUTCString();
+  document.cookie = `${name}=${encodeURIComponent(
+    value
+  )}; expires=${expires}; path=/; SameSite=Lax`;
+};
+
+const removeCookie = (name: string) => {
+  if (typeof document === "undefined") return;
+
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+};
+
+// -----------------------------
+// LOGIN
+// -----------------------------
 export const login = async (formData: any): Promise<LoginResponse> => {
   try {
     const res = await axiosInstance.post("/auth/login", formData);
-    const { accessToken, user } = res.data.data;
-
-    if (accessToken) {
-      sessionStorage.setItem("accessToken", accessToken);
-      
-      const decoded = jwtDecode(accessToken) as any;
-      const redirectPath =
-        decoded?.role === "customer" ? "/" : "/super-admin/telemedicine";
-
-      return {
-        success: true,
-        accessToken,
-        user,
-        redirect: redirectPath,
-      };
+  
+    const { accessToken, user } = res?.data?.data;
+    if (!accessToken) {
+      return { success: false, message: "Invalid login" };
     }
+  console.log('from loginnnnnnnnnnnnnnnn', res)
+    setCookie(authKey, accessToken);
 
-    return { success: false, message: "Invalid login" };
+    // Decode to know redirect logic
+    const decoded = jwtDecode(accessToken) as any;
+    const redirect =
+      decoded?.role === "customer" ? "/" : "/super-admin/telemedicine";
+
+    return {
+      success: true,
+      accessToken,
+      user,
+      redirect,
+    };
   } catch (error: any) {
     return {
       success: false,
@@ -50,56 +78,70 @@ export const login = async (formData: any): Promise<LoginResponse> => {
   }
 };
 
-// ✅ Get new access token using refresh token
+// -----------------------------
+// REFRESH TOKEN
+// -----------------------------
 export const refreshAccessToken = async (): Promise<string | null> => {
   try {
     const res = await axiosInstance.post("/auth/refresh-token");
-    const newToken = res?.data?.data?.accessToken;
-    if (newToken) {
-      sessionStorage.setItem("accessToken", newToken);
-      return newToken;
-    }
+    const token = res?.data?.data?.accessToken;
+      console.log('from refreshAccessTokennnnnnnnnnnnnnn', res)
+    
+    if (!token) return null;
 
-    return null;
+    setCookie(authKey, token);
+    return token;
   } catch (error: any) {
-    console.error("❌ Refresh token failed:", error.message);
-    sessionStorage.removeItem("accessToken");
+    console.error("Refresh failed:", error?.message);
+    removeCookie(authKey);
     return null;
   }
 };
 
-// ✅ Fetch current logged-in user
+// -----------------------------
+// CURRENT USER
+// -----------------------------
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
     const res = await axiosInstance.get("/auth/me");
+      console.log('get meeeeeeeeeeeeee', res)
     return res?.data?.data || null;
-  } catch (error: any) {
-    console.error("❌ Get current user failed:", error.message);
+  } catch (error) {
     return null;
   }
 };
 
-// ✅ Logout helper
-export const clearAuthSession = () => {
-  sessionStorage.removeItem("accessToken");
+// -----------------------------
+// LOGOUT
+// -----------------------------
+export const clearAuthSession = async () => {
+  removeCookie(authKey);
+  removeCookie("refreshToken");
+
+  try {
+    await axiosInstance.post("/auth/logout");
+  } catch (err) {
+    console.error("Logout API request failed:", err);
+  }
+
+  localStorage.removeItem("userState");
 };
 
-// ✅ Restore session (combines refresh + getCurrentUser)
+// -----------------------------
+// RESTORE SESSION
+// This function prevents early FALSE
+// -----------------------------
 export const restoreAuthSession = async (): Promise<User | null> => {
-  const token = await refreshAccessToken();
-
-  // 
-  if (!token) {
+  let user = await getCurrentUser();
+  if (user) return user;
+console.log('from restoreAuthSessionnnnnnnnnnnnnnnn', user)
+  const newToken = await refreshAccessToken();
+  if (!newToken) {
     clearAuthSession();
     return null;
   }
 
-  const user = await getCurrentUser();
-  
-  if (!user) {
-    clearAuthSession();
-    return null;
-  }
-
+  // 3️⃣ Third attempt: get user again after refresh
+  user = await getCurrentUser();
   return user;
 };

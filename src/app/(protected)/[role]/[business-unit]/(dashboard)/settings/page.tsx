@@ -6,13 +6,30 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { Settings, User, Bell, Shield, CreditCard, Store } from "lucide-react"
+import { Settings, User, Bell, Shield, Store, Palette } from "lucide-react"
 import { useParams } from "next/navigation"
+import { useState } from "react"
+import { useThemeSettings } from "@/lib/providers/ThemeSettingsProvider"
 
 export default function SettingsPage() {
   const params = useParams()
   const businessUnit = params["business-unit"] as string
   const role = params.role as string
+  const { theme, isLoading: themeLoading, isSaving, updateTheme } = useThemeSettings()
+
+  const [primary, setPrimary] = useState(theme.primary || "")
+  const [secondary, setSecondary] = useState(theme.secondary || "")
+  const [radius, setRadius] = useState(theme.radius ?? 10)
+  const [fontScale, setFontScale] = useState(theme.fontScale ?? 1)
+
+  const handleThemeSave = async () => {
+    await updateTheme({
+      primary,
+      secondary,
+      radius,
+      fontScale,
+    })
+  }
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -142,6 +159,81 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* System / Theme settings - only super-admin can see */}
+      {role === "super-admin" && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center space-x-2">
+              <Palette className="h-5 w-5" />
+              <CardTitle>Appearance & Theme</CardTitle>
+            </div>
+            <CardDescription>
+              Configure global colors and typography for your POS dashboard
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="primaryColor">Primary color (oklch or CSS color)</Label>
+                <Input
+                  id="primaryColor"
+                  placeholder="e.g. oklch(0.205 0 0) or #111827"
+                  value={primary}
+                  onChange={(e) => setPrimary(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="secondaryColor">Secondary color</Label>
+                <Input
+                  id="secondaryColor"
+                  placeholder="e.g. oklch(0.97 0 0)"
+                  value={secondary}
+                  onChange={(e) => setSecondary(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="radius">Corner radius (px)</Label>
+                <Input
+                  id="radius"
+                  type="number"
+                  min={0}
+                  max={24}
+                  value={radius}
+                  onChange={(e) => setRadius(Number(e.target.value) || 0)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="fontScale">Text size (scale)</Label>
+                <Input
+                  id="fontScale"
+                  type="number"
+                  step={0.05}
+                  min={0.8}
+                  max={1.4}
+                  value={fontScale}
+                  onChange={(e) => setFontScale(Number(e.target.value) || 1)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  1 = default, 0.9 = smaller, 1.1 = slightly larger
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <p className="text-xs text-muted-foreground">
+                Changes apply immediately and are saved with your account settings.
+              </p>
+              <Button
+                onClick={handleThemeSave}
+                disabled={themeLoading || isSaving}
+              >
+                {isSaving ? "Saving..." : "Save Theme"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Role-specific settings */}
       {role === "super-admin" && (

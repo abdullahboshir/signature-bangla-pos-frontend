@@ -40,8 +40,7 @@ export function SidebarItem({
     ? currentPath === fullPath
     : currentPath.startsWith(fullPath)
 
-    console.log('pathhhhhhhhh', fullPath, 'currentPat', currentPath, 'isActive', isActive)
-  // For items with children
+
   if (hasChildren) {
     return (
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>

@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { Header } from "./header/Header";
+import { DasboardHeader } from "./header/DasboardHeader";
 import { Sidebar } from "./sidebar/Sidebar";
 import { Footer } from "./Footer";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
@@ -42,9 +42,9 @@ export function AppLayout({ children, showFooter = true }: AppLayoutProps) {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        <Header onMenuClick={() => setMobileOpen(true)} />
+        <DasboardHeader onMenuClick={() => setMobileOpen(true)} />
 
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-auto mx-2">{children}</main>
 
         {showFooter && <Footer />}
       </div>

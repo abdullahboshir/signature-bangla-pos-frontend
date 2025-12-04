@@ -1,138 +1,207 @@
 "use client";
 
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-import FormWrapper from "@/components/forms/FormWrapper";
-import InputField from "@/components/forms/InputField";
 
-import { login } from "@/services/auth/authService";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
 import { useUserRegisterMutation } from "@/redux/api/authApi";
+import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
 
-const LoginForm = () => {
-  const [isLoggedin, setIsLoggedin] = useState(true);
-  const [loginError, setLoginError] = useState("");
-  const [passError, setPassError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [register, { isLoading: registerLoading, isSuccess }] = useUserRegisterMutation();
+interface LoginModalProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export default function LoginModal({ open = false, onOpenChange }: LoginModalProps) {
+  const pathname = usePathname();
   const router = useRouter();
+  const isLoginPage = pathname === "/auth/login";
+  const { login: authLogin } = useAuth();
 
-  const handleLogin = async (data: any) => {
- 
-    
+  const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const [registerUser] = useUserRegisterMutation();
+
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+  });
+
+  // Always stay in login tab when at /auth/login
+  useEffect(() => {
+    if (isLoginPage) setActiveTab("login");
+  }, [isLoginPage]);
+
+  // FORM INPUT HANDLER
+  const handleChange = (e: any) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // FINAL SUBMIT HANDLER
+  const handleSubmit = async (e: any) => {
+    e.preventDefault();
+    setIsLoading(true);
+
     try {
-      setIsLoading(true);
-      
       let res;
-      
-      if (!isLoggedin) {
-        res = await register(data);
-      }
-      
-      res = await login(data);
 
-      setIsLoading(false);
-      // setLoginError(res?.error);
+      if (activeTab === "signup") {
+        // CREATE USER
+        const reg = await registerUser(formData).unwrap();
 
-      if (res?.accessToken) { 
-        res
-        router.push(res?.redirect || "/super-admin/telemedicine");
+        if (!reg?.success) throw new Error("Account creation failed");
+
         Swal.fire({
-          position: "top-end",
           icon: "success",
-          title: "Logged in successful",
-          showConfirmButton: false,
+          title: "Account created! Please login.",
           timer: 1500,
+          showConfirmButton: false,
         });
+
+        // Switch to login tab
+        setActiveTab("login");
+        setIsLoading(false);
+        return;
       }
-    } catch (error: any) {
-      console.log("got adn errorrrrr", error);
+
+      // LOGIN USER
+      res = await authLogin({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (!res?.success || !res?.accessToken) {
+        throw new Error("Invalid credentials");
+      }
+
+      Swal.fire({
+        icon: "success",
+        title: "Logged in successfully",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
+      // After login → close modal if not on login page
+      if (!isLoginPage && onOpenChange) onOpenChange(false);
+
+      if (res.redirect) {
+        router.push(res.redirect);
+      } else {
+        router.push("/super-admin/telemedicine");
+      }
+
+      setFormData({ firstName: "", lastName: "", email: "", password: "" });
+    } catch (err: any) {
       Swal.fire({
         icon: "error",
-        title: "Oops...",
-        text: `got an error ${error?.message}`,
+        title: "Login failed",
+        text: err?.message || "Something went wrong",
       });
     }
+
+    setIsLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-base-200 flex items-center justify-center">
-      <div className="relative flex justify-center items-center rounded-2xl w-full max-w-6xl overflow-hidden">
-        <div className="w-full lg:w-1/2 bg-white p-8 space-y-3">
-          {loginError && (
-            <div>
-              <p className="text-red-400 font-semibold text-xl">
-                {typeof loginError === "string" &&
-                loginError.includes("ENOTFOUND ")
-                  ? "Network loginError"
-                  : loginError}
-              </p>
-            </div>
-          )}
-          <FormWrapper onSubmit={handleLogin}>
-            <div className="flex flex-col gap-5">
-              {!isLoggedin && (
-                <InputField
-                  name="firstName"
-                  type="text"
-                  placeholder="First Name"
-                />
-              )}
+    <Dialog open={isLoginPage ? true : open} onOpenChange={(o) => !isLoginPage && onOpenChange?.(o)}>
+      <DialogContent
+        className="sm:max-w-md"
+        onInteractOutside={(e) => isLoginPage && e.preventDefault()}
+      >
+        <DialogHeader>
+          <DialogTitle className="text-2xl text-center">
+            {activeTab === "login" ? "Welcome Back" : "Create Account"}
+          </DialogTitle>
+          <DialogDescription className="text-center">
+            {activeTab === "login"
+              ? "Sign in to your Signature Bangla POS dashboard"
+              : "Create your Signature Bangla POS account"}
+          </DialogDescription>
+        </DialogHeader>
 
-              {!isLoggedin && (
-                <InputField
-                  name="lastName"
-                  type="text"
-                  placeholder="Last Name"
-                />
-              )}
-              <InputField name="email" type="email" placeholder="Email" />
-              <InputField
-                name="password"
-                type="password"
-                placeholder="Password"
-              />
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+          <TabsList className="grid grid-cols-2">
+            <TabsTrigger value="login">Login</TabsTrigger>
+            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+          </TabsList>
 
-              {isLoggedin ? (
-                <div className="text-sm text-red-500">
-                  <Link href="/" className="underline text-blue-600">
+          {/* FORM */}
+          <form onSubmit={handleSubmit}>
+            {/* LOGIN */}
+            <TabsContent value="login" className="space-y-4">
+              <div className="space-y-2">
+                <label>Email</label>
+                <Input
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <label>Password</label>
+                  <Link href="/forgot-password" className="text-xs text-primary">
                     Forgot Password?
                   </Link>
                 </div>
-              ) : (
-                <div className="text-sm text-red-500">{passError}</div>
-              )}
+                <Input
+                  name="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
 
-              <Button type="submit" disabled={isLoading} className="w-full">
-                {isLoading ? "Processing..." : isLoggedin ? "Login" : "Sign Up"}
+              <Button disabled={isLoading} className="w-full">
+                {isLoading ? "Processing..." : "Login"}
               </Button>
-            </div>
-          </FormWrapper>
+            </TabsContent>
 
-          <div className="text-center">
-            {isLoggedin ? (
-              <p
-                className="text-sm underline! hover:underline cursor-pointer"
-                onClick={() => setIsLoggedin(false)}
-              >
-                Create a new account
-              </p>
-            ) : (
-              <p
-                className=" text-sm underline cursor-pointer"
-                onClick={() => setIsLoggedin(true)}
-              >
-                Already have an account?
-              </p>
-            )}
-          </div>
+            {/* SIGNUP */}
+            <TabsContent value="signup" className="space-y-4">
+              <Input name="firstName" placeholder="First Name" value={formData.firstName} onChange={handleChange} required />
+              <Input name="lastName" placeholder="Last Name" value={formData.lastName} onChange={handleChange} required />
+              <Input name="email" type="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
+              <Input name="password" type="password" placeholder="Password" value={formData.password} onChange={handleChange} required />
+
+              <Button disabled={isLoading} className="w-full">
+                {isLoading ? "Processing..." : "Create Account"}
+              </Button>
+            </TabsContent>
+          </form>
+        </Tabs>
+
+        <div className="text-center text-sm">
+          {activeTab === "login" ? (
+            <p>
+              Don’t have an account?
+              <button className="text-primary ml-1" onClick={() => setActiveTab("signup")}>
+                Sign Up
+              </button>
+            </p>
+          ) : (
+            <p>
+              Already have an account?
+              <button className="text-primary ml-1" onClick={() => setActiveTab("login")}>
+                Login
+              </button>
+            </p>
+          )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
-};
-
-export default LoginForm;
+}

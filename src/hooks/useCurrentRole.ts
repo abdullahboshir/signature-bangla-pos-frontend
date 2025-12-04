@@ -1,28 +1,62 @@
-"use client"
+"use client";
 
-import { useParams } from "next/navigation"
-import { useAuth } from "./useAuth"
+import { useParams } from "next/navigation";
+import { useAuth } from "./useAuth";
 
 interface UseCurrentRoleResult {
-  currentRole?: string
-  userRole: string[]
-  hasRoleAccess: boolean
-  isLoading: boolean
+  currentRole?: string;
+  userRole: string[];
+  hasRoleAccess: boolean;
+  isLoading: boolean;
 }
 
 export function useCurrentRole(): UseCurrentRoleResult {
-  const params = useParams()
-  const { user, isLoading } = useAuth()
+  const params = useParams();
+  const { user, isLoading } = useAuth();
+  const currentRole =
+  (params.role || params["roles"]) as string | undefined;
+  
+  if (isLoading) {
+    return {
+      currentRole,
+      userRole: [],
+      hasRoleAccess: false,
+      isLoading: true,
+    };
+  }
+  
+  
+  if (!user) {
+    return {
+      currentRole,
+      userRole: [],
+      hasRoleAccess: false,
+      isLoading: false,
+    };
+  }
+  
+  console.log('useCurrentRole', user, isLoading)
 
-  const currentRole = (params.role || params["roles"]) as string | undefined
-  const userRole = user?.roles?.map((role: any) => role.name) || []
+  const userRole =
+    Array.isArray(user.roles)
+      ? user.roles.map((role: any) => role.name)
+      : [];
 
-  const hasRoleAccess = currentRole ? userRole.includes(currentRole) : false
+  // 👍 এখন safe access check
+  const hasRoleAccess =
+    currentRole && userRole.length > 0
+      ? userRole.includes(currentRole)
+      : false;
+
+  console.log(
+    "useCurrentRole →",
+    { currentRole, userRole, hasRoleAccess }
+  );
 
   return {
     currentRole,
     userRole,
     hasRoleAccess,
-    isLoading: isLoading || !user,
-  }
+    isLoading: false,
+  };
 }

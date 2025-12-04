@@ -2,6 +2,8 @@
 import { store } from "@/redux/store/store";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { Provider } from "react-redux";
+import { AuthProvider } from "./AuthProvider";
+import { ThemeSettingsProvider } from "./ThemeSettingsProvider";
 
 const Providers = ({
   children,
@@ -16,7 +18,9 @@ const Providers = ({
         disableTransitionOnChange
         {...props}
       >
-        {children}
+        <ThemeSettingsProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </ThemeSettingsProvider>
       </NextThemesProvider>
     </Provider>
   );
