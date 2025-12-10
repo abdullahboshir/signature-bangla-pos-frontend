@@ -14,8 +14,12 @@ export default async function DashboardLayout({
   params,
 }: DashboardLayoutProps) {
   const { "business-unit": businessUnit, roles } = await params
-  
-  return <div>{children}</div>
+
+  return (
+    <AppLayout>
+      {children}
+    </AppLayout>
+  )
 }
 
 

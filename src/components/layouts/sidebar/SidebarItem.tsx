@@ -27,16 +27,24 @@ export function SidebarItem({
   role,
 }: SidebarItemProps) {
   const [isOpen, setIsOpen] = useState(false)
-  
+
   const hasChildren = item.children && item.children.length > 0
   const Icon = item.icon
-  
- 
-  const fullPath = `/${role}/${businessUnit}${item.path ? `/${item.path}` : ''}`
-  
- 
+
+
+  let fullPath = '';
+  // Fallback to role-based routing for consistency
+  if (role === 'super-admin' && !businessUnit) {
+    fullPath = `/super-admin${item.path ? `/${item.path}` : ''}`;
+  } else {
+    // Always use /[role]/[unit]/[feature] pattern
+    const targetRole = role || 'super-admin';
+    fullPath = `/${targetRole}/${businessUnit}${item.path ? `/${item.path}` : ''}`;
+  }
+
+
   // Check if current path matches
-  const isActive = item.exact 
+  const isActive = item.exact
     ? currentPath === fullPath
     : currentPath.startsWith(fullPath)
 
@@ -67,13 +75,19 @@ export function SidebarItem({
             )}
           </Button>
         </CollapsibleTrigger>
-        
+
         <CollapsibleContent>
           <div className={cn("ml-4 mt-1 space-y-1", isCollapsed && "ml-0")}>
             {item.children.map((child: any, index: number) => {
-              const childFullPath = `/${role}/${businessUnit}${child.path ? `/${child.path}` : ''}`
+              let childFullPath = '';
+              if (role === 'super-admin' && !businessUnit) {
+                childFullPath = `/super-admin${child.path ? `/${child.path}` : ''}`;
+              } else {
+                const targetRole = role || 'super-admin';
+                childFullPath = `/${targetRole}/${businessUnit}${child.path ? `/${child.path}` : ''}`;
+              }
               const isChildActive = currentPath === childFullPath
-              
+
               return (
                 <Link
                   key={index}
@@ -116,7 +130,7 @@ export function SidebarItem({
         )}
       >
         {Icon && <Icon className={cn("h-4 w-4", isCollapsed ? "mr-0" : "mr-3")} />}
-        
+
         {!isCollapsed && (
           <>
             <span className="flex-1 text-left">{item.title}</span>

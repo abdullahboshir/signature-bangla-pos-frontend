@@ -2,15 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import { Store, Stethoscope, Plane, ShoppingBasket, Zap, Globe, Shield, BarChart3, Users, CreditCard, Smartphone, Cloud, Lock, ArrowRight, CheckCircle, TrendingUp, Server, Cpu, ShieldCheck, Database } from 'lucide-react';
+import { useTheme } from 'next-themes';
 
 const Home = () => {
-  const [darkMode, setDarkMode] = useState(true);
+
+  const { theme, resolvedTheme } = useTheme();
   const [activeFeature, setActiveFeature] = useState(0);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const isDark = document.documentElement.classList.contains('dark');
-    setDarkMode(isDark);
+    setMounted(true);
   }, []);
+
+  // Use resolvedTheme which accounts for 'system' preference
+  const darkMode = mounted && (resolvedTheme === 'dark' || theme === 'dark');
 
   // Business types with your specific focus
   const businessTypes = [
@@ -124,7 +129,7 @@ const Home = () => {
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-black text-white' : 'bg-white text-gray-900'}`}>
-      
+
       {/* Animated Background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         {/* Gradient Mesh */}
@@ -132,7 +137,7 @@ const Home = () => {
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500 rounded-full blur-3xl"></div>
           <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500 rounded-full blur-3xl"></div>
         </div>
-        
+
         {/* Grid Pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="w-full h-full" style={{
@@ -144,7 +149,7 @@ const Home = () => {
 
       {/* Main Content */}
       <div className="relative z-10">
-        
+
         {/* Hero Section */}
         <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
           <div className="max-w-7xl mx-auto">
@@ -167,7 +172,7 @@ const Home = () => {
 
               {/* Subheading */}
               <p className={`text-xl md:text-2xl mb-10 max-w-3xl mx-auto ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Complete POS system for clothing stores, telemedicine, travel agencies, grocery stores, and more. 
+                Complete POS system for clothing stores, telemedicine, travel agencies, grocery stores, and more.
                 Manage everything from a single dashboard.
               </p>
 
@@ -385,7 +390,7 @@ const Home = () => {
                   Ready to Transform Your Business?
                 </h2>
                 <p className={`text-xl mb-8 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Join thousands of businesses already using our platform. 
+                  Join thousands of businesses already using our platform.
                   Start your free trial today - no credit card required.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">

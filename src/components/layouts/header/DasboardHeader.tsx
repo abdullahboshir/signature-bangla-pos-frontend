@@ -1,18 +1,19 @@
-// components/layout/header/Header.tsx
 "use client";
 
-import { useParams } from "next/navigation";
-import { Bell, Utensils, Search, Menu } from "lucide-react";
+import { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { Bell, Search, Menu, Calculator, MonitorPlay } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { UserMenu } from "./UserMenu";
 import { Notifications } from "./Notifications";
 import { BusinessUnitSwitcher } from "./BusinessUnitSwitcher";
 import { cn } from "@/lib/utils";
 import { ModeToggle } from "@/components/mode-toggle";
 import { useAuth } from "@/hooks/useAuth";
-
+import { Clock } from "@/components/shared/Clock";
+import { NetworkStatus } from "@/components/shared/NetworkStatus";
+import { OpenRegisterModal } from "@/components/pos/OpenRegisterModal";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -21,110 +22,111 @@ interface HeaderProps {
 
 export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
   const params = useParams();
-  const businessUnit = (params["business-unit"] ||
-    params.businessUnit) as string;
+  const router = useRouter();
+  const businessUnit = (params["business-unit"] || params.businessUnit) as string;
   const role = params.role as string;
+  const { user } = useAuth();
 
-  const { user, isLoading: authLoading, logout } = useAuth();
-  
-  if (authLoading) {
-    return "loaiding...";
-  }
-  
-  const businessUnits = user?.businessUnits?.map((unit: any) => unit.name.toLowerCase());
-  const roles = user?.roles?.map((unit: any) => unit.name.toLowerCase());
+  const [isOpenRegisterOpen, setIsOpenRegisterOpen] = useState(false);
 
-  if (!businessUnits?.includes(businessUnit)) {
-    return "You don't have access to this business unit";
-  }
-
-  if (!roles?.includes(role)) {
-    return "You don't have access to this role";
-  }
-
-
-  
   const userData: any = {
-    fullName: user?.id || user?.email || "John Doe",
+    fullName: user?.id || user?.email || "Staff",
     profileImg: "/avatars/01.png",
-    designation: user?.roles?.map((role: any) => role.name) || "Employee",
-    role: user?.roles?.map((role: any) => role.name) || "Employee",
-    businessUnit: businessUnits,
+    designation: user?.roles?.map((role: any) => role.name).join(", ") || "Staff",
+    role: user?.roles?.map((role: any) => role.name).join(", ") || "Staff",
+    businessUnit: user?.businessUnits?.map((u: any) => u.name) || [],
+  };
+
+  const businessUnitName = businessUnit ? businessUnit.replace("-", " ") : "Dashboard";
+
+  const handleNewSale = () => {
+    router.push(`/${role}/${businessUnit}/pos`);
   };
 
   return (
-    <header
-      className={cn(
-        "sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 lg:px-6",
-        className
-      )}
-    >
-      {/* Mobile Menu Button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="lg:hidden"
-        onClick={onMenuClick}
+    <>
+      <header
+        className={cn(
+          "sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b",
+          className
+        )}
       >
-        <Menu className="h-5 w-5" />
-      </Button>
+        <div className="flex h-16 items-center px-4 gap-4">
 
-      {/* Breadcrumb & Title */}
-      <div className="flex flex-1 items-center gap-4">
-        <div className="flex-1">
-          <h1 className="text-xl font-semibold capitalize">
-            {businessUnit.replace("-", " ")}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Welcome back, {userData.fullName}
-          </p>
-        </div>
+          {/* Left: Mobile Menu & Unit Switcher */}
+          <div className="flex items-center gap-2 lg:min-w-[200px]">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden"
+              onClick={onMenuClick}
+              type="button"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
 
-        {/* Search Bar - Hidden on mobile */}
-        <div className="hidden md:flex flex-1 max-w-md">
-          <div className="relative w-full">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search products, customers, orders..."
-              className="pl-8"
+            <BusinessUnitSwitcher
+              currentBusinessUnit={businessUnit}
+              currentRole={role}
+              availableUnits={user?.businessUnits || []}
             />
           </div>
+
+          {/* Center: Search & Status (POS Style) */}
+          <div className="flex-1 flex justify-center items-center gap-6">
+            <div className="hidden md:flex items-center gap-2 bg-muted/40 px-3 py-1.5 rounded-full border">
+              <Clock className="text-xs" />
+              <div className="h-4 w-px bg-border" />
+              <NetworkStatus className="w-2 h-2 text-[10px]" />
+            </div>
+
+            <div className="hidden lg:flex w-full max-w-sm relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Scan item or search..."
+                className="pl-9 h-9 bg-muted/50 border-muted-foreground/20 focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-ring"
+              />
+              <div className="absolute right-2 top-2 text-[10px] text-muted-foreground border px-1.5 rounded">F2</div>
+            </div>
+          </div>
+
+          {/* Right: Actions & User */}
+          <div className="flex items-center justify-end gap-2 lg:min-w-[200px]">
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden sm:flex gap-2 border-primary/20 hover:bg-primary/5 text-primary"
+              onClick={() => setIsOpenRegisterOpen(true)}
+              type="button"
+            >
+              <Calculator className="w-4 h-4" />
+              <span className="hidden xl:inline">Open Register</span>
+            </Button>
+
+            <Button
+              variant="default"
+              size="sm"
+              className="hidden sm:flex gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20"
+              onClick={handleNewSale}
+              type="button"
+            >
+              <MonitorPlay className="w-4 h-4" />
+              <span className="hidden xl:inline">New Sale</span>
+            </Button>
+
+            <div className="h-6 w-px bg-border mx-1" />
+
+            <div className="flex items-center gap-1">
+              <ModeToggle />
+              <Notifications />
+              <UserMenu user={userData} />
+            </div>
+          </div>
         </div>
-      </div>
+      </header>
 
-      {/* Right Side Actions */}
-      <div className="flex items-center gap-2">
-        {/* Quick Search Mobile */}
-        <Button variant="ghost" size="icon" className="md:hidden">
-          <Search className="h-4 w-4" />
-        </Button>
-        <ModeToggle />
-
-        {/* Business Unit Switcher */}
-        <BusinessUnitSwitcher
-          currentBusinessUnit={businessUnit}
-          currentRole={role}
-          user={userData}
-        />
-
-        {/* Notifications */}
-        <Notifications />
-
-        {/* Quick Actions */}
-        {role === "business-admin" && (
-          <Button
-            variant="outline"
-            size="icon"
-            className="hidden sm:flex"
-            title="Quick POS"
-          >
-            <Utensils className="h-4 w-4" />
-          </Button>
-        )}
-
-        {/* User Menu */}
-        <UserMenu user={userData} />
-      </div>
-    </header>
+      <OpenRegisterModal open={isOpenRegisterOpen} onOpenChange={setIsOpenRegisterOpen} />
+    </>
   );
 }

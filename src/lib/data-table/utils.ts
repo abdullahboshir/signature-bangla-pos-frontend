@@ -121,6 +121,7 @@ export function generateColumns<T extends Record<string, any>>(
                 onEdit: actions?.onEdit as any,
                 onDelete: actions?.onDelete as any,
                 onView: actions?.onView as any,
+                showDropdown: false,
               });
 
           default:

@@ -11,6 +11,9 @@ import { UserMenu } from "../header/UserMenu"
 import { BusinessUnitSwitcher } from "../header/BusinessUnitSwitcher"
 import { Notifications } from "../header/Notifications"
 
+import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit"
+import { useAuth } from "@/hooks/useAuth"
+
 interface HeaderProps {
   onMenuClick?: () => void
   className?: string
@@ -18,17 +21,13 @@ interface HeaderProps {
 
 export function SidebarHeader({ onMenuClick, className }: HeaderProps) {
   const params = useParams()
-  const businessUnit = params.businessUnit as string
-  const role = params.role as string
+  const role = params.role as string // note: this might need better derivation similar to Sidebar.tsx
 
-  // Mock user data - replace with actual auth context
-  const userData: any = {
-    fullName: "John Doe",
-    profileImg: "/avatars/01.png",
-    designation: "Business Admin",
-    role: role,
-    businessUnit: businessUnit,
-  }
+  const { user } = useAuth()
+  const { currentBusinessUnit, userBusinessUnits } = useCurrentBusinessUnit()
+
+  // Safe fallback for business unit name
+  const buName = currentBusinessUnit ? currentBusinessUnit.name : "Dashboard"
 
   return (
     <header className={cn(
@@ -45,14 +44,14 @@ export function SidebarHeader({ onMenuClick, className }: HeaderProps) {
         <Menu className="h-5 w-5" />
       </Button>
 
-     
+
       <div className="flex flex-1 items-center gap-4">
         <div className="flex-1">
           <h1 className="text-xl font-semibold capitalize">
-            {businessUnit.replace('-', ' ')} Dashboard
+            {buName}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Welcome back, {userData.fullName}
+            Welcome back, {user?.name || "User"}
           </p>
         </div>
 
@@ -80,10 +79,10 @@ export function SidebarHeader({ onMenuClick, className }: HeaderProps) {
         </Button>
 
         {/* Business Unit Switcher */}
-        <BusinessUnitSwitcher 
-          currentBusinessUnit={businessUnit}
+        <BusinessUnitSwitcher
+          currentBusinessUnit={currentBusinessUnit?.id}
           currentRole={role}
-          user={userData}
+          availableUnits={userBusinessUnits}
         />
 
         {/* Notifications */}
@@ -102,7 +101,13 @@ export function SidebarHeader({ onMenuClick, className }: HeaderProps) {
         )}
 
         {/* User Menu */}
-        <UserMenu user={userData} />
+        {user && <UserMenu user={{
+          fullName: user.name || "User",
+          profileImg: "/avatars/01.png", // Fallback
+          designation: role,
+          role: role,
+          businessUnit: currentBusinessUnit?.name || "Global"
+        }} />}
       </div>
     </header>
   )

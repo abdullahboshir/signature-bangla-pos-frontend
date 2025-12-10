@@ -12,6 +12,9 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
+  getExpandedRowModel,
+  Row,
+  ExpandedState,
 } from '@tanstack/react-table';
 import {
   Table,
@@ -48,6 +51,8 @@ import { generateColumns } from '@/lib/data-table/utils';
 import { DataType, TableConfig as ITableConfig, TableQuickFilter } from '@/types/data-table';
 import { cn } from '@/lib/utils';
 
+// ... other imports
+
 interface DynamicDataTableProps<T> {
   dataType: DataType;
   data: T[];
@@ -66,6 +71,7 @@ interface DynamicDataTableProps<T> {
   onRefresh?: () => void;
   currentPage?: number;
   pageSize?: number;
+  renderSubComponent?: (row: Row<T>) => React.ReactNode;
 }
 
 export function DynamicDataTable<T extends Record<string, any>>({
@@ -86,6 +92,7 @@ export function DynamicDataTable<T extends Record<string, any>>({
   onRefresh,
   currentPage = 1,
   pageSize = 10,
+  renderSubComponent,
 }: DynamicDataTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -94,6 +101,7 @@ export function DynamicDataTable<T extends Record<string, any>>({
   const [globalFilter, setGlobalFilter] = useState('');
   const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
   const [activeQuickFilter, setActiveQuickFilter] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<ExpandedState>({});
 
   // Get table configuration
   const tableConfig = TableConfig[dataType] || TableConfig.default;
@@ -116,17 +124,21 @@ export function DynamicDataTable<T extends Record<string, any>>({
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     onGlobalFilterChange: setGlobalFilter,
+    onExpandedChange: setExpanded,
+    getRowCanExpand: () => !!renderSubComponent,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
       globalFilter,
+      expanded,
     },
     manualPagination: !!onPageChange,
     pageCount: Math.ceil(total / pageSize),
@@ -146,6 +158,8 @@ export function DynamicDataTable<T extends Record<string, any>>({
       onSortChange(id, desc ? 'desc' : 'asc');
     }
   }, [sorting]);
+
+  // ... (Keep handleQuickFilter and clearQuickFilters logic same) ...
 
   const handleQuickFilter = (filter: TableQuickFilter) => {
     const column = table.getColumn(filter.column);
@@ -184,7 +198,7 @@ export function DynamicDataTable<T extends Record<string, any>>({
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
+      {/* Toolbar - (Keep same) */}
       {mergedConfig.showToolbar !== false && (
         <div className="space-y-4 rounded-md border bg-card p-4 shadow-sm">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -367,29 +381,41 @@ export function DynamicDataTable<T extends Record<string, any>>({
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                    className={cn(
-                      'border-b last:border-b-0',
-                      density === 'compact' ? 'h-10' : 'h-14'
+                  <React.Fragment key={row.id}>
+                    <TableRow
+                      data-state={row.getIsSelected() && "selected"}
+                      className={cn(
+                        'border-b last:border-b-0 cursor-pointer',
+                        density === 'compact' ? 'h-10' : 'h-14',
+                        row.getIsExpanded() && 'bg-muted/50 border-b-0'
+                      )}
+                      onClick={() => row.toggleExpanded()}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell
+                          key={cell.id}
+                          className={cn(
+                            'whitespace-nowrap align-middle',
+                            density === 'compact' ? 'py-1 text-sm' : 'py-3'
+                          )}
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                    {row.getIsExpanded() && renderSubComponent && (
+                      <TableRow className="bg-muted/30 hover:bg-muted/30">
+                        <TableCell colSpan={row.getVisibleCells().length}>
+                          <div className="p-4">
+                            {renderSubComponent(row)}
+                          </div>
+                        </TableCell>
+                      </TableRow>
                     )}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell
-                        key={cell.id}
-                        className={cn(
-                          'whitespace-nowrap align-middle',
-                          density === 'compact' ? 'py-1 text-sm' : 'py-3'
-                        )}
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                  </React.Fragment>
                 ))
               ) : (
                 <TableRow>

@@ -6,6 +6,7 @@ import { useAuth } from "./useAuth"
 export function useCurrentBusinessUnit() {
   const params = useParams()
   const { user, isLoading: authLoading } = useAuth()
+  
   // Loading state
   if (authLoading) {
     return {
@@ -15,7 +16,6 @@ export function useCurrentBusinessUnit() {
       isLoading: true,
     };
   }
-  console.log("cccccccccccccccc", user, authLoading)
 
   // User not found yet
   if (!user) {
@@ -23,25 +23,49 @@ export function useCurrentBusinessUnit() {
       currentBusinessUnit: null,
       userBusinessUnits: [],
       hasUnitAccess: false,
-      isLoading: true,
+      isLoading: false,
     };
   }
 
-  const currentBusinessUnit = (params["business-unit"] || params.businessUnit) as string | undefined
-  const userBusinessUnits = user?.businessUnits?.map((unit: any) => unit?.name.toLowerCase()) || []
+  // Get the business unit ID/slug from URL
+  const currentBusinessUnitSlug = (params["business-unit"] || params.businessUnit) as string | undefined
+  
+  // Get user's assigned business units (now objects with id, name, _id)
+  // We use the 'id' field (custom slug) for matching with URL
+  const userBusinessUnits = user?.businessUnits || []
+  
+  // Check for Super Admin role using the correct property 'roles' (array of objects)
+  // Fallback to 'role' property if 'roles' is missing (handling backend inconsistency)
+  const isSuperAdmin = 
+      (user?.roles && Array.isArray(user.roles) && user.roles.some((r: any) => r.name === "super-admin")) ||
+      (user && (user as any).role && Array.isArray((user as any).role) && (user as any).role.includes("super-admin"));
 
-  const hasUnitAccess = currentBusinessUnit ? userBusinessUnits.includes(currentBusinessUnit.toLowerCase()) : false
+  // Check access: does the URL slug match any of the user's assigned business unit IDs?
+  // Check id, slug, name, or _id
+  // OR is the user a super-admin?
+  const hasUnitAccess = currentBusinessUnitSlug 
+    ? (isSuperAdmin || userBusinessUnits.some((unit: any) => 
+        unit.id === currentBusinessUnitSlug ||
+        unit.slug === currentBusinessUnitSlug ||
+        (unit.name && unit.name.toLowerCase().replace(/ /g, '-') === currentBusinessUnitSlug) ||
+        (unit._id && unit._id.toString() === currentBusinessUnitSlug)
+      ))
+    : false
 
-  console.log("currentBusinessUnit", currentBusinessUnit)
-  console.log("userBusinessUnits", userBusinessUnits)
-  console.log("hasUnitAccess", hasUnitAccess)
-
-
+  // Find the full business unit object if it exists
+  const currentBusinessUnit = currentBusinessUnitSlug 
+    ? userBusinessUnits.find((unit: any) => 
+        unit.id === currentBusinessUnitSlug ||
+        unit.slug === currentBusinessUnitSlug ||
+        (unit.name && unit.name.toLowerCase().replace(/ /g, '-') === currentBusinessUnitSlug) ||
+        (unit._id && unit._id.toString() === currentBusinessUnitSlug)
+      )
+    : null
 
   return {
-    currentBusinessUnit: currentBusinessUnit || null,
-    userBusinessUnits,
+    currentBusinessUnit, // The full object { _id, name, id }
+    userBusinessUnits,   // List of all assigned units
     hasUnitAccess,
-    isLoading: false, // finally loaded
+    isLoading: false,
   }
 }

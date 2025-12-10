@@ -24,13 +24,17 @@ export function ActionCell<T>({
   customActions = [],
   showDropdown = true,
 }: ActionCellProps<T>) {
+  const actions = {
+    view: onView,
+    edit: onEdit,
+    delete: onDelete,
+    copy: onCopy,
+  };
+
   return (
     <TableActions
       item={item}
-      onView={onView}
-      onEdit={onEdit}
-      onDelete={onDelete}
-      onCopy={onCopy}
+      actions={actions}
       customActions={customActions}
       showDropdown={showDropdown}
     />

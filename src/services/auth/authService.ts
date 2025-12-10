@@ -61,8 +61,26 @@ export const login = async (formData: any): Promise<LoginResponse> => {
 
     // Decode to know redirect logic
     const decoded = jwtDecode(accessToken) as any;
-    const redirect =
-      decoded?.role === "customer" ? "/" : "/super-admin/telemedicine";
+    
+    // Determine redirect based on user's role and business units
+    let redirect = "/";
+    
+    if (decoded?.role === "customer") {
+      redirect = "/";
+    } else if (decoded?.role === "super-admin") {
+      // Super admin goes to super-admin dashboard
+      redirect = "/super-admin";
+    } else {
+      // For other roles, redirect to their first business unit
+      const firstBusinessUnit = user?.businessUnits?.[0];
+      if (firstBusinessUnit) {
+        const buSlug = firstBusinessUnit.slug || firstBusinessUnit.id || "default";
+        redirect = `/${decoded?.role}/${buSlug}`;
+      } else {
+        // Fallback if no business unit assigned
+        redirect = "/super-admin";
+      }
+    }
 
     return {
       success: true,

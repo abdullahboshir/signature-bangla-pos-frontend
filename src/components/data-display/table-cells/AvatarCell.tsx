@@ -17,8 +17,11 @@ export function AvatarCell({ src, fallback, size = 'md', className }: AvatarCell
   };
 
   const getFallback = () => {
-    if (!fallback || fallback === 'N/A') return <User className="h-4 w-4" />;
-    
+    // Ensure fallback is a valid string
+    if (!fallback || typeof fallback !== 'string' || fallback === 'N/A') {
+      return <User className="h-4 w-4" />;
+    }
+
     // Extract initials from name
     const words = fallback.trim().split(' ');
     if (words.length >= 2) {

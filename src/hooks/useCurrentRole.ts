@@ -37,12 +37,17 @@ export function useCurrentRole(): UseCurrentRoleResult {
   
   console.log('useCurrentRole', user, isLoading)
 
-  const userRole =
-    Array.isArray(user.roles)
-      ? user.roles.map((role: any) => role.name)
-      : [];
+  // Robustly derive user roles
+  // Backend provides `role` (string[]) and `roles` (object[])
+  const userAny = user as any;
+  const userRole = 
+    (userAny?.role && Array.isArray(userAny.role)) 
+      ? userAny.role 
+      : Array.isArray(user?.roles) 
+        ? user.roles.map((role: any) => role.name) 
+        : [];
 
-  // 👍 এখন safe access check
+  // Safe safe access check
   const hasRoleAccess =
     currentRole && userRole.length > 0
       ? userRole.includes(currentRole)

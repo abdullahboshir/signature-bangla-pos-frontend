@@ -14,13 +14,13 @@ export default async function BusinessUnitLayout({
   children,
   params,
 }: BusinessUnitLayoutProps) {
-  
+
 
 
 
   return (
-  
-      <AppLayout>{children}</AppLayout>
-   
+    <>
+      {children}
+    </>
   );
 }

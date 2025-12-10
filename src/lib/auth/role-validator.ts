@@ -1,81 +1,93 @@
 // lib/auth/role-validator.ts
 "use client"
 
+import { getRoutePermission, type PermissionRequirement } from "./route-permissions"
+
 /**
- * Check if user has access to a specific route
+ * Check if user has access to a specific route based on their permissions
+ * This is a fully dynamic system - new roles can be created in backend
+ * without requiring frontend code changes
  */
 export async function hasRouteAccess(
   pathname: string,
   userRole?: string,
-  userPermissions?: string[]
+  userPermissions?: any[]
 ): Promise<boolean> {
   try {
-    // If no role or permissions provided, deny access
-    if (!userRole || !userPermissions) {
-      return false
-    }
-    
-    
-    // Define route access rules based on roles
-    const routeAccessRules: Record<string, string[]> = {
-      // Super admin can access everything
-      "super-admin": ["*"],
-      
-      // Business admin routes
-      "business-admin": [
-        "/",
-        "/products",
-        "/sales",
-        "/customers",
-        "/suppliers",
-        "/reports",
-        "/inventory",
-        "/settings",
-      ],
-      
-      // Store manager routes
-      "store-manager": [
-        "/",
-        "/pos",
-        "/inventory",
-        "/staff",
-        "/reports",
-      ],
-      
-      // Cashier routes
-      "cashier": [
-        "/",
-        "/pos",
-        "/quick-sales",
-        "/today",
-        "/my-sales",
-      ],
-    }
-    
-    // Get allowed routes for user's role
-    const allowedRoutes = routeAccessRules[userRole] || []
-    
-    // Super admin has access to everything
-    if (allowedRoutes.includes("*")) {
-      return true
-    }
-    
-    // Check if pathname matches any allowed route
-    const pathSegments = pathname.split("/").filter(Boolean)
-    
-    // For now, simple check - can be enhanced with more sophisticated routing logic
-    for (const route of allowedRoutes) {
-      if (pathname.startsWith(route) || pathname === route) {
-        return true
-      }
+    console.log("=== PERMISSION CHECK ===");
+    console.log("pathname:", pathname);
+    console.log("userRole:", userRole);
+    console.log("userPermissions:", userPermissions);
+
+    // Super admin always has access to everything
+    if (userRole === 'super-admin') {
+      console.log("✅ Super admin - full access granted");
+      return true;
     }
 
-    // Check permissions if route is not in role-based list
-    // This is a simple implementation - can be enhanced
-    return false
+    // If no permissions provided, deny access
+    if (!userPermissions || userPermissions.length === 0) {
+      console.log("❌ No permissions provided");
+      return false;
+    }
+    
+    // Extract relative path (strip /[role]/[businessUnit] prefix)
+    const pathSegments = pathname.split("/").filter(Boolean);
+    let relativePath = "/";
+    
+    // Expected URL structure: /[role]/[businessUnit]/[feature]/...
+    // Examples:
+    // - /admin/library/products → relativePath = /products
+    // - /admin/library/overview → relativePath = /overview
+    // - /admin/library → relativePath = /
+    if (pathSegments.length > 2) {
+      relativePath = "/" + pathSegments.slice(2).join("/");
+    }
+
+    console.log("relativePath:", relativePath);
+
+    // 🟢 UX FIX: Allow Dashboard Access to ALL logged-in users
+    // The Dashboard page will load, but specific widgets (Charts/Stats) 
+    // will be blocked by Backend API if user lacks permission.
+    if (relativePath === "/" || relativePath === "/overview") {
+      console.log("✅ Dashboard Access Allowed (Universal)");
+      return true;
+    }
+
+    // Get required permission for this route
+    const requiredPermission = getRoutePermission(relativePath);
+    
+    console.log("requiredPermission:", requiredPermission);
+
+    // If route not in mapping, deny by default (secure by default)
+    if (!requiredPermission) {
+      console.warn(`⚠️ No permission mapping found for route: ${relativePath}`);
+      console.log("Available routes should be added to route-permissions.ts");
+      return false;
+    }
+
+    // Check if user has the required permission
+    // Backend permissions format: { resource: "product", action: "view", ... }
+    const hasPermission = userPermissions.some(perm => {
+      // Backend uses 'resource' but we might have previously used 'source' or valid backend data
+      const permResource = perm.resource || perm.source;
+      
+      const resourceMatch = permResource === requiredPermission.resource;
+      const actionMatch = perm.action === requiredPermission.action;
+      const hasWildcard = perm.action === "*"; // Support wildcard actions
+      const hasResourceWildcard = permResource === "*"; // Support wildcard resources
+      
+      // Checking for exact match or wildcards
+      return (resourceMatch || hasResourceWildcard) && (actionMatch || hasWildcard);
+    });
+
+    console.log("hasPermission:", hasPermission);
+    console.log("=== END PERMISSION CHECK ===");
+
+    return hasPermission;
   } catch (error) {
-    console.error("Route access check failed:", error)
-    return false
+    console.error("❌ Route access check failed:", error);
+    return false;
   }
 }
 
@@ -124,5 +136,3 @@ export function hasAllPermissions(
     userPermissions.includes(permission) || userPermissions.includes("*")
   )
 }
-
-

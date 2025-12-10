@@ -34,7 +34,7 @@ export const TableConfig: Record<DataType, ITableConfig> = {
       { id: 'inactive', label: 'Inactive', column: 'status', value: false },
     ],
   },
-  
+
   product: {
     dataType: 'product',
     columns: [
@@ -59,7 +59,7 @@ export const TableConfig: Record<DataType, ITableConfig> = {
       export: true,
     },
   },
-  
+
   category: {
     dataType: 'category',
     columns: [
@@ -74,7 +74,7 @@ export const TableConfig: Record<DataType, ITableConfig> = {
     defaultSort: { id: 'name', desc: false },
     pageSize: 15,
   },
-  
+
   customer: {
     dataType: 'customer',
     columns: [
@@ -88,7 +88,7 @@ export const TableConfig: Record<DataType, ITableConfig> = {
       { id: 'actions', header: 'Actions', accessorKey: 'actions', type: 'actions', width: 100 },
     ],
   },
-  
+
   order: {
     dataType: 'order',
     columns: [
@@ -101,7 +101,41 @@ export const TableConfig: Record<DataType, ITableConfig> = {
       { id: 'actions', header: 'Actions', accessorKey: 'actions', type: 'actions', width: 100 },
     ],
   },
-  
+
+  role: {
+    dataType: 'role',
+    columns: [
+      { id: 'name', header: 'Role Name', accessorKey: 'name', sortable: true, filter: true },
+      { id: 'description', header: 'Description', accessorKey: 'description', sortable: true },
+      { id: 'usersCount', header: 'Users', accessorKey: 'usersCount', type: 'number', sortable: true },
+      { id: 'createdAt', header: 'Created', accessorKey: 'createdAt', type: 'date', sortable: true },
+      { id: 'actions', header: 'Actions', accessorKey: 'actions', type: 'actions', width: 100 },
+    ],
+    showToolbar: true,
+    actions: {
+      create: true,
+      edit: true,
+      delete: true,
+      view: true,
+    },
+  },
+
+  permission: {
+    dataType: 'permission',
+    columns: [
+      { id: 'name', header: 'Permission Name', accessorKey: 'name', sortable: true, filter: true },
+      { id: 'module', header: 'Module', accessorKey: 'module', sortable: true, filter: true },
+      { id: 'description', header: 'Description', accessorKey: 'description', sortable: true },
+      { id: 'actions', header: 'Actions', accessorKey: 'actions', type: 'actions', width: 100 },
+    ],
+    showToolbar: true,
+    actions: {
+      create: true,
+      edit: true,
+      delete: true,
+    },
+  },
+
   default: {
     dataType: 'user',
     columns: [
