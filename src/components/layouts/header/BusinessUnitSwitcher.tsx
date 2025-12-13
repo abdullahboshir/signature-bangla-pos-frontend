@@ -91,7 +91,7 @@ export function BusinessUnitSwitcher({
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="cursor-pointer text-center justify-center text-sm"
-          onClick={() => router.push('/super-admin')}
+          onClick={() => router.push('/super-admin/business-units')}
         >
           View All Units (Super Admin)
         </DropdownMenuItem>

@@ -34,8 +34,8 @@ export default function SuperAdminDashboard() {
     const totalStats = {
         revenue: loading ? '...' : `BDT ${stats?.revenue?.total || 0}`,
         profit: 'BDT 0', // Placeholder
-        sales: loading ? '...' : stats?.sales?.total || 0,
-        activeUnits: loading ? '...' : stats?.businessUnits?.active || 0
+        sales: loading ? '...' : (stats?.sales?.total || 0),
+        activeUnits: loading ? '...' : (stats?.businessUnits?.active || 0)
     };
 
     return (

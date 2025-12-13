@@ -3,19 +3,19 @@
 import React, { useState, useMemo } from 'react';
 import { format, formatDistance, formatRelative, isValid, parseISO } from 'date-fns';
 import { enUS, bn } from 'date-fns/locale';
-import { 
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { 
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { 
+import {
   CalendarIcon,
   Clock,
   Globe,
@@ -26,7 +26,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-export type DateFormatType = 
+export type DateFormatType =
   | 'short'        // 12/25/24
   | 'medium'       // Dec 25, 2024
   | 'long'         // December 25, 2024
@@ -39,7 +39,7 @@ export type DateFormatType =
   | 'timestamp'    // 1735133400
   | 'custom';
 
-export type TimezoneType = 
+export type TimezoneType =
   | 'local'        // User's local timezone
   | 'utc'          // UTC/GMT
   | 'asia/dhaka'   // Bangladesh time
@@ -100,7 +100,7 @@ export function DateCell({
 
     try {
       let parsedDate: Date;
-      
+
       if (date instanceof Date) {
         parsedDate = date;
       } else if (typeof date === 'number') {
@@ -189,22 +189,22 @@ export function DateCell({
     if (!processedDate) return null;
 
     const info = [];
-    
+
     // ISO format
     info.push(`ISO: ${format(processedDate, "yyyy-MM-dd'T'HH:mm:ss'Z'")}`);
-    
+
     // Timestamp
     info.push(`Timestamp: ${Math.floor(processedDate.getTime() / 1000)}`);
-    
+
     // Day of week
     info.push(`Day: ${format(processedDate, 'EEEE', { locale: locale === 'bn' ? bn : enUS })}`);
-    
+
     // Week number
     info.push(`Week: ${format(processedDate, 'w')}`);
-    
+
     // Quarter
     info.push(`Quarter: Q${Math.ceil((processedDate.getMonth() + 1) / 3)}`);
-    
+
     return info.join('\n');
   };
 
@@ -237,14 +237,14 @@ export function DateCell({
     <div className={cn('flex items-center gap-2', className)}>
       <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
       <span className="truncate">{formattedDate}</span>
-      
+
       {showTimezone && (
         <Badge variant="outline" className="text-xs h-5">
           <Globe className="h-2.5 w-2.5 mr-1" />
           {selectedTimezone === 'local' ? 'L' : selectedTimezone.toUpperCase()}
         </Badge>
       )}
-      
+
       {showRelative && selectedFormat !== 'relative' && selectedFormat !== 'distance' && (
         <span className="text-xs text-muted-foreground">
           ({formatDistance(processedDate, new Date(), { addSuffix: true })})
@@ -275,33 +275,33 @@ export function DateCell({
               </Button>
             </TooltipTrigger>
           </PopoverTrigger>
-          
+
           <TooltipContent side="top" className="max-w-md">
             <div className="space-y-2">
               <div className="font-medium">Date Information</div>
-              
+
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <div className="font-semibold">Full Date:</div>
                   <div>{format(processedDate, 'PPPP', { locale: locale === 'bn' ? bn : enUS })}</div>
                 </div>
-                
+
                 <div>
                   <div className="font-semibold">Time:</div>
                   <div>{format(processedDate, 'hh:mm:ss a')}</div>
                 </div>
-                
+
                 <div>
                   <div className="font-semibold">ISO:</div>
                   <div className="text-xs">{format(processedDate, "yyyy-MM-dd'T'HH:mm:ss'Z'")}</div>
                 </div>
-                
+
                 <div>
                   <div className="font-semibold">Timestamp:</div>
                   <div>{Math.floor(processedDate.getTime() / 1000)}</div>
                 </div>
               </div>
-              
+
               <div className="pt-2 border-t">
                 <div className="font-semibold mb-1">Timezone:</div>
                 <div className="flex items-center gap-2">
@@ -309,14 +309,14 @@ export function DateCell({
                   {getTimezoneDisplay()}
                 </div>
               </div>
-              
+
               <div className="text-xs text-muted-foreground">
                 Click to change format
               </div>
             </div>
           </TooltipContent>
         </Tooltip>
-        
+
         <PopoverContent className="w-80" align="start">
           <div className="space-y-4">
             <div className="space-y-2">
@@ -324,7 +324,7 @@ export function DateCell({
                 <Calendar className="h-4 w-4" />
                 Date Format
               </div>
-              
+
               <div className="grid grid-cols-2 gap-2">
                 {formatOptions.map((option) => (
                   <Button
@@ -345,13 +345,13 @@ export function DateCell({
                 ))}
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <div className="font-medium flex items-center gap-2">
                 <Globe className="h-4 w-4" />
                 Timezone
               </div>
-              
+
               <div className="flex flex-wrap gap-2">
                 {timezoneOptions.map((option) => (
                   <Badge
@@ -365,13 +365,13 @@ export function DateCell({
                 ))}
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <div className="font-medium flex items-center gap-2">
                 <Clock className="h-4 w-4" />
                 Quick Actions
               </div>
-              
+
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -383,7 +383,7 @@ export function DateCell({
                 >
                   Copy ISO
                 </Button>
-                
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -396,7 +396,7 @@ export function DateCell({
                 </Button>
               </div>
             </div>
-            
+
             {customFormat && (
               <div className="space-y-2">
                 <div className="font-medium">Custom Format</div>
@@ -405,7 +405,7 @@ export function DateCell({
                 </code>
               </div>
             )}
-            
+
             <div className="pt-2 border-t">
               <Button
                 variant="ghost"
@@ -442,14 +442,14 @@ export const ShortDateCell = createDateCell({ formatType: 'short' });
 export const MediumDateCell = createDateCell({ formatType: 'medium' });
 export const DateTimeCell = createDateCell({ formatType: 'datetime' });
 export const RelativeDateCell = createDateCell({ formatType: 'relative' });
-export const BangladeshDateCell = createDateCell({ 
-  formatType: 'datetime', 
+export const BangladeshDateCell = createDateCell({
+  formatType: 'datetime',
   timezone: 'asia/dhaka',
-  locale: 'bn' 
+  locale: 'bn'
 });
-export const UTCDateCell = createDateCell({ 
-  formatType: 'datetime', 
-  timezone: 'utc' 
+export const UTCDateCell = createDateCell({
+  formatType: 'datetime',
+  timezone: 'utc'
 });
 export const TimestampCell = createDateCell({ formatType: 'timestamp' });
 
@@ -463,7 +463,7 @@ export function formatDates(
     try {
       const dateObj = typeof date === 'string' ? parseISO(date) : new Date(date);
       if (!isValid(dateObj)) return 'Invalid Date';
-      
+
       return format(dateObj, formatPatterns[formatType], {
         locale: locale === 'bn' ? bn : enUS,
       });
@@ -492,11 +492,11 @@ export function getDateDifference(
   try {
     const d1 = typeof date1 === 'string' ? parseISO(date1) : new Date(date1);
     const d2 = typeof date2 === 'string' ? parseISO(date2) : new Date(date2);
-    
+
     if (!isValid(d1) || !isValid(d2)) return NaN;
-    
+
     const diffMs = Math.abs(d2.getTime() - d1.getTime());
-    
+
     switch (unit) {
       case 'days': return diffMs / (1000 * 60 * 60 * 24);
       case 'hours': return diffMs / (1000 * 60 * 60);

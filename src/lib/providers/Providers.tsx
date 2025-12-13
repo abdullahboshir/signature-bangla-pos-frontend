@@ -14,7 +14,7 @@ const Providers = ({
       <NextThemesProvider
         attribute="class"
         defaultTheme="system"
-        enableSystem
+        enableSystem={true}
         disableTransitionOnChange
         {...props}
       >

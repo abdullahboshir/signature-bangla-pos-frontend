@@ -97,6 +97,15 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
           return;
         }
 
+        // Special case for /super-admin root - allow if role is super-admin
+        if (pathname === '/super-admin') {
+          if (isSuperAdmin) {
+            setIsAuthorized(true);
+            setIsChecking(false);
+            return;
+          }
+        }
+
         // 4. Check if user has this role
         console.log("=== ROLE CHECK DEBUG ===");
         console.log("roleFromPath:", roleFromPath);

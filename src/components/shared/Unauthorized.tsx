@@ -38,19 +38,19 @@ export function Unauthorized({
             {requiredRole && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Required Role:</span>
-                <span className="font-medium capitalize">{requiredRole.replace("-", " ")}</span>
+                <span className="font-medium capitalize">{requiredRole?.replace("-", " ") || "Unknown"}</span>
               </div>
             )}
             {requiredBusinessUnit && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Required Business Unit:</span>
-                <span className="font-medium capitalize">{requiredBusinessUnit.replace("-", " ")}</span>
+                <span className="font-medium capitalize">{requiredBusinessUnit?.replace("-", " ") || "Unknown"}</span>
               </div>
             )}
             {userRole && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Your Role:</span>
-                <span className="font-medium capitalize">{userRole.replace("-", " ")}</span>
+                <span className="font-medium capitalize">{userRole?.replace("-", " ") || "Unknown"}</span>
               </div>
             )}
           </div>

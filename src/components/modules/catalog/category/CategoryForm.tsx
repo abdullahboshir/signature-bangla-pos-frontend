@@ -24,6 +24,7 @@ import { categoryService } from "@/services/catalog/category.service";
 
 const formSchema = z.object({
     name: z.string().min(1, "Name is required").max(50),
+    slug: z.string().optional(),
     description: z.string().max(200).optional(),
     isActive: z.boolean().default(true),
     // businessUnit: z.string() // Usually handled by context or route param
@@ -45,6 +46,7 @@ export function CategoryForm({ initialData, businessUnitId, onSuccess }: Categor
         resolver: zodResolver(formSchema) as any,
         defaultValues: {
             name: initialData?.name || "",
+            slug: initialData?.slug || "",
             description: initialData?.description || "",
             isActive: initialData?.isActive ?? true,
         },
@@ -86,7 +88,26 @@ export function CategoryForm({ initialData, businessUnitId, onSuccess }: Categor
                         <FormItem>
                             <FormLabel>Category Name</FormLabel>
                             <FormControl>
-                                <Input placeholder="e.g. Electronics" {...field} />
+                                <Input placeholder="e.g. Electronics" {...field} onChange={e => {
+                                    field.onChange(e);
+                                    if (!initialData) {
+                                        form.setValue("slug", e.target.value.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, ''));
+                                    }
+                                }} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={form.control}
+                    name="slug"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Slug (Auto-generated)</FormLabel>
+                            <FormControl>
+                                <Input placeholder="e.g. electronics" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>

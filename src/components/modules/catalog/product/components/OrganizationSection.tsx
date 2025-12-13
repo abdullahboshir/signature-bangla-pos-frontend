@@ -1,0 +1,114 @@
+
+import { UseFormReturn } from "react-hook-form";
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ProductFormValues } from "../product.schema";
+
+interface OrganizationSectionProps {
+    form: UseFormReturn<ProductFormValues>;
+    units: any[];
+}
+
+export const OrganizationSection = ({ form, units }: OrganizationSectionProps) => {
+    return (
+        <Card>
+            <CardHeader><CardTitle>Organization & Status</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="unit"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Unit of Measure</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select Unit" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {units?.map((unit: any) => (
+                                            <SelectItem key={unit._id || unit.id} value={unit._id || unit.id}>
+                                                {unit.name} ({unit.symbol || unit.name})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="statusInfo.status"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Product Status</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select Status" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="draft">Draft</SelectItem>
+                                        <SelectItem value="published">Published</SelectItem>
+                                        <SelectItem value="under_review">Under Review</SelectItem>
+                                        <SelectItem value="suspended">Suspended</SelectItem>
+                                        <SelectItem value="archived">Archived</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+
+                <div className="space-y-4">
+                    <FormLabel>Marketing Flags</FormLabel>
+                    <div className="flex flex-wrap gap-4">
+                        <FormField
+                            control={form.control}
+                            name="marketing.isFeatured"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center space-x-3 space-y-0 border p-3 rounded-md">
+                                    <FormControl>
+                                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                    </FormControl>
+                                    <FormLabel>Featured Product</FormLabel>
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="marketing.isNew"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center space-x-3 space-y-0 border p-3 rounded-md">
+                                    <FormControl>
+                                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                    </FormControl>
+                                    <FormLabel>New Arrival</FormLabel>
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="marketing.isBestSeller"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center space-x-3 space-y-0 border p-3 rounded-md">
+                                    <FormControl>
+                                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                    </FormControl>
+                                    <FormLabel>Best Seller</FormLabel>
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};

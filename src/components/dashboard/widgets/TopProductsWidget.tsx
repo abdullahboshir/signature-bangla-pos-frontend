@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Package, TrendingUp } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 
 // Mock top products data
 const topProducts = [
@@ -48,6 +48,11 @@ const topProducts = [
 
 export function TopProductsWidget() {
   const router = useRouter()
+  const params = useParams()
+  const role = params.role as string
+  const businessUnit = (params["business-unit"] || params.businessUnit) as string
+
+  const baseUrl = `/${role}/${businessUnit}/catalog/product`
 
   return (
     <Card>
@@ -66,7 +71,7 @@ export function TopProductsWidget() {
             <div
               key={product.id}
               className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
-              onClick={() => router.push(`/products/${product.id}`)}
+              onClick={() => router.push(`${baseUrl}/${product.id}`)}
             >
               <div className="flex items-center space-x-3 flex-1">
                 <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-semibold text-sm">
@@ -97,11 +102,12 @@ export function TopProductsWidget() {
         <Button
           variant="outline"
           className="w-full mt-4"
-          onClick={() => router.push("/products")}
+          onClick={() => router.push(baseUrl)}
         >
           View All Products
         </Button>
       </CardContent>
+
     </Card>
   )
 }

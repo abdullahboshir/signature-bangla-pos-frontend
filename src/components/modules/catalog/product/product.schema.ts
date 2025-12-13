@@ -8,18 +8,36 @@ export const productSchema = z.object({
   // Core
   name: z.string().min(1, "Product name is required").max(100),
   nameBangla: z.string().optional(),
-  slug: z.string().optional(), // generated
-  sku: z.string().optional(), // generated
+  slug: z.string().optional(),
+  sku: z.string().min(1, "SKU is required").or(z.literal("")).optional(), // Allow empty string or valid SKU
+  barcode: z.string().optional(),
   
-  businessUnit: z.string().optional(), // Injected from context usually
+  businessUnit: z.string().optional(),
   categories: z.array(z.string()).min(1, "At least one category is required"),
   primaryCategory: z.string().min(1, "Primary category is required"),
+  subCategory: z.string().optional(),
+  childCategory: z.string().optional(),
   brands: z.array(z.string()).optional(),
   
   tags: z.array(z.string()).optional(),
   tagsBangla: z.array(z.string()).optional(),
 
-  unit: z.enum(['kg', 'gram', 'piece', 'dozen', 'litre', 'ml']).default('piece'),
+  unit: z.string().min(1, "Unit is required"),
+
+  // Attributes
+  attributes: z.object({
+    isOrganic: z.boolean().default(false),
+    isElectric: z.boolean().default(false),
+    isFragile: z.boolean().default(false),
+    isPerishable: z.boolean().default(false),
+    isHazardous: z.boolean().default(false),
+    isDigital: z.boolean().default(false),
+    isService: z.boolean().default(false), // e.g. Installation
+    ageRestricted: z.boolean().default(false),
+    minAge: z.number().min(0).optional(),
+    prescriptionRequired: z.boolean().default(false),
+    prescriptionType: z.enum(["online", "physical"]).optional(), 
+  }).optional(),
 
   // Pricing
   pricing: z.object({
@@ -28,6 +46,7 @@ export const productSchema = z.object({
     currency: z.enum(["BDT", "USD"]).default("BDT"),
     costPrice: z.number().min(0).default(0),
     profitMargin: z.number().min(0).default(0),
+    profitMarginType: z.enum(["percentage", "fixed"]).default("percentage"),
     discount: z.object({
       amount: z.number().min(0).default(0),
       type: z.enum(["percentage", "fixed"]).default("percentage"),
@@ -50,7 +69,7 @@ export const productSchema = z.object({
       lowStockThreshold: z.number().default(5),
       allowBackorder: z.boolean().default(false),
     }),
-    suppliers: z.array(z.any()).optional(), // Simplified for now
+    suppliers: z.array(z.any()).optional(),
   }),
 
   // Details
@@ -77,12 +96,23 @@ export const productSchema = z.object({
      }),
      delivery: z.object({
         estimatedDelivery: z.string().min(1, "Delivery time estimate required"),
+        estimatedDeliveryBangla: z.string().optional(),
         availableFor: z.enum(["home_delivery", "pickup", "both"]).default("home_delivery"),
         cashOnDelivery: z.boolean().default(true),
+        installationAvailable: z.boolean().default(false),
+        installationCost: z.number().min(0).optional(),
      }),
      packagingType: z.string().default("box"),
      shippingClass: z.string().default("standard")
   }),
+
+  // Compliance
+  compliance: z.object({
+      hasCertification: z.boolean().default(false),
+      certifications: z.array(z.string()).optional(),
+      importRestrictions: z.array(z.string()).optional(),
+      safetyStandards: z.array(z.string()).optional(),
+  }).optional(),
 
   // Warranty
   warranty: z.object({
@@ -103,23 +133,37 @@ export const productSchema = z.object({
   marketing: z.object({
     isFeatured: z.boolean().default(false),
     isNew: z.boolean().default(false),
+    isPopular: z.boolean().default(false),
     isBestSeller: z.boolean().default(false),
+    isTrending: z.boolean().default(false),
     seo: z.object({
         metaTitle: z.string().min(1, "Meta Title required"),
         metaDescription: z.string().min(1, "Meta Description required"),
         keywords: z.array(z.string()).optional(),
         canonicalUrl: z.string().optional(),
-    })
+    }).optional(),
+     socialShares: z.number().optional(),
+     wishlistCount: z.number().optional(),
   }).optional(),
   
+  // Bundles
+  isBundle: z.boolean().default(false),
+  bundleProducts: z.array(z.object({
+      product: z.string(), // ObjectId
+      quantity: z.number().min(1),
+      discount: z.number().optional(),
+  })).optional(),
+  bundleDiscount: z.number().min(0).optional(),
+
   // Variants
   hasVariants: z.boolean().default(false),
+  variantTemplate: z.string().optional(),
   variants: z.array(z.object({
       id: z.string().optional(),
-      name: z.string().optional(), // e.g. "Size-Red" or specific combination name
+      name: z.string().optional(),
       options: z.array(z.object({
-          name: z.string(), // "Color"
-          value: z.string() // "Red"
+          name: z.string(),
+          value: z.string()
       })),
       sku: z.string().optional(),
       price: z.number().min(0).optional(),
@@ -137,16 +181,35 @@ export type ProductFormValues = z.infer<typeof productSchema>;
 
 export const defaultProductValues: ProductFormValues = {
     name: "",
+    nameBangla: "",
+    slug: "",
+    sku: "",
+    barcode: "",
+    businessUnit: "",
     primaryCategory: "",
+    subCategory: "",
+    childCategory: "",
     categories: [],
-    unit: "piece",
+    unit: "",
     tags: [],
     tagsBangla: [],
+    attributes: {
+        isOrganic: false,
+        isElectric: false,
+        isFragile: false,
+        isPerishable: false,
+        isHazardous: false,
+        isDigital: false,
+        isService: false,
+        ageRestricted: false,
+        prescriptionRequired: false,
+    },
     pricing: {
         currency: "BDT",
         basePrice: 0,
         costPrice: 0,
         profitMargin: 0,
+        profitMarginType: "percentage",
         tax: {
             taxable: false,
             taxClass: "standard",
@@ -166,15 +229,18 @@ export const defaultProductValues: ProductFormValues = {
         description: "",
         shortDescription: "",
         images: [],
-        origin: "Bangladesh", // Default to local
+        origin: "Bangladesh",
         manufacturer: "",
         model: ""
     },
     shipping: {
         delivery: {
             estimatedDelivery: "2-3 days",
+            estimatedDeliveryBangla: "",
             availableFor: "home_delivery",
-            cashOnDelivery: true
+            cashOnDelivery: true,
+            installationAvailable: false,
+            installationCost: 0
         },
         packagingType: "box",
         shippingClass: "standard",
@@ -187,6 +253,12 @@ export const defaultProductValues: ProductFormValues = {
                 unit: "cm" 
              }
         }
+    },
+    compliance: {
+        hasCertification: false,
+        certifications: [],
+        safetyStandards: [],
+        importRestrictions: []
     },
     warranty: {
         warranty: {
@@ -205,13 +277,20 @@ export const defaultProductValues: ProductFormValues = {
         isFeatured: false,
         isNew: false,
         isBestSeller: false,
+        isPopular: false,
+        isTrending: false,
         seo: {
             metaTitle: "",
             metaDescription: "",
             keywords: [],
             canonicalUrl: ""
-        }
+        },
+        socialShares: 0,
+        wishlistCount: 0
     },
+    isBundle: false,
+    bundleProducts: [],
+    bundleDiscount: 0,
     hasVariants: false,
     variants: [],
     statusInfo: {

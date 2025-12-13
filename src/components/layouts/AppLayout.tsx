@@ -20,7 +20,7 @@ export function AppLayout({ children, showFooter = true }: AppLayoutProps) {
   return (
     <div className="flex min-h-screen bg-background">
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex">
+      <div className="hidden lg:flex sticky top-0 h-screen overflow-hidden shrink-0">
         <Sidebar />
       </div>
 

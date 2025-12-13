@@ -39,3 +39,12 @@ export interface ICatalogStats {
     totalChildCategories: number;
     totalProducts: number;
 }
+
+export interface ITax extends IBaseEntity {
+    name: string;
+    rate: number;
+    type: 'percentage' | 'fixed';
+    businessUnit: string | null;
+    isDefault: boolean;
+    isActive: boolean;
+}

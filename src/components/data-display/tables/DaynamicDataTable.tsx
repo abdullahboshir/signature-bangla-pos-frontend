@@ -201,7 +201,7 @@ export function DynamicDataTable<T extends Record<string, any>>({
       {/* Toolbar - (Keep same) */}
       {mergedConfig.showToolbar !== false && (
         <div className="space-y-4 rounded-md border bg-card p-4 shadow-sm">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
               {showSearch && (
                 <div className="relative w-full sm:max-w-xs">

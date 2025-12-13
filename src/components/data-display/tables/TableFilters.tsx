@@ -305,57 +305,17 @@ export function TableFilters({
   ).length;
 
   return (
-    <div className="space-y-4">
-      {/* Active Filters Display */}
-      {activeFiltersCount > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-muted-foreground">Active filters:</span>
-          {Object.entries(filters).map(([key, value]) => {
-            if (!value || value === '' || (Array.isArray(value) && value.length === 0)) {
-              return null;
-            }
-
-            let displayValue = value;
-            if (Array.isArray(value)) {
-              displayValue = value.join(', ');
-            } else if (key === 'dateRange' && value.from && value.to) {
-              displayValue = `${format(value.from, 'MMM dd')} - ${format(value.to, 'MMM dd')}`;
-            }
-
-            return (
-              <Badge
-                key={key}
-                variant="secondary"
-                className="flex items-center gap-1 dark:!text-gray-900"
-              >
-                <span className="capitalize">{key}: {displayValue}</span>
-                <X
-                  className="h-3 w-3 cursor-pointer"
-                  onClick={() => removeFilter(key)}
-                />
-              </Badge>
-            );
-          })}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearAllFilters}
-            className="h-6 px-2 text-xs"
-          >
-            Clear all
-          </Button>
-        </div>
-      )}
-
+    <div className="flex flex-1 flex-col gap-4 md:flex-row md:items-center">
       {/* Filter Controls */}
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-2 items-center order-2 md:order-1">
         {/* Date Range Filter */}
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
+              size="sm"
               className={cn(
-                'w-[240px] justify-start text-left font-normal',
+                'h-9 justify-start text-left font-normal',
                 !dateRange.from && 'text-muted-foreground'
               )}
             >
@@ -370,7 +330,7 @@ export function TableFilters({
                   format(dateRange.from, 'LLL dd, y')
                 )
               ) : (
-                'Pick a date range'
+                'Date'
               )}
             </Button>
           </PopoverTrigger>
@@ -394,11 +354,11 @@ export function TableFilters({
         {/* Data Type Specific Filters */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" size="sm" className="h-9 gap-2">
               {dataTypeIcons[dataType as keyof typeof dataTypeIcons] || <Filter className="h-4 w-4" />}
               Filters
               {activeFiltersCount > 0 && (
-                <Badge variant="secondary" className="ml-1 h-5 w-5 p-0">
+                <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 bg-primary/20">
                   {activeFiltersCount}
                 </Badge>
               )}
@@ -459,6 +419,48 @@ export function TableFilters({
           </PopoverContent>
         </Popover>
       </div>
+
+      {/* Active Filters Display */}
+      {activeFiltersCount > 0 && (
+        <div className="flex flex-wrap items-center gap-2 order-1 md:order-2 flex-1">
+          <span className="text-xs text-muted-foreground hidden lg:inline-block">Active:</span>
+          {Object.entries(filters).map(([key, value]) => {
+            if (!value || value === '' || (Array.isArray(value) && value.length === 0)) {
+              return null;
+            }
+
+            let displayValue = value;
+            if (Array.isArray(value)) {
+              displayValue = value.join(', ');
+            } else if (key === 'dateRange' && value.from && value.to) {
+              displayValue = `${format(value.from, 'MMM dd')} - ${format(value.to, 'MMM dd')}`;
+            }
+
+            return (
+              <Badge
+                key={key}
+                variant="secondary"
+                className="flex items-center gap-1 h-7 text-xs border bg-background"
+              >
+                <span className="capitalize text-muted-foreground">{key}:</span>
+                <span className="font-medium">{displayValue}</span>
+                <X
+                  className="h-3 w-3 cursor-pointer hover:text-destructive"
+                  onClick={() => removeFilter(key)}
+                />
+              </Badge>
+            );
+          })}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearAllFilters}
+            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+          >
+            Clear all
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

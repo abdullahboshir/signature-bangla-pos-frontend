@@ -32,8 +32,8 @@ export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
   const userData: any = {
     fullName: user?.id || user?.email || "Staff",
     profileImg: "/avatars/01.png",
-    designation: user?.roles?.map((role: any) => role.name).join(", ") || "Staff",
-    role: user?.roles?.map((role: any) => role.name).join(", ") || "Staff",
+    designation: user?.roles?.map((role: any) => typeof role === 'string' ? role : role.name).filter(Boolean).join(", ") || "Staff",
+    role: user?.roles?.map((role: any) => typeof role === 'string' ? role : role.name).filter(Boolean).join(", ") || "Staff",
     businessUnit: user?.businessUnits?.map((u: any) => u.name) || [],
   };
 
@@ -74,7 +74,7 @@ export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
 
           {/* Center: Search & Status (POS Style) */}
           <div className="flex-1 flex justify-center items-center gap-6">
-            <div className="hidden md:flex items-center gap-2 bg-muted/40 px-3 py-1.5 rounded-full border">
+            <div className="hidden md:flex items-center gap-2 bg-muted/40 px-3 py-1.5 rounded-full border tabular-nums">
               <Clock className="text-xs" />
               <div className="h-4 w-px bg-border" />
               <NetworkStatus className="w-2 h-2 text-[10px]" />

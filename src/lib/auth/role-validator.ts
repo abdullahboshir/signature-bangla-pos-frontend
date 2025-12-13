@@ -69,6 +69,7 @@ export async function hasRouteAccess(
     // Check if user has the required permission
     // Backend permissions format: { resource: "product", action: "view", ... }
     const hasPermission = userPermissions.some(perm => {
+      if (!perm) return false;
       // Backend uses 'resource' but we might have previously used 'source' or valid backend data
       const permResource = perm.resource || perm.source;
       

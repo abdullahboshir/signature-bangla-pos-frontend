@@ -1,11 +1,13 @@
 "use client";
 
+import { axiosInstance } from "@/lib/axios/axiosInstance";
+
 import { useEffect, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Upload } from "lucide-react";
+import { ChevronsUpDown, Check, Loader2, Plus, Trash, Trash2, Upload, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +35,7 @@ import { Separator } from "@/components/ui/separator";
 
 import { defaultProductValues, productSchema, ProductFormValues } from "./product.schema";
 import { productService } from "@/services/catalog/product.service";
+import { categoryService } from "@/services/catalog/category.service";
 
 // Variant Generator Component (Inline for simplicity)
 function VariantGenerator({ onGenerate }: { onGenerate: (variants: any[]) => void }) {
@@ -170,13 +173,129 @@ export default function ProductForm({ initialData }: ProductFormProps) {
 
     const [isLoading, setIsLoading] = useState(false);
     const [categories, setCategories] = useState<any[]>([]);
+    const [subCategories, setSubCategories] = useState<any[]>([]);
+    const [childCategories, setChildCategories] = useState<any[]>([]);
+    const [brands, setBrands] = useState<any[]>([]);
+    const [units, setUnits] = useState<any[]>([]);
+
+    // Normalize initialData to handle populated fields (objects -> IDs)
+    const normalizedDefaultValues = initialData ? {
+        ...defaultProductValues,
+        ...initialData,
+        // Handle populated fields by extracting _id if they are objects
+        primaryCategory: initialData.primaryCategory?._id || initialData.primaryCategory,
+        subCategory: initialData.subCategory?._id || initialData.subCategory,
+        childCategory: initialData.childCategory?._id || initialData.childCategory,
+        unit: initialData.unit?._id || initialData.unit,
+        businessUnit: initialData.businessUnit?._id || initialData.businessUnit,
+        brands: initialData.brands?.map((b: any) => b._id || b) || [],
+
+        // Ensure nested structures are preserved or re-mapped if needed
+        pricing: {
+            ...defaultProductValues.pricing,
+            ...initialData.pricing,
+            tax: {
+                ...defaultProductValues.pricing.tax,
+                ...(initialData.pricing?.tax || initialData.tax)
+            }
+        },
+        inventory: {
+            ...defaultProductValues.inventory,
+            ...initialData.inventory,
+            inventory: { // Fix double nesting if it exists in data but flattened in form or vice versa
+                ...defaultProductValues.inventory.inventory,
+                ...(initialData.inventory?.inventory || {})
+            }
+        },
+        shipping: {
+            ...defaultProductValues.shipping,
+            ...initialData.shipping
+        },
+        details: {
+            ...defaultProductValues.details,
+            ...initialData.details
+        },
+        marketing: {
+            ...defaultProductValues.marketing,
+            ...initialData.marketing
+        },
+        statusInfo: {
+            ...defaultProductValues.statusInfo,
+            ...initialData.statusInfo
+        },
+        // Fix warranty: if it's an ID string (not populated), reset to default to pass Zod validation
+        warranty: (initialData.warranty && typeof initialData.warranty === 'object' && !Array.isArray(initialData.warranty))
+            ? initialData.warranty
+            : defaultProductValues.warranty,
+    } : defaultProductValues;
 
     const form = useForm<ProductFormValues>({
         // cast resolver to any to avoid complex type mismatches between Zod defaults and RHF types
         resolver: zodResolver(productSchema) as any,
-        defaultValues: initialData ? { ...defaultProductValues, ...initialData } : defaultProductValues,
+        defaultValues: normalizedDefaultValues,
         mode: "onChange",
     });
+
+    const [taxes, setTaxes] = useState<any[]>([]);
+
+    // Calculation Logic (Moved to proper scope)
+    // Debugging Form Errors
+    console.log("Form Errors:", form.formState.errors);
+
+    const handlePriceCalculation = (type: 'cost' | 'selling' | 'margin', value: number) => {
+        const cost = type === 'cost' ? value : form.getValues("pricing.costPrice") || 0;
+        const selling = type === 'selling' ? value : form.getValues("pricing.basePrice") || 0;
+        const margin = type === 'margin' ? value : form.getValues("pricing.profitMargin") || 0;
+        const marginType = form.getValues("pricing.profitMarginType") || "percentage";
+
+        if (type === 'cost') {
+            if (margin > 0) {
+                let newSelling = 0;
+                if (marginType === "percentage") {
+                    // Markup logic: Cost + (Cost * Margin%)
+                    newSelling = cost * (1 + (margin / 100));
+                } else {
+                    newSelling = cost + margin;
+                }
+                form.setValue("pricing.basePrice", parseFloat(newSelling.toFixed(2)));
+            }
+            form.setValue("pricing.costPrice", value);
+        } else if (type === 'selling') {
+            if (value > 0 && cost >= 0) {
+                let newMargin = 0;
+                if (marginType === "percentage") {
+                    // Margin = ((Selling - Cost) / Cost) * 100
+                    if (cost > 0) newMargin = ((value - cost) / cost) * 100;
+                    else newMargin = 100; // infinite markup if cost 0
+                } else {
+                    newMargin = value - cost;
+                }
+                form.setValue("pricing.profitMargin", parseFloat(newMargin.toFixed(2)));
+            }
+            form.setValue("pricing.basePrice", value);
+        } else if (type === 'margin') {
+            if (cost > 0) {
+                let newSelling = 0;
+                if (marginType === "percentage") {
+                    newSelling = cost * (1 + (value / 100));
+                } else {
+                    newSelling = cost + value;
+                }
+                form.setValue("pricing.basePrice", parseFloat(newSelling.toFixed(2)));
+            }
+            form.setValue("pricing.profitMargin", value);
+        }
+    };
+
+    // Watch for margin type change to recalculate
+    const marginType = form.watch("pricing.profitMarginType");
+    useEffect(() => {
+        const cost = form.getValues("pricing.costPrice");
+        const margin = form.getValues("pricing.profitMargin");
+        if (cost && margin) {
+            handlePriceCalculation('margin', margin);
+        }
+    }, [marginType]);
 
     const { fields: variantFields, append: appendVariant, remove: removeVariant } = useFieldArray({
         control: form.control,
@@ -186,48 +305,81 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const cats = await productService.getCategories();
+                const cats = await categoryService.getAll({ limit: 100 });
+                const brandsRes = await axiosInstance.get("/super-admin/brands");
+                const unitsRes = await axiosInstance.get("/super-admin/units");
 
-                // Helper to build tree if flat
-                const buildTree = (items: any[]) => {
-                    if (!items || !Array.isArray(items)) return [];
-                    const map = new Map();
-                    items.forEach(c => map.set(c._id || c.id, { ...c, children: [] }));
-                    const roots: any[] = [];
-                    items.forEach(c => {
-                        const parentId = c.parent || c.parentId || c.category; // Backend uses 'category' for subCat parent
-                        if (parentId && map.has(parentId)) {
-                            map.get(parentId).children.push(map.get(c._id || c.id));
-                        } else {
-                            if (!c.parent && !c.category && !c.subCategory) {
-                                roots.push(map.get(c._id || c.id));
-                            }
-                        }
-                    });
-                    // Because we fetch ALL levels flattened from respective endpoints in 'getTree' service usually, but here 'getCategories' only returns Level 1? 
-                    // Wait, `productService.getCategories` hits `/category?limit=100`. That's only Level 1.
-                    // If we want hierarchy, we need proper tree data. 
-                    // For now, let's just assume we only select Primary Category if we only fetch Level 1. 
-                    // But requirement was "Category tree support".
-                    // I will stick to what was provided in AddProduct: it assumed fetch returns flat list or tree.
+                const taxList = await productService.getTaxes();
 
-                    // Actually, the previous implementation in AddProductForm had complex buildTree logic.
-                    // Given time constraints, I will load just Level 1 for now or assume backend might send tree.
-                    // If backend sends flat list of level 1, then tree is flat.
+                setTaxes(taxList);
+                setCategories(cats);
+                setBrands(brandsRes.data?.data?.result || brandsRes.data?.data || []);
+                setUnits(unitsRes.data?.data?.result || unitsRes.data?.data || []);
 
-                    if (cats.some((c: any) => c.children && c.children.length > 0)) {
-                        setCategories(cats);
-                    } else {
-                        // Assuming cats are just level 1
-                        setCategories(cats);
-                    }
-                };
-
-                buildTree(cats);
-
-                // If editing, we might need to reset form if initialData changed or late binding
+                // If editing and we have initial values, we need to load sub/child cats to show the selected labels
                 if (initialData) {
-                    form.reset(initialData);
+                    // Normalize for reset as well
+                    const resetValues = {
+                        ...defaultProductValues,
+                        ...initialData,
+                        primaryCategory: initialData.primaryCategory?._id || initialData.primaryCategory,
+                        subCategory: initialData.subCategory?._id || initialData.subCategory,
+                        childCategory: initialData.childCategory?._id || initialData.childCategory,
+                        unit: initialData.unit?._id || initialData.unit,
+                        businessUnit: initialData.businessUnit?._id || initialData.businessUnit,
+                        brands: initialData.brands?.map((b: any) => b._id || b) || [],
+                        pricing: {
+                            ...defaultProductValues.pricing,
+                            ...initialData.pricing,
+                            tax: {
+                                ...defaultProductValues.pricing.tax,
+                                ...(initialData.pricing?.tax || initialData.tax)
+                            }
+                        },
+                        inventory: {
+                            ...defaultProductValues.inventory,
+                            ...initialData.inventory,
+                            inventory: {
+                                ...defaultProductValues.inventory.inventory,
+                                ...(initialData.inventory?.inventory || {})
+                            }
+                        },
+                        shipping: {
+                            ...defaultProductValues.shipping,
+                            ...initialData.shipping
+                        },
+                        details: {
+                            ...defaultProductValues.details,
+                            ...initialData.details
+                        },
+                        marketing: {
+                            ...defaultProductValues.marketing,
+                            ...initialData.marketing
+                        },
+                        statusInfo: {
+                            ...defaultProductValues.statusInfo,
+                            ...initialData.statusInfo
+                        },
+                        // Fix warranty for reset too
+                        warranty: (initialData.warranty && typeof initialData.warranty === 'object' && !Array.isArray(initialData.warranty))
+                            ? initialData.warranty
+                            : defaultProductValues.warranty,
+                    };
+                    form.reset(resetValues);
+
+                    // Pre-fetch SubCategories if Primary Category exists
+                    if (initialData.primaryCategory) {
+                        const catId = typeof initialData.primaryCategory === 'string' ? initialData.primaryCategory : initialData.primaryCategory._id;
+                        const subs = await categoryService.getAllSub({ category: catId });
+                        setSubCategories(subs);
+
+                        // Pre-fetch ChildCategories if SubCategory exists
+                        if (initialData.subCategory) {
+                            const subId = typeof initialData.subCategory === 'string' ? initialData.subCategory : initialData.subCategory._id;
+                            const childs = await categoryService.getAllChild({ subCategory: subId });
+                            setChildCategories(childs);
+                        }
+                    }
                 }
 
             } catch (error) {
@@ -238,10 +390,70 @@ export default function ProductForm({ initialData }: ProductFormProps) {
         fetchData();
     }, [initialData, form]);
 
+    // Cascading Effects
+    const selectedPrimary = form.watch("primaryCategory");
+    const selectedSub = form.watch("subCategory");
+
+    useEffect(() => {
+        if (selectedPrimary) {
+            // Only fetch if changed and not initial load (controlled by logic below or user iteration)
+            // Actually, simplest is to fetch whenever it changes.
+            // But we avoid re-fetching on initial load if we handled it above.
+            // To allow dynamic switching:
+            categoryService.getAllSub({ category: selectedPrimary }).then(setSubCategories);
+            // Clear downstream
+            if (!initialData || (initialData.primaryCategory !== selectedPrimary)) {
+                // Only clear if user changed it, not on initial hydration
+                // Hard to detect "user change" vs "initial populate" perfectly in this effect structure without refs.
+                // But generally safe to fetch. resetting downstream fields is needed if user changes parent.
+            }
+        } else {
+            setSubCategories([]);
+        }
+    }, [selectedPrimary]);
+
+    useEffect(() => {
+        if (selectedSub) {
+            categoryService.getAllChild({ subCategory: selectedSub }).then(setChildCategories);
+        } else {
+            setChildCategories([]);
+        }
+    }, [selectedSub]);
+
     const onSubmit = async (data: ProductFormValues) => {
         setIsLoading(true);
         try {
-            const payload = { ...data, businessUnit };
+            // Remove warranty from payload if it's default/invalid to preserve backend reference or avoid error
+            const payload: any = { ...data, businessUnit };
+            if (!payload.warranty?.hasWarranty) {
+                delete payload.warranty;
+            } else {
+                // Or if it IS set but we want to ensure we don't send a partial object if backend strictly wants an ID?
+                // Actually the error was "expected object, received string". This means we SENT a string (ID) but schema validation (Zod?) or Backend expected object?
+                // Wait, backend model has Ref. Backend Update acts on `Partial<IProductDocument>`.
+                // If we send an object for a Ref field in Mongoose update, it might fail if not careful?
+                // The USER said "Invalid input: expected object, received string". This error likely comes from ZodResolver on Frontend BEFORE submit, OR from Backend validation?
+                // If it's "Invalid input: expected object, received string", and the type is "invalid_type", it's likely Zod.
+                // So fixing the form values (which we just did) should fix the submission payload too.
+                // But let's be safe and clean the payload.
+            }
+
+            // Just ensuring we don't send the ID string back if it somehow persisted.
+            // But since we reset form with Object, 'data.warranty' should be Object here.
+
+            // However, IF the user didn't touch it and it was reset to default (because original was ID), 
+            // we are sending default values. This overwrites the existing ID connection with "No Warranty".
+            // That's acceptable if we can't edit it. Better than crashing.
+
+            // For now, let's just proceed with the payload as is, assuming the form value fix solved the Zod error.
+            // But wait, if I want to PRESERVE the existing warranty connection that was an ID, I should exclude 'warranty' from payload 
+            // if I know I reset it to dummy default.
+
+            // Check if we forced it to default
+            if (initialData?.warranty && typeof initialData.warranty !== 'object') {
+                delete payload.warranty;
+            }
+
 
             if (initialData && initialData._id) {
                 await productService.update(initialData._id, payload);
@@ -259,9 +471,14 @@ export default function ProductForm({ initialData }: ProductFormProps) {
         }
     };
 
+    const onFormError = (errors: any) => {
+        console.error("Form Validation Errors:", errors);
+        toast.error("Please check the form for errors. Required fields are missing.");
+    };
+
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 pb-10">
+            <form onSubmit={form.handleSubmit(onSubmit, onFormError)} className="space-y-8 pb-10">
                 <div className="flex items-center justify-between">
                     <h2 className="text-xl font-semibold tracking-tight">{initialData ? "Edit Product" : "New Product"}</h2>
                     <div className="flex gap-2">
@@ -308,12 +525,100 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                                 <FormLabel>Category</FormLabel>
                                                 <Select onValueChange={(val) => {
                                                     field.onChange(val);
-                                                    form.setValue("categories", [val]);
+                                                    form.setValue("categories", [val]); // Reset categories array to just this one + sub/child can verify later
+                                                    form.setValue("subCategory", ""); // Reset sub
+                                                    form.setValue("childCategory", ""); // Reset child
                                                 }} value={field.value}>
                                                     <FormControl><SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger></FormControl>
                                                     <SelectContent>
                                                         {categories.map((c) => (
                                                             <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="subCategory"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Sub-Category</FormLabel>
+                                                <Select onValueChange={(val) => {
+                                                    field.onChange(val);
+                                                    form.setValue("childCategory", ""); // Reset child
+                                                    // Update categories array to include this [primary, sub]
+                                                    const primary = form.getValues("primaryCategory");
+                                                    form.setValue("categories", [primary, val]);
+                                                }} value={field.value} disabled={!subCategories.length}>
+                                                    <FormControl><SelectTrigger><SelectValue placeholder="Select Sub-Category" /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        {subCategories.map((c) => (
+                                                            <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="childCategory"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Child-Category</FormLabel>
+                                                <Select onValueChange={(val) => {
+                                                    field.onChange(val);
+                                                    // Update categories array to include this [primary, sub, child]
+                                                    const primary = form.getValues("primaryCategory");
+                                                    const sub = form.getValues("subCategory");
+                                                    // Filter out undefined if sub is somehow missing (shouldn't be)
+                                                    const cats = [primary, sub, val].filter(Boolean) as string[];
+                                                    form.setValue("categories", cats);
+                                                }} value={field.value} disabled={!childCategories.length}>
+                                                    <FormControl><SelectTrigger><SelectValue placeholder="Select Child-Category" /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        {childCategories.map((c) => (
+                                                            <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="unit"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Unit</FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value}>
+                                                    <FormControl><SelectTrigger><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        {units.map((u) => (
+                                                            <SelectItem key={u._id} value={u._id}>{u.name} ({u.symbol})</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="brands"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Brand</FormLabel>
+                                                <Select onValueChange={(val) => field.onChange([val])} value={field.value?.[0] || ""}>
+                                                    <FormControl><SelectTrigger><SelectValue placeholder="Select Brand" /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        {brands.map((b) => (
+                                                            <SelectItem key={b._id} value={b._id}>{b.name}</SelectItem>
                                                         ))}
                                                     </SelectContent>
                                                 </Select>
@@ -345,37 +650,132 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                         </Card>
                     </TabsContent>
 
-                    {/* Copied from previous form, simplified for brevity but functional */}
+                    {/* Pricing Tab */}
                     <TabsContent value="pricing">
                         <Card>
-                            <CardHeader><CardTitle>Pricing</CardTitle></CardHeader>
+                            <CardHeader><CardTitle>Pricing & Tax</CardTitle></CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-3 gap-4">
                                     <FormField
                                         control={form.control}
-                                        name="pricing.basePrice"
+                                        name="pricing.costPrice"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Base Price</FormLabel>
-                                                <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl>
+                                                <FormLabel>Cost Price</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="number"
+                                                        {...field}
+                                                        onChange={e => handlePriceCalculation('cost', parseFloat(e.target.value))}
+                                                    />
+                                                </FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
                                     />
                                     <FormField
                                         control={form.control}
-                                        name="pricing.currency"
+                                        name="pricing.profitMarginType"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Currency</FormLabel>
-                                                <Select onValueChange={field.onChange} value={field.value}>
-                                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                                <FormLabel>Profit Type</FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value || "percentage"}>
+                                                    <FormControl><SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger></FormControl>
                                                     <SelectContent>
-                                                        <SelectItem value="BDT">BDT</SelectItem>
-                                                        <SelectItem value="USD">USD</SelectItem>
+                                                        <SelectItem value="percentage">Percentage (%)</SelectItem>
+                                                        <SelectItem value="fixed">Fixed Amount</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                                 <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="pricing.profitMargin"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Profit Margin</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="number"
+                                                        {...field}
+                                                        onChange={e => handlePriceCalculation('margin', parseFloat(e.target.value))}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="pricing.basePrice"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Selling Price</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="number"
+                                                        {...field}
+                                                        onChange={e => handlePriceCalculation('selling', parseFloat(e.target.value))}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+
+                                <Separator />
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="pricing.tax.taxClass"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Tax Rule</FormLabel>
+                                                <Select onValueChange={(val) => {
+                                                    field.onChange(val);
+                                                    // Auto-set rate based on selection
+                                                    const selectedTax = taxes.find(t => t._id === val || t.name === val); // Assuming val is ID or Name depending on what we store
+                                                    // Typically store ID. Let's assume ID.
+                                                    if (selectedTax) {
+                                                        form.setValue("pricing.tax.taxRate", selectedTax.rate);
+                                                    }
+                                                }} value={field.value}>
+                                                    <FormControl><SelectTrigger><SelectValue placeholder="Select Tax" /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="standard">Standard (No Tax)</SelectItem>
+                                                        {taxes.map((t) => (
+                                                            <SelectItem key={t._id} value={t._id}>{t.name} ({t.rate}%)</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="pricing.tax.taxRate"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Tax Rate (%)</FormLabel>
+                                                <FormControl><Input type="number" readOnly {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <FormField
+                                        control={form.control}
+                                        name="pricing.tax.taxInclusive"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                                                <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                                <FormLabel>Price includes Tax?</FormLabel>
                                             </FormItem>
                                         )}
                                     />
@@ -451,17 +851,87 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                     )}
                                 />
                                 {/* Images placeholder */}
-                                <FormField
-                                    control={form.control}
-                                    name="details.images.0"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Image URL (Primary)</FormLabel>
-                                            <FormControl><Input placeholder="https://..." {...field} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                                <div className="space-y-4">
+                                    <FormLabel>Product Images</FormLabel>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        {/* Current Images List */}
+                                        {form.watch("details.images")?.map((img: string, idx: number) => (
+                                            <div key={idx} className="relative group border rounded-md overflow-hidden aspect-square">
+                                                <img src={img} alt={`Product ${idx}`} className="w-full h-full object-cover" />
+                                                <Button
+                                                    type="button"
+                                                    variant="destructive"
+                                                    size="icon"
+                                                    className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => {
+                                                        const current = form.getValues("details.images");
+                                                        form.setValue("details.images", current.filter((_, i) => i !== idx));
+                                                    }}
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+
+                                        {/* Add New Image Area */}
+                                        <div className="border-2 border-dashed rounded-md flex flex-col items-center justify-center p-4 space-y-2 aspect-square text-muted-foreground hover:bg-muted/50 transition-colors">
+                                            <div className="flex flex-col items-center gap-1 text-center">
+                                                <Upload className="h-8 w-8 mb-2" />
+                                                <span className="text-xs">Upload from PC</span>
+                                                <Input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    id="img-upload"
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            try {
+                                                                const formData = new FormData();
+                                                                formData.append('image', file);
+                                                                toast.info("Uploading image...");
+                                                                const res = await axiosInstance.post("/super-admin/upload/image", formData, {
+                                                                    headers: { 'Content-Type': 'multipart/form-data' }
+                                                                });
+                                                                if (res.data?.success) {
+                                                                    const url = res.data.data.url;
+                                                                    const current = form.getValues("details.images") || [];
+                                                                    form.setValue("details.images", [...current, url]);
+                                                                    toast.success("Image uploaded!");
+                                                                }
+                                                            } catch (err) {
+                                                                console.error(err);
+                                                                toast.error("Upload failed");
+                                                            }
+                                                        }
+                                                    }}
+                                                />
+                                                <Button type="button" variant="secondary" size="sm" onClick={() => document.getElementById('img-upload')?.click()}>
+                                                    Select File
+                                                </Button>
+                                            </div>
+                                            <div className="w-full h-px bg-border my-2" />
+                                            <div className="w-full">
+                                                <Input
+                                                    placeholder="Or paste URL"
+                                                    className="h-8 text-xs"
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            const val = e.currentTarget.value;
+                                                            if (val) {
+                                                                const current = form.getValues("details.images") || [];
+                                                                form.setValue("details.images", [...current, val]);
+                                                                e.currentTarget.value = "";
+                                                            }
+                                                        }
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <FormMessage>{form.formState.errors.details?.images?.message}</FormMessage>
+                                </div>
                             </CardContent>
                         </Card>
                     </TabsContent>

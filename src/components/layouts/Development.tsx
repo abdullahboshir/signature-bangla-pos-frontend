@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { 
-  Wrench, 
-  Clock, 
-  Code, 
-  GitBranch, 
-  Layers, 
+import {
+  Wrench,
+  Clock,
+  Code,
+  GitBranch,
+  Layers,
   AlertCircle,
   ArrowRight,
   Home
@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { 
+import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
@@ -28,7 +28,7 @@ import {
 export default function DevelopmentLaout() {
   const pathname = usePathname();
   const [progress, setProgress] = useState<any>(0);
-  
+
   // Parse the path
   const pathSegments = pathname.split('/').filter(segment => segment);
   const currentPage = pathSegments[pathSegments.length - 1] || 'dashboard';
@@ -98,7 +98,7 @@ export default function DevelopmentLaout() {
                 </div>
                 <div>
                   <Badge variant="outline" className="mb-2">
-                    <Clock className="h-3 w-3 mr-1" />
+                    <Clock className="h-3 w-10 mr-1" />
                     Under Development
                   </Badge>
                   <CardTitle className="text-3xl">
@@ -169,34 +169,34 @@ export default function DevelopmentLaout() {
             </CardContent>
           </Card>
 
-          
-      {/* Bottom Stats */}
-      <div className="mt-8 grid grid-cols-2 md:grid-cols-2 gap-4">
-        <Card className="text-center">
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-blue-600">3</div>
-            <p className="text-sm text-gray-600">Developers Working</p>
-          </CardContent>
-        </Card>
-        <Card className="text-center">
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-green-600">12</div>
-            <p className="text-sm text-gray-600">Tasks Completed</p>
-          </CardContent>
-        </Card>
-        <Card className="text-center">
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-yellow-600">5</div>
-            <p className="text-sm text-gray-600">Tasks Remaining</p>
-          </CardContent>
-        </Card>
-        <Card className="text-center">
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-purple-600">85%</div>
-            <p className="text-sm text-gray-600">Code Coverage</p>
-          </CardContent>
-        </Card>
-      </div>
+
+          {/* Bottom Stats */}
+          <div className="mt-8 grid grid-cols-2 md:grid-cols-2 gap-4">
+            <Card className="text-center">
+              <CardContent className="pt-6">
+                <div className="text-2xl font-bold text-blue-600">3</div>
+                <p className="text-sm text-gray-600">Developers Working</p>
+              </CardContent>
+            </Card>
+            <Card className="text-center">
+              <CardContent className="pt-6">
+                <div className="text-2xl font-bold text-green-600">12</div>
+                <p className="text-sm text-gray-600">Tasks Completed</p>
+              </CardContent>
+            </Card>
+            <Card className="text-center">
+              <CardContent className="pt-6">
+                <div className="text-2xl font-bold text-yellow-600">5</div>
+                <p className="text-sm text-gray-600">Tasks Remaining</p>
+              </CardContent>
+            </Card>
+            <Card className="text-center">
+              <CardContent className="pt-6">
+                <div className="text-2xl font-bold text-purple-600">85%</div>
+                <p className="text-sm text-gray-600">Code Coverage</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Right Column - Info Cards */}
@@ -290,7 +290,7 @@ export default function DevelopmentLaout() {
           </Card>
         </div>
 
-        
+
       </div>
 
     </div>

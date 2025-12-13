@@ -1,0 +1,168 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useForm, Controller } from "react-hook-form";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { axiosInstance } from "@/lib/axios/axiosInstance";
+import Swal from "sweetalert2";
+
+interface TaxFormValues {
+    name: string;
+    rate: number;
+    type: "percentage" | "fixed";
+    isDefault: boolean;
+    isActive: boolean;
+    businessUnit?: string;
+}
+
+export default function AddTaxPage() {
+    const router = useRouter();
+    const [isSaving, setIsSaving] = useState(false);
+
+    const { register, handleSubmit, control, formState: { errors } } = useForm<TaxFormValues>({
+        defaultValues: {
+            name: "",
+            rate: 0,
+            type: "percentage",
+            isDefault: false,
+            isActive: true,
+        },
+    });
+
+    const onSubmit = async (data: TaxFormValues) => {
+        try {
+            setIsSaving(true);
+            // Ensure rate is a number
+            const payload = { ...data, rate: Number(data.rate) };
+
+            const response: any = await axiosInstance.post('/super-admin/taxes', payload);
+
+            if (response?.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Created!',
+                    text: 'Tax created successfully',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                router.back();
+            }
+        } catch (error) {
+            console.error("Create error", error);
+            Swal.fire("Error", "Failed to create tax", "error");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+            <div className="flex items-center space-x-2">
+                <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                    <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <div>
+                    <h2 className="text-3xl font-bold tracking-tight">Add New Tax</h2>
+                    <p className="text-muted-foreground">Define a new tax rate.</p>
+                </div>
+            </div>
+
+            <Card>
+                <CardContent className="pt-6">
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Tax Name</Label>
+                                <Input id="name" {...register("name", { required: "Name is required" })} placeholder="e.g., VAT 15%" />
+                                {errors.name && <span className="text-sm text-red-500">{errors.name.message}</span>}
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="rate">Rate</Label>
+                                <Input
+                                    id="rate"
+                                    type="number"
+                                    step="0.01"
+                                    {...register("rate", { required: "Rate is required", min: { value: 0, message: "Rate cannot be negative" } })}
+                                />
+                                {errors.rate && <span className="text-sm text-red-500">{errors.rate.message}</span>}
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="type">Type</Label>
+                                <Controller
+                                    name="type"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select type" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="percentage">Percentage (%)</SelectItem>
+                                                <SelectItem value="fixed">Fixed Amount</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                            </div>
+
+                            <div className="flex flex-col space-y-4 pt-8">
+                                <div className="flex items-center space-x-2">
+                                    <Controller
+                                        name="isDefault"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Switch
+                                                id="isDefault"
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                            />
+                                        )}
+                                    />
+                                    <Label htmlFor="isDefault">Is Default Tax?</Label>
+                                </div>
+
+                                <div className="flex items-center space-x-2">
+                                    <Controller
+                                        name="isActive"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Switch
+                                                id="isActive"
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                            />
+                                        )}
+                                    />
+                                    <Label htmlFor="isActive">Active</Label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end space-x-2">
+                            <Button variant="outline" type="button" onClick={() => router.back()}>Cancel</Button>
+                            <Button type="submit" disabled={isSaving}>
+                                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Create Tax
+                            </Button>
+                        </div>
+                    </form>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}

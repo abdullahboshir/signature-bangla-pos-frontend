@@ -6,7 +6,7 @@ import { useParams, usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { getSidebarMenu, getBusinessUnitInfo } from "@/config/sidebar-menu"
 import { Input } from "@/components/ui/input"
-import { Search } from "lucide-react"
+import { Search, ChevronLeft, ChevronRight } from "lucide-react"
 
 import { SidebarMenu } from "./SidebarMenu"
 import { SidebarHeader } from "./SidebarHeader"
@@ -68,6 +68,7 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
           } else if (item.resource) {
             // Logic adapted from role-validator.ts
             hasAccess = aggregatedPermissions.some((p: any) => {
+              if (!p) return false;
               // Support both string IDs (legacy) and Object permissions
               if (typeof p === 'string') {
                 const resource = item.resource.toUpperCase();
@@ -208,11 +209,23 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
         />
       </div>
 
-      {/* Sidebar Footer */}
-      {/* <SidebarFooter
-        isCollapsed={isCollapsed}
-        onToggle={() => setIsCollapsed(!isCollapsed)}
-      /> */}
+      {/* Sidebar Footer with Collapse Toggle */}
+      <div className="border-t p-3 flex justify-end">
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className={cn(
+            "flex h-8 w-8 items-center justify-center rounded-md border text-muted-foreground hover:bg-accent hover:text-foreground transition-all",
+            isCollapsed ? "mr-auto ml-auto" : ""
+          )}
+          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </button>
+      </div>
     </div>
   )
 }

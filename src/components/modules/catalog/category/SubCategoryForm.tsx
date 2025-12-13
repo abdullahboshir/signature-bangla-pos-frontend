@@ -32,6 +32,7 @@ import { categoryService } from "@/services/catalog/category.service";
 
 const formSchema = z.object({
     name: z.string().min(1, "Name is required").max(50),
+    slug: z.string().min(1, "Slug is required"),
     category: z.string().min(1, "Parent Category is required"),
     description: z.string().max(200).optional(),
     isActive: z.boolean().default(true),
@@ -54,6 +55,7 @@ export function SubCategoryForm({ initialData, businessUnitId, onSuccess }: SubC
         resolver: zodResolver(formSchema) as any,
         defaultValues: {
             name: initialData?.name || "",
+            slug: initialData?.slug || "",
             category: initialData?.category?._id || initialData?.category || "",
             description: initialData?.description || "",
             isActive: initialData?.isActive ?? true,
@@ -132,7 +134,26 @@ export function SubCategoryForm({ initialData, businessUnitId, onSuccess }: SubC
                         <FormItem>
                             <FormLabel>Sub-Category Name</FormLabel>
                             <FormControl>
-                                <Input placeholder="e.g. Mobile Phones" {...field} />
+                                <Input placeholder="e.g. Mobile Phones" {...field} onChange={e => {
+                                    field.onChange(e);
+                                    if (!initialData) {
+                                        form.setValue("slug", e.target.value.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, ''));
+                                    }
+                                }} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={form.control}
+                    name="slug"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Slug</FormLabel>
+                            <FormControl>
+                                <Input placeholder="e.g. mobile-phones" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
