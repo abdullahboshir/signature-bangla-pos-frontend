@@ -77,6 +77,7 @@ export function VariantGenerator({ onGenerate }: { onGenerate: (variants: any[])
                 sku: "", // User to fill or auto-generate
                 price: 0,
                 stock: 0,
+                images: [],
                 options: combo, // [{name: 'Size', value: 'Small'}, {name: 'Color', value: 'Red'}]
                 isDefault: false
             };

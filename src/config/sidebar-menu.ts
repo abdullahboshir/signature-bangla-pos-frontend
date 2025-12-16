@@ -132,7 +132,7 @@ export const sidebarMenuConfig = {
         icon: ShoppingCart,
         resource: "order",
         children: [
-          { title: "All Orders", path: "sales/orders", resource: "order" },
+          { title: "All Orders", path: "sales", resource: "order" },
           { title: "POS", path: "pos", resource: "order" }, // Assumed POS permission maps to order or generic
           { title: "Shipping", path: "sales/shipping", resource: "shipping" },
           { title: "Delivery", path: "sales/delivery", resource: "delivery" },

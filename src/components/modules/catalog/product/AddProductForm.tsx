@@ -37,7 +37,8 @@ export default function AddProductForm() {
         onSubmit,
         variantFields,
         appendVariant,
-        removeVariant
+        removeVariant,
+        replaceVariant
     } = useProductForm();
 
     return (
@@ -105,6 +106,7 @@ export default function AddProductForm() {
                                     variantFields={variantFields}
                                     appendVariant={appendVariant}
                                     removeVariant={removeVariant}
+                                    replaceVariant={replaceVariant}
                                 />
                             </TabsContent>
 

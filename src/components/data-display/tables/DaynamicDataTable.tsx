@@ -41,6 +41,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 
+import { DataTableViewOptions } from './TableViewOptions'; // Import View Options
 import { Badge } from '@/components/ui/badge';
 
 import { TablePagination } from './TablePagination';
@@ -51,8 +52,6 @@ import { generateColumns } from '@/lib/data-table/utils';
 import { DataType, TableConfig as ITableConfig, TableQuickFilter } from '@/types/data-table';
 import { cn } from '@/lib/utils';
 
-// ... other imports
-
 interface DynamicDataTableProps<T> {
   dataType: DataType;
   data: T[];
@@ -62,7 +61,7 @@ interface DynamicDataTableProps<T> {
   config?: Partial<ITableConfig>;
   onPageChange?: (page: number) => void;
   onSortChange?: (sortBy: string, sortOrder: 'asc' | 'desc') => void;
-  onFilterChange?: (filters: any) => void;
+  onFilterChange?: (filters: Record<string, any>) => void;
   onCreate?: () => void;
   onEdit?: (item: T) => void;
   onDelete?: (item: T) => void;
@@ -99,23 +98,22 @@ export function DynamicDataTable<T extends Record<string, any>>({
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState('');
-  const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
   const [activeQuickFilter, setActiveQuickFilter] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<ExpandedState>({});
 
   // Get table configuration
-  const tableConfig = TableConfig[dataType] || TableConfig.default;
+  const tableConfig = TableConfig[dataType] || (TableConfig as any).default;
   const mergedConfig = { ...tableConfig, ...config };
-  const quickFilters = mergedConfig.quickFilters || [];
+
   const toolbarPlaceholder = mergedConfig.toolbar?.placeholder || 'Search...';
   const showSearch = mergedConfig.toolbar?.showSearch !== false;
+  const quickFilters = mergedConfig.quickFilters || [];
 
-  // Generate columns based on config
-  const columns = generateColumns<T>(mergedConfig, {
+  const columns = React.useMemo(() => generateColumns<T>(mergedConfig, {
     onEdit,
     onDelete,
     onView,
-  });
+  }), [mergedConfig, onEdit, onDelete, onView]);
 
   const table = useReactTable({
     data,
@@ -141,7 +139,7 @@ export function DynamicDataTable<T extends Record<string, any>>({
       expanded,
     },
     manualPagination: !!onPageChange,
-    pageCount: Math.ceil(total / pageSize),
+    pageCount: total && pageSize ? Math.ceil(total / pageSize) : -1,
   });
 
   // Handle external page changes
@@ -149,7 +147,7 @@ export function DynamicDataTable<T extends Record<string, any>>({
     if (onPageChange && currentPage !== table.getState().pagination.pageIndex + 1) {
       table.setPageIndex(currentPage - 1);
     }
-  }, [currentPage]);
+  }, [currentPage, onPageChange, table]);
 
   // Handle sort changes
   useEffect(() => {
@@ -157,9 +155,7 @@ export function DynamicDataTable<T extends Record<string, any>>({
       const { id, desc } = sorting[0];
       onSortChange(id, desc ? 'desc' : 'asc');
     }
-  }, [sorting]);
-
-  // ... (Keep handleQuickFilter and clearQuickFilters logic same) ...
+  }, [sorting, onSortChange]);
 
   const handleQuickFilter = (filter: TableQuickFilter) => {
     const column = table.getColumn(filter.column);
@@ -198,132 +194,56 @@ export function DynamicDataTable<T extends Record<string, any>>({
 
   return (
     <div className="space-y-4">
-      {/* Toolbar - (Keep same) */}
+      {/* Toolbar */}
       {mergedConfig.showToolbar !== false && (
         <div className="space-y-4 rounded-md border bg-card p-4 shadow-sm">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
-              {showSearch && (
-                <div className="relative w-full sm:max-w-xs">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder={toolbarPlaceholder}
-                    value={globalFilter ?? ''}
-                    onChange={(e) => setGlobalFilter(e.target.value)}
-                    className="h-9 pl-8"
-                  />
-                </div>
-              )}
-
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <span>
-                  Showing {table.getRowModel().rows.length} of {total || data.length} records
-                </span>
-                {Object.keys(rowSelection).length > 0 && (
-                  <Badge variant="secondary" className="uppercase">
-                    {Object.keys(rowSelection).length} selected
-                  </Badge>
-                )}
+          <div className="flex flex-wrap items-center gap-2 w-full">
+            {showSearch && (
+              <div className="relative w-full sm:max-w-xs md:max-w-[200px] lg:max-w-[250px]">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder={toolbarPlaceholder}
+                  value={globalFilter ?? ''}
+                  onChange={(e) => setGlobalFilter(e.target.value)}
+                  className="h-9 pl-8"
+                />
               </div>
-            </div>
+            )}
 
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="hidden rounded-md border bg-background p-1 text-xs font-medium sm:flex">
-                <Button
-                  variant={density === 'comfortable' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  className={cn("h-8 px-3", density === 'comfortable' && "dark:!text-gray-900")}
-                  onClick={() => setDensity('comfortable')}
-                >
-                  Cozy
-                </Button>
-                <Button
-                  variant={density === 'compact' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  className={cn("h-8 px-3", density === 'compact' && "dark:!text-gray-900")}
-                  onClick={() => setDensity('compact')}
-                >
-                  Compact
-                </Button>
-              </div>
+            {mergedConfig.enableFilters && (
+              <TableFilters
+                dataType={dataType}
+                onFilterChange={onFilterChange || (() => { })}
+              />
+            )}
 
+            <div className="flex items-center gap-2 ml-auto">
               {onRefresh && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onRefresh}
-                  className="h-9"
-                >
+                <Button variant="outline" size="sm" onClick={onRefresh}>
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Refresh
                 </Button>
               )}
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9">
-                    <Settings className="mr-2 h-4 w-4" />
-                    View
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {table
-                    .getAllColumns()
-                    .filter((column) => column.getCanHide())
-                    .map((column) => (
-                      <DropdownMenuCheckboxItem
-                        key={column.id}
-                        className="capitalize"
-                        checked={column.getIsVisible()}
-                        onCheckedChange={(value) =>
-                          column.toggleVisibility(!!value)
-                        }
-                      >
-                        {column.id}
-                      </DropdownMenuCheckboxItem>
-                    ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <DataTableViewOptions
+                table={table}
+              />
 
-              {onExport && mergedConfig.actions?.export !== false && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-9">
-                      <Download className="mr-2 h-4 w-4" />
-                      Export
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuCheckboxItem onSelect={() => onExport('csv')}>
-                      CSV
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem onSelect={() => onExport('excel')}>
-                      Excel
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem onSelect={() => onExport('pdf')}>
-                      PDF
-                    </DropdownMenuCheckboxItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+              {onExport && (
+                <Button variant="outline" size="sm" onClick={() => onExport('csv')}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Export
+                </Button>
               )}
 
-              {onCreate && mergedConfig.actions?.create !== false && (
-                <Button size="sm" className="h-9" onClick={onCreate}>
+              {onCreate && (
+                <Button size="sm" onClick={onCreate}>
                   <Plus className="mr-2 h-4 w-4" />
-                  Add New
+                  Create New
                 </Button>
               )}
             </div>
           </div>
-
-          {mergedConfig.enableFilters && (
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <TableFilters
-                dataType={dataType}
-                onFilterChange={onFilterChange}
-              />
-            </div>
-          )}
 
           {quickFilters.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
@@ -350,6 +270,7 @@ export function DynamicDataTable<T extends Record<string, any>>({
         </div>
       )}
 
+
       {/* Table */}
       <div className="rounded-lg border bg-card">
         <div className="overflow-x-auto">
@@ -361,10 +282,8 @@ export function DynamicDataTable<T extends Record<string, any>>({
                     return (
                       <TableHead
                         key={header.id}
-                        className={cn(
-                          'whitespace-nowrap text-left align-middle font-semibold text-muted-foreground',
-                          density === 'compact' ? 'py-2 text-xs' : 'py-3 text-sm'
-                        )}
+                        className='whitespace-nowrap text-left align-middle font-semibold text-muted-foreground py-3 text-sm'
+                        style={{ height: 'var(--table-row-height, 56px)' }}
                       >
                         {header.isPlaceholder
                           ? null
@@ -386,18 +305,15 @@ export function DynamicDataTable<T extends Record<string, any>>({
                       data-state={row.getIsSelected() && "selected"}
                       className={cn(
                         'border-b last:border-b-0 cursor-pointer',
-                        density === 'compact' ? 'h-10' : 'h-14',
                         row.getIsExpanded() && 'bg-muted/50 border-b-0'
                       )}
+                      style={{ height: 'var(--table-row-height, 56px)' }}
                       onClick={() => row.toggleExpanded()}
                     >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell
                           key={cell.id}
-                          className={cn(
-                            'whitespace-nowrap align-middle',
-                            density === 'compact' ? 'py-1 text-sm' : 'py-3'
-                          )}
+                          className='whitespace-nowrap align-middle py-2'
                         >
                           {flexRender(
                             cell.column.columnDef.cell,
@@ -433,23 +349,23 @@ export function DynamicDataTable<T extends Record<string, any>>({
       </div>
 
       {/* Pagination */}
-      {mergedConfig.showPagination !== false && (
-        <div className="flex flex-col gap-3 border-t pt-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            {Object.keys(rowSelection).length > 0 ? (
-              `${Object.keys(rowSelection).length} selected • Total ${total} items`
-            ) : (
-              `Total: ${total} items`
-            )}
-          </div>
+      {
+        mergedConfig.showPagination !== false && (
+          <div className="flex flex-col gap-3 border-t pt-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              {Object.keys(rowSelection).length > 0 ? (
+                `${Object.keys(rowSelection).length} selected • Total ${total} items`
+              ) : (
+                `Total: ${total} items`
+              )}
+            </div>
 
-          <TablePagination
-            table={table}
-            total={total}
-            onPageChange={onPageChange}
-          />
-        </div>
-      )}
-    </div>
+            <TablePagination
+              table={table}
+            />
+          </div>
+        )
+      }
+    </div >
   );
 }

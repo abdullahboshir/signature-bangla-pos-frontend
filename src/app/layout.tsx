@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Toaster } from "sonner";
 import Container from "@/components/layouts/Container";
 import Providers from "@/lib/providers/Providers";
 
@@ -26,6 +27,7 @@ export default function RootLayout({
       <body className="font-sans">
         <Providers>
           <Container>{children}</Container>
+          <Toaster richColors position="top-right" />
         </Providers>
       </body>
     </html>

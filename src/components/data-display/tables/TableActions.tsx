@@ -59,14 +59,14 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
-export type ActionType = 
-  | 'view' 
-  | 'edit' 
-  | 'delete' 
-  | 'copy' 
-  | 'archive' 
+export type ActionType =
+  | 'view'
+  | 'edit'
+  | 'delete'
+  | 'copy'
+  | 'archive'
   | 'download'
-  | 'activate' 
+  | 'activate'
   | 'deactivate'
   | 'approve'
   | 'reject'
@@ -271,16 +271,15 @@ export function TableActions<T>({
   ) => {
     const icon = customAction?.icon || actionIcons[type];
     const label = customAction?.label || actionLabels[type] || type;
-    const variant = customAction?.variant || 
+    const variant = customAction?.variant ||
       (type === 'delete' || type === 'reject' ? 'destructive' : 'ghost');
-    
+
     const button = (
       <Button
         variant={variant}
         size="sm"
         className={cn(
           'h-8 px-2',
-          variant === 'destructive' && 'text-destructive hover:text-destructive',
           customAction?.className
         )}
         onClick={() => handleAction(
@@ -348,10 +347,10 @@ export function TableActions<T>({
 
   // Group actions by category
   const groupedActions = {
-    primary: availableActions.filter(({ type }) => 
+    primary: availableActions.filter(({ type }) =>
       ['view', 'edit', 'delete'].includes(type)
     ),
-    secondary: availableActions.filter(({ type }) => 
+    secondary: availableActions.filter(({ type }) =>
       !['view', 'edit', 'delete'].includes(type)
     ),
     custom: customActions,
@@ -391,12 +390,12 @@ export function TableActions<T>({
             <DropdownMenuContent align={position}>
               <DropdownMenuLabel>More Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              
+
               {/* Secondary actions */}
               {groupedActions.secondary.map(({ type, handler }) =>
                 renderDropdownItem(type, handler)
               )}
-              
+
               {/* Custom actions */}
               {groupedActions.custom.length > 0 && (
                 <>
@@ -494,8 +493,8 @@ export function TableActions<T>({
                 <Badge
                   variant={
                     (item as any).status === 'active' ? 'default' :
-                    (item as any).status === 'inactive' ? 'secondary' :
-                    'outline'
+                      (item as any).status === 'inactive' ? 'secondary' :
+                        'outline'
                   }
                   className="capitalize"
                 >
@@ -531,8 +530,8 @@ export function TableActions<T>({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmAction} 
+            <AlertDialogAction
+              onClick={confirmAction}
               className={cn(
                 confirmationAction?.type === 'delete' && 'bg-destructive text-destructive-foreground'
               )}
@@ -604,7 +603,7 @@ export const actionHandlers = {
       confirmationMessage: `Are you sure you want to delete "${item.name || 'this item'}"? This action cannot be undone.`,
     },
   }),
-  
+
   toggleStatus: (item: any, onToggle: () => void) => ({
     [item.status === 'active' ? 'deactivate' : 'activate']: {
       handler: onToggle,

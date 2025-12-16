@@ -32,7 +32,7 @@ export const useProductForm = () => {
         mode: "onChange",
     });
 
-    const { fields: variantFields, append: appendVariant, remove: removeVariant } = useFieldArray({
+    const { fields: variantFields, append: appendVariant, remove: removeVariant, replace: replaceVariant } = useFieldArray({
         control: form.control,
         name: "variants",
     });
@@ -95,7 +95,7 @@ export const useProductForm = () => {
                             name: productData.name,
                             slug: productData.slug,
                             sku: productData.sku || productData.inventory?.sku || "",
-                            origine: productData.origine || "local",
+
                             businessUnit: productData.businessUnit?._id || productData.businessUnit,
                             unit: productData.unit?._id || productData.unit,
                             primaryCategory: productData.primaryCategory?._id || productData.primaryCategory,
@@ -123,30 +123,34 @@ export const useProductForm = () => {
                             
                             details: {
                                 description: productData.details?.description || "",
+                                shortDescription: productData.details?.shortDescription || "",
                                 images: productData.details?.images || [],
-                                videos: productData.details?.videos || [],
-                                specifications: productData.details?.specifications || []
+                                origin: productData.details?.origin || "Bangladesh",
+                                manufacturer: productData.details?.manufacturer || "",
+                                model: productData.details?.model || ""
                             },
                             
                             shipping: {
-                                isShippable: productData.shipping?.isShippable ?? true,
-                                delivery: productData.shipping?.delivery || { type: "flat_rate", cost: 0, estimatedDelivery: "" },
-                                physicalProperties: productData.shipping?.physicalProperties || { weight: 0, weightUnit: "kg", length: 0, width: 0, height: 0, dimensionUnit: "cm" }
+                                delivery: productData.shipping?.delivery || { estimatedDelivery: "2-3 days", availableFor: "home_delivery", cashOnDelivery: true, installationAvailable: false },
+                                packagingType: productData.shipping?.packagingType || "box",
+                                shippingClass: productData.shipping?.shippingClass || "standard",
+                                physicalProperties: productData.shipping?.physicalProperties || { weightUnit: "kg", dimensions: { unit: "cm", length: 0, width: 0, height: 0 } }
                             },
 
                             statusInfo: {
                                 status: productData.statusInfo?.status || "draft",
-                                isFeatured: productData.statusInfo?.isFeatured || false,
-                                isNewArrival: productData.statusInfo?.isNewArrival || false,
-                                isBestSeller: productData.statusInfo?.isBestSeller || false
                             },
-                            
                              marketing: {
+                                isFeatured: productData.marketing?.isFeatured || false,
+                                isNew: productData.marketing?.isNew || false,
+                                isBestSeller: productData.marketing?.isBestSeller || false,
+                                isPopular: productData.marketing?.isPopular || false,
+                                isTrending: productData.marketing?.isTrending || false,
                                 seo: {
                                     metaTitle: productData.marketing?.seo?.metaTitle || "",
                                     metaDescription: productData.marketing?.seo?.metaDescription || "",
-                                    metaKeywords: productData.marketing?.seo?.metaKeywords || [],
-                                    slug: productData.marketing?.seo?.slug || ""
+                                    keywords: productData.marketing?.seo?.keywords || [],
+                                    canonicalUrl: productData.marketing?.seo?.canonicalUrl || ""
                                 }
                              },
                              
@@ -288,7 +292,8 @@ export const useProductForm = () => {
         onSubmit,
         variantFields,
         appendVariant,
-        removeVariant
+        removeVariant,
+        replaceVariant, // Expose replace
     };
 };
 

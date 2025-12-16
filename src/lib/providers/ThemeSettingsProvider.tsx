@@ -19,6 +19,7 @@ type ThemeSettings = {
   radius?: number;
   fontScale?: number;
   buttonScale?: number;
+  tableRowHeight?: number; // New setting
 };
 
 type ThemeSettingsContextType = {
@@ -36,6 +37,7 @@ const DEFAULT_THEME: ThemeSettings = {
   radius: 10,
   fontScale: 1,
   buttonScale: 1,
+  tableRowHeight: 56, // Default comfortable height
 };
 
 function applyThemeToDocument(theme: ThemeSettings) {
@@ -65,6 +67,10 @@ function applyThemeToDocument(theme: ThemeSettings) {
 
   if (typeof theme.buttonScale === "number") {
     root.style.setProperty("--sb-button-scale", String(theme.buttonScale));
+  }
+
+  if (typeof theme.tableRowHeight === "number") {
+    root.style.setProperty("--table-row-height", `${theme.tableRowHeight}px`);
   }
 }
 

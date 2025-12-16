@@ -22,6 +22,7 @@ export default function SettingsPage() {
   const [radius, setRadius] = useState(theme.radius ?? 10)
   const [fontScale, setFontScale] = useState(theme.fontScale ?? 1)
   const [buttonScale, setButtonScale] = useState(theme.buttonScale ?? 1)
+  const [tableRowHeight, setTableRowHeight] = useState(theme.tableRowHeight ?? 56) // State for row height
 
   useEffect(() => {
     if (!themeLoading) {
@@ -30,6 +31,7 @@ export default function SettingsPage() {
       setRadius(theme.radius ?? 10)
       setFontScale(theme.fontScale ?? 1)
       setButtonScale(theme.buttonScale ?? 1)
+      setTableRowHeight(theme.tableRowHeight ?? 56)
     }
   }, [theme, themeLoading])
 
@@ -40,6 +42,7 @@ export default function SettingsPage() {
       radius: overrides?.radius ?? radius,
       fontScale: overrides?.fontScale ?? fontScale,
       buttonScale: overrides?.buttonScale ?? buttonScale,
+      tableRowHeight: overrides?.tableRowHeight ?? tableRowHeight,
     })
   }
 
@@ -49,6 +52,7 @@ export default function SettingsPage() {
     setRadius(10)
     setFontScale(1)
     setButtonScale(1)
+    setTableRowHeight(56)
 
     await handleThemeSave({
       primary: "",
@@ -56,6 +60,7 @@ export default function SettingsPage() {
       radius: 10,
       fontScale: 1,
       buttonScale: 1,
+      tableRowHeight: 56,
     })
   }
 
@@ -327,6 +332,56 @@ export default function SettingsPage() {
                       onChange={(e) => setButtonScale(Number(e.target.value))}
                       className="w-full accent-primary"
                     />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tableRowHeight">Table Row Height (px)</Label>
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={tableRowHeight === 40 ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTableRowHeight(40)}
+                    >
+                      Compact
+                    </Button>
+                    <Button
+                      variant={tableRowHeight === 56 ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTableRowHeight(56)}
+                    >
+                      Comfortable
+                    </Button>
+                    <Button
+                      variant={tableRowHeight === 72 ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTableRowHeight(72)}
+                    >
+                      Spacious
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <Input
+                      id="tableRowHeight"
+                      type="number"
+                      min={30}
+                      max={100}
+                      value={tableRowHeight}
+                      onChange={(e) => setTableRowHeight(Number(e.target.value) || 56)}
+                      className="w-24"
+                    />
+                    <div className="flex-1">
+                      <input
+                        type="range"
+                        min="30"
+                        max="100"
+                        value={tableRowHeight}
+                        onChange={(e) => setTableRowHeight(Number(e.target.value))}
+                        className="w-full accent-primary"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

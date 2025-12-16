@@ -36,130 +36,9 @@ import { Separator } from "@/components/ui/separator";
 import { defaultProductValues, productSchema, ProductFormValues } from "./product.schema";
 import { productService } from "@/services/catalog/product.service";
 import { categoryService } from "@/services/catalog/category.service";
+import { VariantGenerator } from "./components/VariantGenerator";
 
-// Variant Generator Component (Inline for simplicity)
-function VariantGenerator({ onGenerate }: { onGenerate: (variants: any[]) => void }) {
-    const [attributes, setAttributes] = useState<{ name: string; values: string[] }[]>([
-        { name: "Size", values: [] },
-        { name: "Color", values: [] }
-    ]);
 
-    const addAttribute = () => setAttributes([...attributes, { name: "", values: [] }]);
-    const removeAttribute = (index: number) => {
-        const newAttrs = [...attributes];
-        newAttrs.splice(index, 1);
-        setAttributes(newAttrs);
-    };
-    const updateAttributeName = (index: number, name: string) => {
-        const newAttrs = [...attributes];
-        newAttrs[index].name = name;
-        setAttributes(newAttrs);
-    };
-    const addValue = (index: number, value: string) => {
-        if (!value.trim()) return;
-        const newAttrs = [...attributes];
-        if (!newAttrs[index].values.includes(value)) newAttrs[index].values.push(value);
-        setAttributes(newAttrs);
-    };
-    const removeValue = (attrIndex: number, valIndex: number) => {
-        const newAttrs = [...attributes];
-        newAttrs[attrIndex].values.splice(valIndex, 1);
-        setAttributes(newAttrs);
-    };
-
-    const handleGenerate = () => {
-        const validAttributes = attributes.filter(a => a.name && a.values.length > 0);
-        if (validAttributes.length === 0) {
-            toast.error("Please add at least one attribute with values.");
-            return;
-        }
-
-        const cartesian = (args: any[][]) => {
-            const r: any[] = [];
-            const max = args.length - 1;
-            function helper(arr: any[], i: number) {
-                for (let j = 0, l = args[i].length; j < l; j++) {
-                    const a = arr.slice(0);
-                    a.push(args[i][j]);
-                    if (i === max) r.push(a);
-                    else helper(a, i + 1);
-                }
-            }
-            helper([], 0);
-            return r;
-        };
-
-        const combinations = cartesian(validAttributes.map(a => a.values.map(v => ({ name: a.name, value: v }))));
-        const generatedVariants = combinations.map(combo => {
-            const name = combo.map((c: any) => c.value).join(" - ");
-            return {
-                name: name,
-                sku: "",
-                price: 0,
-                stock: 0,
-                options: combo,
-                isDefault: false
-            };
-        });
-
-        onGenerate(generatedVariants);
-        toast.success(`Generated ${generatedVariants.length} variants!`);
-    };
-
-    return (
-        <div className="space-y-4 border p-4 rounded bg-background">
-            {attributes.map((attr, idx) => (
-                <div key={idx} className="space-y-2">
-                    <div className="flex gap-2 items-start">
-                        <div className="flex-1">
-                            <label className="text-xs font-medium">Attribute Name</label>
-                            <Input
-                                value={attr.name}
-                                onChange={(e) => updateAttributeName(idx, e.target.value)}
-                                placeholder="Attribute Name"
-                            />
-                        </div>
-                        <Button type="button" variant="ghost" size="icon" className="mt-5" onClick={() => removeAttribute(idx)}>
-                            <Trash2 className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                    </div>
-                    <div className="flex flex-wrap gap-2 items-center pl-2 border-l-2">
-                        {attr.values.map((val, vIdx) => (
-                            <span key={vIdx} className="bg-secondary text-secondary-foreground px-2 py-1 rounded text-xs flex items-center gap-1">
-                                {val}
-                                <button type="button" onClick={() => removeValue(idx, vIdx)} className="hover:text-destructive">×</button>
-                            </span>
-                        ))}
-                        <div className="flex items-center gap-1">
-                            <Input
-                                className="h-7 w-24 text-xs"
-                                placeholder="Value..."
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        addValue(idx, e.currentTarget.value);
-                                        e.currentTarget.value = "";
-                                    }
-                                }}
-                            />
-                            <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => {
-                                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                                addValue(idx, input.value);
-                                input.value = "";
-                            }}>
-                                <Plus className="h-3 w-3" />
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            ))}
-            <div className="flex gap-2 pt-2">
-                <Button type="button" variant="secondary" size="sm" onClick={addAttribute}><Plus className="mr-2 h-3 w-3" /> Add Attribute</Button>
-                <Button type="button" size="sm" onClick={handleGenerate}>Generate Variants</Button>
-            </div>
-        </div>
-    );
-}
 
 interface ProductFormProps {
     initialData?: any;
@@ -297,7 +176,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
         }
     }, [marginType]);
 
-    const { fields: variantFields, append: appendVariant, remove: removeVariant } = useFieldArray({
+    const { fields: variantFields, append: appendVariant, remove: removeVariant, replace: replaceVariants } = useFieldArray({
         control: form.control,
         name: "variants",
     });
@@ -937,8 +816,10 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                     </TabsContent>
 
                     <TabsContent value="variants">
-                        <Card>
-                            <CardHeader><CardTitle>Variants</CardTitle></CardHeader>
+                        <Card className="border-2 border-red-500"> {/* DEBUG: Red border to verify file update */}
+                            <CardHeader>
+                                <CardTitle>Variants (Debug: {variantFields.length} items)</CardTitle>
+                            </CardHeader>
                             <CardContent className="space-y-4">
                                 <FormField
                                     control={form.control}
@@ -953,27 +834,140 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                 {form.watch("hasVariants") && (
                                     <>
                                         <VariantGenerator onGenerate={(vars) => {
-                                            form.setValue('variants', []);
-                                            vars.forEach(v => appendVariant(v));
+                                            replaceVariants(vars);
                                         }} />
                                         <div className="space-y-2 mt-4">
                                             {variantFields.map((field, index) => (
-                                                <div key={field.id} className="grid grid-cols-4 gap-2 border p-2 rounded">
-                                                    <div className="col-span-2"><span className="font-bold">{field.name}</span></div>
+                                                <div key={field.id} className="grid grid-cols-7 gap-2 border p-2 rounded items-center">
+                                                    {/* Image Column */}
+                                                    <div className="col-span-1">
+                                                        <FormField
+                                                            control={form.control}
+                                                            name={`variants.${index}.images`}
+                                                            render={({ field }) => (
+                                                                <div className="space-y-2">
+                                                                    <div className="flex flex-wrap gap-2">
+                                                                        {(field.value || []).map((img: string, imgIdx: number) => (
+                                                                            <div key={imgIdx} className="relative w-12 h-12 border rounded overflow-hidden group">
+                                                                                <img src={img} alt="Var" className="w-full h-full object-cover" />
+                                                                                <Button
+                                                                                    type="button"
+                                                                                    variant="destructive"
+                                                                                    size="icon"
+                                                                                    className="absolute top-0 right-0 h-4 w-4 opacity-0 group-hover:opacity-100 p-0 rounded-none"
+                                                                                    onClick={() => {
+                                                                                        const newImages = [...field.value];
+                                                                                        newImages.splice(imgIdx, 1);
+                                                                                        field.onChange(newImages);
+                                                                                    }}
+                                                                                >
+                                                                                    <X className="h-3 w-3" />
+                                                                                </Button>
+                                                                            </div>
+                                                                        ))}
+                                                                        <label className="flex items-center justify-center w-12 h-12 border border-dashed rounded cursor-pointer hover:bg-muted/50">
+                                                                            <Upload className="h-4 w-4 text-muted-foreground" />
+                                                                            <input
+                                                                                type="file"
+                                                                                accept="image/*"
+                                                                                multiple
+                                                                                className="hidden"
+                                                                                onChange={async (e) => {
+                                                                                    const files = e.target.files;
+                                                                                    if (files && files.length > 0) {
+                                                                                        try {
+                                                                                            const newUrls: string[] = [];
+                                                                                            toast.info(`Uploading ${files.length} images...`);
+
+                                                                                            for (let i = 0; i < files.length; i++) {
+                                                                                                const formData = new FormData();
+                                                                                                formData.append('image', files[i]);
+                                                                                                const res = await axiosInstance.post("/super-admin/upload/image", formData, {
+                                                                                                    headers: { 'Content-Type': 'multipart/form-data' }
+                                                                                                });
+                                                                                                if (res.data?.success) {
+                                                                                                    newUrls.push(res.data.data.url);
+                                                                                                }
+                                                                                            }
+
+                                                                                            if (newUrls.length > 0) {
+                                                                                                field.onChange([...(field.value || []), ...newUrls]);
+                                                                                                toast.success("Images uploaded");
+                                                                                            }
+                                                                                        } catch (err) {
+                                                                                            console.error(err);
+                                                                                            toast.error("Upload failed");
+                                                                                        }
+                                                                                    }
+                                                                                }}
+                                                                            />
+                                                                        </label>
+                                                                    </div>
+                                                                    {/* Bulk Apply Options */}
+                                                                    {(field.value || []).length > 0 && form.watch(`variants.${index}.options`)?.map((opt: any, optIdx: number) => (
+                                                                        <Button
+                                                                            key={optIdx}
+                                                                            type="button"
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            className="h-6 text-[10px] w-full"
+                                                                            onClick={() => {
+                                                                                const currentImages = field.value || [];
+                                                                                const allVariants = form.getValues("variants") || [];
+                                                                                const updatedVariants = allVariants.map(v => {
+                                                                                    const hasMatch = v.options.some((o: any) => o.name === opt.name && o.value === opt.value);
+                                                                                    if (hasMatch) {
+                                                                                        const existing = v.images || [];
+                                                                                        const merged = Array.from(new Set([...existing, ...currentImages]));
+                                                                                        return { ...v, images: merged };
+                                                                                    }
+                                                                                    return v;
+                                                                                });
+                                                                                replaceVariants(updatedVariants);
+                                                                                toast.success(`Applied images to all ${opt.value} variants`);
+                                                                            }}
+                                                                        >
+                                                                            Apply to all "{opt.value}"
+                                                                        </Button>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        />
+                                                    </div>
+
+                                                    <div className="col-span-2 text-sm font-medium truncate" title={field.name}>{field.name}</div>
+
+                                                    <div className="col-span-1">
+                                                        <FormField
+                                                            control={form.control}
+                                                            name={`variants.${index}.sku`}
+                                                            render={({ field }) => (
+                                                                <FormItem className="space-y-0"><FormControl><Input placeholder="SKU" className="h-8 text-xs" {...field} /></FormControl></FormItem>
+                                                            )}
+                                                        />
+                                                    </div>
+
                                                     <FormField
                                                         control={form.control}
                                                         name={`variants.${index}.price`}
                                                         render={({ field }) => (
-                                                            <FormItem><FormControl><Input type="number" placeholder="Price" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl></FormItem>
+                                                            <FormItem className="space-y-0"><FormControl><Input type="number" placeholder="Price" className="h-8 text-xs" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl></FormItem>
                                                         )}
                                                     />
+
                                                     <FormField
                                                         control={form.control}
                                                         name={`variants.${index}.stock`}
                                                         render={({ field }) => (
-                                                            <FormItem><FormControl><Input type="number" placeholder="Stock" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl></FormItem>
+                                                            <FormItem className="space-y-0"><FormControl><Input type="number" placeholder="Stock" className="h-8 text-xs" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl></FormItem>
                                                         )}
                                                     />
+
+                                                    <div className="col-span-1 flex justify-end">
+                                                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/90" onClick={() => removeVariant(index)}>
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>

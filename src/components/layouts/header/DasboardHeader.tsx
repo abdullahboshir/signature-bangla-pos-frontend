@@ -40,7 +40,7 @@ export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
   const businessUnitName = businessUnit ? businessUnit.replace("-", " ") : "Dashboard";
 
   const handleNewSale = () => {
-    router.push(`/${role}/${businessUnit}/pos`);
+    router.push(`/${role}/${businessUnit}/sales/create`);
   };
 
   return (

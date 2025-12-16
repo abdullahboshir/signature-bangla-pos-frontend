@@ -16,11 +16,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner" // Assuming sonner or similar toast is used
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function AllUsersPage() {
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState("all") // 'all', 'staff', 'customer', 'supplier'
 
   // Edit State
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -31,6 +33,25 @@ export default function AllUsersPage() {
   const { currentBusinessUnit } = useCurrentBusinessUnit()
   const { user: currentUser } = useAuth()
 
+  // Derived state for filtered users
+  const getFilteredUsers = () => {
+    if (activeTab === 'all') return users;
+    if (activeTab === 'staff') {
+      return users.filter(u => u.roles?.some((r: any) =>
+        ['super-admin', 'admin', 'manager', 'sales-associate', 'support-agent'].includes(r.name) || r.isSystemRole
+      ));
+    }
+    if (activeTab === 'customer') {
+      return users.filter(u => u.roles?.some((r: any) => r.name === 'customer'));
+    }
+    if (activeTab === 'supplier') {
+      return users.filter(u => u.roles?.some((r: any) => ['supplier', 'vendor'].includes(r.name)));
+    }
+    return users;
+  }
+
+  const filteredData = getFilteredUsers();
+
   useEffect(() => {
     fetchUsers()
     fetchRoles()
@@ -40,7 +61,7 @@ export default function AllUsersPage() {
     try {
       // Fetch roles to populate the dropdown
       const response = await api.get('/super-admin/users/roles')
-      if (response.success || (response.data && response.data.success)) {
+      if ((response.data as any)?.success) {
         const rolesData = Array.isArray(response.data) ? response.data : (response.data.data || response.data);
         // Ensure rolesData is an array
         setAvailableRoles(Array.isArray(rolesData) ? rolesData : []);
@@ -57,6 +78,7 @@ export default function AllUsersPage() {
       const response = await api.get('/super-admin/users/all-users')
 
       const resData = (response as any);
+      console.log("Users API Response:", resData);
 
       if (resData.success || (resData.data && resData.data.success)) {
         let allUsers: any[] = [];
@@ -65,10 +87,23 @@ export default function AllUsersPage() {
           allUsers = resData.data;
         } else if (resData.data && Array.isArray(resData.data.data)) {
           allUsers = resData.data.data;
-        } else if (resData.data && typeof resData.data === 'object') {
-          console.warn("Users data might be nested unexpectedly", resData.data);
-          allUsers = [];
+        } else if (resData.data && typeof resData.data === 'object' && Array.isArray(resData.data.result)) { // Handle { data: { result: [] } }
+          allUsers = resData.data.result;
+        } else if (resData.result && Array.isArray(resData.result)) {
+          allUsers = resData.result;
         }
+        else if (resData.data && typeof resData.data === 'object') {
+          // Try to find any array property
+          const possibleArray = Object.values(resData.data).find(val => Array.isArray(val));
+          if (possibleArray) {
+            allUsers = possibleArray as any[];
+          } else {
+            console.warn("Users data might be nested unexpectedly (fallback)", resData.data);
+            allUsers = [];
+          }
+        }
+
+        console.log("Parsed Users:", allUsers);
 
         const isSuperAdmin = currentUser?.roles?.some((r: any) => r.name === 'super-admin')
 
@@ -86,9 +121,11 @@ export default function AllUsersPage() {
           ...user,
           name: typeof user.name === 'object' && user.name !== null
             ? `${user.name.firstName || ''} ${user.name.lastName || ''}`.trim() || 'Unnamed'
-            : user.name
+            : user.name,
+          role: user.roles?.map((r: any) => (typeof r === 'string' ? r : r.name)).join(', ') || 'N/A'
         }));
 
+        console.log("Formatted Users:", formattedUsers);
         setUsers(formattedUsers)
       } else {
         setError("Failed to fetch users")
@@ -132,7 +169,7 @@ export default function AllUsersPage() {
 
       const response = await api.patch(`/super-admin/users/${editingUser._id || editingUser.id}`, payload);
 
-      if (response.success || (response.data && response.data.success)) {
+      if ((response.data as any)?.success) {
         setIsEditOpen(false);
         setEditingUser(null);
         fetchUsers(); // Refresh list
@@ -176,10 +213,19 @@ export default function AllUsersPage() {
         </div>
       </div>
 
+      <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="all">All Users</TabsTrigger>
+          <TabsTrigger value="staff">Staff & Admins</TabsTrigger>
+          <TabsTrigger value="customer">Customers</TabsTrigger>
+          <TabsTrigger value="supplier">Suppliers</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       <DynamicDataTable
         dataType="user"
-        data={users}
-        total={users.length}
+        data={filteredData}
+        total={filteredData.length}
         onCreate={handleCreate}
         onEdit={handleEdit}
         onDelete={handleDelete}
@@ -189,7 +235,7 @@ export default function AllUsersPage() {
         config={{
           showToolbar: true,
           toolbar: {
-            placeholder: "Search users..."
+            placeholder: `Search ${activeTab === 'all' ? 'users' : activeTab}...`
           }
         }}
         renderSubComponent={(row) => {
