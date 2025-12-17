@@ -58,7 +58,7 @@ export function DateRangeFilter({
                 <Button
                     variant={"outline"}
                     className={cn(
-                        "w-[260px] justify-start text-left font-normal",
+                        "w-[210px] justify-start text-left font-normal",
                         !dateFilter && "text-muted-foreground"
                     )}
                 >
@@ -66,14 +66,14 @@ export function DateRangeFilter({
                     {getButtonLabel()}
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
+            <PopoverContent className="w-auto p-0 max-h-[500px] overflow-y-auto" align="end">
                 <div className="flex">
-                    <div className="flex flex-col gap-2 p-3 border-r">
+                    <div className="flex flex-col gap-2 p-3 border-r h-full">
                         {PRESETS.map((preset) => (
                             <Button
                                 key={preset.value}
                                 variant={dateFilter === preset.value ? "default" : "ghost"}
-                                className="justify-start text-sm w-[140px]"
+                                className="justify-start text-sm w-[100px]"
                                 onClick={() => {
                                     setDateFilter(preset.value);
                                     if (preset.value !== "custom") {

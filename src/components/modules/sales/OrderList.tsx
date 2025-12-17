@@ -1,21 +1,15 @@
+"use client";
+
 import { StatCard } from "@/components/shared/StatCard";
-import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
 import { filterDataByDate } from "@/lib/dateFilterUtils";
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Eye, Plus, DollarSign, ShoppingBag, Clock, CheckCircle, FilePenLine } from "lucide-react";
+import { Eye, Plus, DollarSign, ShoppingBag, Clock, CheckCircle, FilePenLine, Search } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow
-} from "@/components/ui/table";
 import {
     Tabs,
     TabsContent,
@@ -42,16 +36,10 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Calendar } from "@/components/ui/calendar";
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar as CalendarIcon } from "lucide-react";
 import { DateRange } from "react-day-picker";
-import { subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears, isWithinInterval } from "date-fns";
-import { cn } from "@/lib/utils";
+import { DataTable } from "@/components/shared/DataTable";
+import { DataPageLayout } from "@/components/shared/DataPageLayout";
+import { ColumnDef } from "@tanstack/react-table";
 
 const ORDER_STATUSES = [
     { value: "pending", label: "Pending" },
@@ -83,6 +71,12 @@ export default function OrderList({ initialTab = "all" }: OrderListProps) {
     const [dateFilter, setDateFilter] = useState<string>("all");
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
+    // Search State
+    const [searchTerm, setSearchTerm] = useState("");
+
+    // Tab State
+    const [activeTab, setActiveTab] = useState<string>(initialTab);
 
     useEffect(() => {
         fetchOrders();
@@ -144,141 +138,147 @@ export default function OrderList({ initialTab = "all" }: OrderListProps) {
 
     const filterOrders = (status: string) => {
         let filtered = filterDataByDate(orders, "createdAt", dateFilter, dateRange);
+
+        if (searchTerm) {
+            const lower = searchTerm.toLowerCase();
+            filtered = filtered.filter(o =>
+                o.orderId.toLowerCase().includes(lower) ||
+                o.customer?.name?.toLowerCase().includes(lower)
+            );
+        }
+
         if (status === "all") return filtered;
         return filtered.filter(o => o.status === status);
     };
 
-    const OrdersTable = ({ data }: { data: IOrder[] }) => (
-        <div className="rounded-md border">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Order ID</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Total</TableHead>
-                        <TableHead>Payment</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {loading ? (
-                        <TableRow>
-                            <TableCell colSpan={7} className="text-center py-8">Loading...</TableCell>
-                        </TableRow>
-                    ) : data.length === 0 ? (
-                        <TableRow>
-                            <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No orders found</TableCell>
-                        </TableRow>
-                    ) : (
-                        data.map((order) => (
-                            <TableRow key={order._id}>
-                                <TableCell className="font-medium">{order.orderId}</TableCell>
-                                <TableCell>{format(new Date(order.createdAt), "dd MMM yyyy")}</TableCell>
-                                <TableCell>{order.customer?.name || "Walk-in Customer"}</TableCell>
-                                <TableCell>{order.totalAmount} BDT</TableCell>
-                                <TableCell>
-                                    <Badge variant="outline" className="capitalize">{order.paymentStatus}</Badge>
-                                </TableCell>
-                                <TableCell>
-                                    <Badge className={getStatusColor(order.status)} variant="secondary">
-                                        {order.status}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <Button variant="ghost" size="icon" onClick={() => openQuickUpdate(order)}>
-                                        <FilePenLine className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" asChild>
-                                        <Link href={`${pathname}/${order._id}`}>
-                                            <Eye className="h-4 w-4" />
-                                        </Link>
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                        ))
-                    )}
-                </TableBody>
-            </Table>
-        </div>
-    );
+    // Define Columns
+    const columns: ColumnDef<IOrder>[] = [
+        {
+            accessorKey: "orderId",
+            header: "Order ID",
+            cell: ({ row }) => <span className="font-medium">{row.original.orderId}</span>,
+        },
+        {
+            accessorKey: "createdAt",
+            header: "Date",
+            cell: ({ row }) => format(new Date(row.original.createdAt), "dd MMM yyyy"),
+        },
+        {
+            accessorKey: "customer.name",
+            header: "Customer",
+            cell: ({ row }) => row.original.customer?.name || "Walk-in Customer",
+        },
+        {
+            accessorKey: "totalAmount",
+            header: "Total",
+            cell: ({ row }) => `${row.original.totalAmount} BDT`,
+        },
+        {
+            accessorKey: "paymentStatus",
+            header: "Payment",
+            cell: ({ row }) => (
+                <Badge variant="outline" className="capitalize">
+                    {row.original.paymentStatus}
+                </Badge>
+            ),
+        },
+        {
+            accessorKey: "status",
+            header: "Status",
+            cell: ({ row }) => (
+                <Badge className={getStatusColor(row.original.status)} variant="secondary">
+                    {row.original.status}
+                </Badge>
+            ),
+        },
+        {
+            id: "actions",
+            header: "Actions",
+            cell: ({ row }) => (
+                <div className="flex justify-end gap-2">
+                    <Button variant="ghost" size="icon" onClick={() => openQuickUpdate(row.original)}>
+                        <FilePenLine className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" asChild>
+                        <Link href={`${pathname}/${row.original._id}`}>
+                            <Eye className="h-4 w-4" />
+                        </Link>
+                    </Button>
+                </div>
+            ),
+        },
+    ];
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Orders</h2>
-                </div>
-                <Button onClick={() => router.push(`${pathname}/create`)}>
-                    <Plus className="mr-2 h-4 w-4" /> Create Order
-                </Button>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <StatCard
-                    title="Total Revenue"
-                    icon={DollarSign}
-                    value={`${orders
-                        .filter(o => o.status === 'delivered')
-                        .reduce((acc, order) => acc + (order.totalAmount || 0), 0)
-                        .toLocaleString()} BDT`}
-                />
-                <StatCard
-                    title="Total Orders"
-                    icon={ShoppingBag}
-                    value={orders.filter(o => o.status !== 'cancelled').length}
-                />
-                <StatCard
-                    title="Pending Processing"
-                    icon={Clock}
-                    value={orders.filter(o => ["pending", "processing", "confirmed"].includes(o.status)).length}
-                />
-                <StatCard
-                    title="Delivered"
-                    icon={CheckCircle}
-                    value={orders.filter(o => o.status === 'delivered').length}
-                />
-            </div>
-
-            <Tabs defaultValue={initialTab} className="space-y-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                        <div className="flex items-center gap-2">
-                            <div className="overflow-x-auto max-w-[700px]">
-                                <TabsList>
-                                    <TabsTrigger value="all">All</TabsTrigger>
-                                    {ORDER_STATUSES.map(status => (
-                                        <TabsTrigger key={status.value} value={status.value}>
-                                            {status.label}
-                                        </TabsTrigger>
-                                    ))}
-                                </TabsList>
-                            </div>
-
-                            <DateRangeFilter
-                                dateFilter={dateFilter}
-                                setDateFilter={setDateFilter}
-                                dateRange={dateRange}
-                                setDateRange={setDateRange}
-                                isCalendarOpen={isCalendarOpen}
-                                setIsCalendarOpen={setIsCalendarOpen}
-                            />
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <TabsContent value="all" className="mt-0">
-                            <OrdersTable data={filterOrders("all")} />
-                        </TabsContent>
-
-                        {ORDER_STATUSES.map(status => (
-                            <TabsContent key={status.value} value={status.value} className="mt-0">
-                                <OrdersTable data={filterOrders(status.value)} />
-                            </TabsContent>
-                        ))}
-                    </CardContent>
-                </Card>
-            </Tabs>
+        <>
+            <DataPageLayout
+                title="Orders"
+                createAction={{
+                    label: "Create Order",
+                    onClick: () => router.push(`${pathname}/create`)
+                }}
+                extraFilters={
+                    <div className="relative flex-1 max-w-sm ml-auto">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search orders..."
+                            className="pl-8"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                }
+                stats={
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <StatCard
+                            title="Total Revenue"
+                            icon={DollarSign}
+                            value={`${orders
+                                .filter(o => o.status === 'delivered')
+                                .reduce((acc, order) => acc + (order.totalAmount || 0), 0)
+                                .toLocaleString()} BDT`}
+                        />
+                        <StatCard
+                            title="Total Orders"
+                            icon={ShoppingBag}
+                            value={orders.filter(o => o.status !== 'cancelled').length}
+                        />
+                        <StatCard
+                            title="Pending Processing"
+                            icon={Clock}
+                            value={orders.filter(o => ["pending", "processing", "confirmed"].includes(o.status)).length}
+                        />
+                        <StatCard
+                            title="Delivered"
+                            icon={CheckCircle}
+                            value={orders.filter(o => o.status === 'delivered').length}
+                        />
+                    </div>
+                }
+                tabs={[
+                    { value: "all", label: "All" },
+                    ...ORDER_STATUSES.map(s => ({ value: s.value, label: s.label }))
+                ]}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                dateFilter={{
+                    dateFilter,
+                    setDateFilter,
+                    dateRange,
+                    setDateRange,
+                    isCalendarOpen,
+                    setIsCalendarOpen
+                }}
+            >
+                <TabsContent value="all" className="mt-0">
+                    <DataTable columns={columns} data={filterOrders("all")} isLoading={loading} />
+                </TabsContent>
+                {ORDER_STATUSES.map(status => (
+                    <TabsContent key={status.value} value={status.value} className="mt-0">
+                        <DataTable columns={columns} data={filterOrders(status.value)} isLoading={loading} />
+                    </TabsContent>
+                ))}
+            </DataPageLayout>
 
             <Dialog open={updateOpen} onOpenChange={setUpdateOpen}>
                 <DialogContent>
@@ -317,6 +317,6 @@ export default function OrderList({ initialTab = "all" }: OrderListProps) {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+        </>
     );
 }

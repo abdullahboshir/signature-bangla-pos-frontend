@@ -9,6 +9,7 @@ const adminApi = baseApi.injectEndpoints({
         url: "/super-admin/users/getUsers",
         method: "GET",
       }),
+      transformResponse: (response: any) => response.data,
       providesTags: [tagTypes.admin],
     }),
     getUser: build.query({
@@ -16,6 +17,7 @@ const adminApi = baseApi.injectEndpoints({
         url: `/admin/users/${id}`,
         method: "GET",
       }),
+      transformResponse: (response: any) => response.data,
       providesTags: [tagTypes.admin],
     }),
     createUser: build.mutation({
@@ -47,9 +49,10 @@ const adminApi = baseApi.injectEndpoints({
     // Business Unit Management
     getBusinessUnits: build.query({
       query: () => ({
-        url: "/admin/business-units",
+        url: "/super-admin/business-unit",
         method: "GET",
       }),
+      transformResponse: (response: any) => response.data,
       providesTags: [tagTypes.admin],
     }),
     getBusinessUnit: build.query({
@@ -57,6 +60,7 @@ const adminApi = baseApi.injectEndpoints({
         url: `/admin/business-units/${id}`,
         method: "GET",
       }),
+      transformResponse: (response: any) => response.data,
       providesTags: [tagTypes.admin],
     }),
     createBusinessUnit: build.mutation({

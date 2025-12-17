@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Plus, MoreHorizontal, Loader2, Trash2, Edit, RefreshCw } from "lucide-react";
+import { MoreHorizontal, Trash2, Edit, RefreshCw, Package, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -13,17 +13,15 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
+
 import { axiosInstance } from "@/lib/axios/axiosInstance";
 import Swal from "sweetalert2";
 import { ITax } from "@/types/catalog";
+import { DataTable } from "@/components/shared/DataTable";
+import { DataPageLayout } from "@/components/shared/DataPageLayout";
+import { StatCard } from "@/components/shared/StatCard";
+import { ColumnDef } from "@tanstack/react-table";
+import { AutoFormModal } from "@/components/shared/AutoFormModal";
 
 export default function TaxPage() {
     const router = useRouter();
@@ -99,112 +97,179 @@ export default function TaxPage() {
         tax.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    if (isLoading) {
-        return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
-    }
+    const [createModalOpen, setCreateModalOpen] = useState(false);
+    const [isCreating, setIsCreating] = useState(false);
+
+    const createTaxFields: any[] = [
+        { name: "name", label: "Tax Name", type: "text", required: true, placeholder: "e.g. VAT" },
+        { name: "rate", label: "Rate (%)", type: "number", required: true, placeholder: "15" },
+        {
+            name: "type",
+            label: "Type",
+            type: "select",
+            required: true,
+            options: [
+                { label: "Percentage", value: "percentage" },
+                { label: "Fixed", value: "fixed" }
+            ],
+            defaultValue: "percentage"
+        },
+        {
+            name: "status",
+            label: "Status",
+            type: "select",
+            required: true,
+            options: [
+                { label: "Active", value: "active" },
+                { label: "Inactive", value: "inactive" }
+            ],
+            defaultValue: "active"
+        }
+    ];
+
+    const handleCreateTax = async (data: any) => {
+        try {
+            setIsCreating(true);
+            const response: any = await axiosInstance.post('/super-admin/taxes', {
+                ...data,
+                rate: Number(data.rate),
+                isActive: data.status === 'active'
+            });
+
+            if (response?.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: 'Tax created successfully',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                setCreateModalOpen(false);
+                fetchTaxes();
+            }
+        } catch (error: any) {
+            console.error("Create tax error", error);
+            Swal.fire({
+                icon: "error",
+                title: "Error",
+                text: error?.response?.data?.message || "Failed to create tax"
+            });
+        } finally {
+            setIsCreating(false);
+        }
+    };
+
+    // Define Columns
+    const columns: ColumnDef<ITax>[] = [
+        {
+            accessorKey: "name",
+            header: "Name",
+            cell: ({ row }) => (
+                <span className="font-medium">
+                    {row.original.name}
+                    {row.original.isDefault && <Badge variant="outline" className="ml-2">Default</Badge>}
+                </span>
+            ),
+        },
+        {
+            accessorKey: "rate",
+            header: "Rate",
+            cell: ({ row }) => row.original.rate,
+        },
+        {
+            accessorKey: "type",
+            header: "Type",
+            cell: ({ row }) => <span className="capitalize">{row.original.type}</span>,
+        },
+        {
+            accessorKey: "isActive",
+            header: "Status",
+            cell: ({ row }) => (
+                <Badge variant={row.original.isActive ? "default" : "secondary"}>
+                    {row.original.isActive ? 'Active' : 'Inactive'}
+                </Badge>
+            ),
+        },
+        {
+            id: "actions",
+            header: "Actions",
+            cell: ({ row }) => (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => router.push(`${pathname}/${row.original._id}/edit`)}>
+                            <Edit className="mr-2 h-4 w-4" /> Edit Tax
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => handleDelete(row.original._id)}
+                        >
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            ),
+        },
+    ];
 
     return (
-        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <div className="flex items-center justify-between space-y-2">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Taxes</h2>
-                    <p className="text-muted-foreground">
-                        Manage validation taxes and rates.
-                    </p>
-                </div>
-                <div className="flex items-center space-x-2">
-                    <Button onClick={() => router.push(`${pathname}/add`)}>
-                        <Plus className="mr-2 h-4 w-4" /> Add New Tax
-                    </Button>
-                </div>
-            </div>
+        <>
+            <DataPageLayout
+                title="Taxes"
+                description="Manage validation taxes and rates."
+                createAction={{
+                    label: "Add New Tax",
+                    onClick: () => setCreateModalOpen(true)
+                }}
+                stats={
+                    <div className="flex flex-row gap-4">
+                        <StatCard
+                            title="Total Taxes"
+                            value={taxes.length}
+                            icon={Package}
+                        />
+                        <StatCard
+                            title="Active Taxes"
+                            value={taxes.filter(t => t.isActive).length}
+                            icon={CheckCircle}
+                        />
+                    </div>
+                }
+                extraFilters={
+                    <div className="flex items-center gap-2 flex-1">
+                        <div className="relative flex-1 max-w-sm">
+                            <Input
+                                placeholder="Search taxes..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="max-w-sm"
+                            />
+                        </div>
+                        <Button variant="outline" size="sm" onClick={fetchTaxes}>
+                            <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+                        </Button>
+                    </div>
+                }
+            >
+                <DataTable columns={columns} data={filteredTaxes} isLoading={isLoading} />
+            </DataPageLayout>
 
-            {/* Compact Statistics */}
-            <div className="flex flex-wrap gap-3 py-2">
-                <div className="flex items-center gap-2 px-4  bg-card rounded-md border shadow-sm">
-                    <span className="text-sm font-medium text-muted-foreground">Total Taxes</span>
-                    <span className="text-lg font-bold">{taxes.length}</span>
-                </div>
-                <div className="flex items-center gap-2 px-4  bg-card rounded-md border shadow-sm">
-                    <div className="h-2 w-2 rounded-full bg-green-500" />
-                    <span className="text-sm font-medium text-muted-foreground">Active Taxes</span>
-                    <span className="text-lg font-bold">{taxes.filter(t => t.isActive).length}</span>
-                </div>
-                <Button variant="outline" size="sm" onClick={fetchTaxes} className="ml-auto">
-                    <RefreshCw className="mr-2 h-4 w-4" /> Refresh
-                </Button>
-            </div>
-
-
-            <div className="flex items-center py-4">
-                <Input
-                    placeholder="Search taxes..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="max-w-sm"
-                />
-            </div>
-
-            <div className="rounded-md border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Rate</TableHead>
-                            <TableHead>Type</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {filteredTaxes.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={5} className="h-24 text-center">
-                                    No taxes found.
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            filteredTaxes.map((tax) => (
-                                <TableRow key={tax._id}>
-                                    <TableCell className="font-medium">
-                                        {tax.name}
-                                        {tax.isDefault && <Badge variant="outline" className="ml-2">Default</Badge>}
-                                    </TableCell>
-                                    <TableCell>{tax.rate}</TableCell>
-                                    <TableCell className="capitalize">{tax.type}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={tax.isActive ? "default" : "secondary"}>
-                                            {tax.isActive ? 'Active' : 'Inactive'}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                    <span className="sr-only">Open menu</span>
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuItem onClick={() => router.push(`${pathname}/${tax._id}/edit`)}>
-                                                    <Edit className="mr-2 h-4 w-4" /> Edit Tax
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    className="text-destructive focus:text-destructive"
-                                                    onClick={() => handleDelete(tax._id)}
-                                                >
-                                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
-        </div>
+            <AutoFormModal
+                open={createModalOpen}
+                onOpenChange={setCreateModalOpen}
+                title="Create New Tax"
+                description="Add a new tax rate to the system."
+                fields={createTaxFields}
+                onSubmit={handleCreateTax}
+                isLoading={isCreating}
+                submitLabel="Create Tax"
+            />
+        </>
     );
 }

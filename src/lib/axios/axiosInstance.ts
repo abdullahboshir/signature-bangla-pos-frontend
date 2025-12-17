@@ -1,17 +1,25 @@
 import axios from "axios";
-import { baseURL } from "@/redux/api/base/baseApi";
-import { refreshAccessToken } from "@/services/auth/authService";
+import { baseURL } from "@/redux/api/base/config";
 import { getToken } from "@/lib/auth/token-manager";
+import { authKey } from "@/constant/authKey";
 
 export const axiosInstance = axios.create({
   baseURL,
-  withCredentials: true, 
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
   },
   timeout: 15000,
 });
+
+// Helper to set cookie (duplicated to avoid circular dep with authService)
+const setAuthCookie = (token: string) => {
+  if (typeof document === "undefined") return;
+  const days = 7;
+  const expires = new Date(Date.now() + days * 86400 * 1000).toUTCString();
+  document.cookie = `${authKey}=${encodeURIComponent(token)}; expires=${expires}; path=/; SameSite=Lax`;
+};
 
 // REQUEST INTERCEPTOR
 axiosInstance.interceptors.request.use((config) => {
@@ -40,18 +48,24 @@ axiosInstance.interceptors.response.use(
 
       originalRequest._retry = true;
 
-      const refreshed = await refreshAccessToken();
+      try {
+        // Direct refresh call to avoid circular dependency
+        const refreshRes = await axios.post(
+          `${baseURL}/auth/refresh-token`,
+          {},
+          { withCredentials: true }
+        );
 
-      if (!refreshed) {
-        return Promise.reject(error);
+        const newToken = refreshRes?.data?.data?.accessToken;
+
+        if (newToken) {
+            setAuthCookie(newToken); // Update client cookie
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            return axiosInstance(originalRequest);
+        }
+      } catch (refreshError) {
+        return Promise.reject(refreshError);
       }
-
-      if (refreshed) {
-        // Token is already set in cookie by refreshAccessToken
-        originalRequest.headers.Authorization = `Bearer ${refreshed}`;
-      }
-
-      return axiosInstance(originalRequest);
     }
 
     return Promise.reject(error);

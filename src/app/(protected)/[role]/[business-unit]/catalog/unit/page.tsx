@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Plus, MoreHorizontal, Loader2, Trash2, Edit, RefreshCw } from "lucide-react";
+import { useState } from "react";
+import { MoreHorizontal, Trash2, Edit, Package, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
     DropdownMenu,
@@ -13,16 +11,16 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import { axiosInstance } from "@/lib/axios/axiosInstance";
+
 import Swal from "sweetalert2";
+import { DataTable } from "@/components/shared/DataTable";
+import { DataPageLayout } from "@/components/shared/DataPageLayout";
+import { StatCard } from "@/components/shared/StatCard";
+import { ColumnDef } from "@tanstack/react-table";
+import { AutoFormModal } from "@/components/shared/AutoFormModal";
+import { useCreateUnitMutation, useDeleteUnitMutation, useGetUnitsQuery, useUpdateUnitMutation } from "@/redux/api/unitApi";
+import { toast } from "sonner";
+import { useGetBusinessUnitsQuery } from "@/redux/api/adminApi";
 
 interface Unit {
     _id: string;
@@ -32,42 +30,17 @@ interface Unit {
 }
 
 export default function UnitsPage() {
-    const router = useRouter();
-    const [searchTerm, setSearchTerm] = useState("");
-    const [units, setUnits] = useState<Unit[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [createModalOpen, setCreateModalOpen] = useState(false);
+    const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
 
-    const fetchUnits = async () => {
-        try {
-            setIsLoading(true);
-            const response: any = await axiosInstance.get('/super-admin/units');
+    // RTK Query Hooks
+    const { data: units = [], isLoading } = useGetUnitsQuery({});
+    const [createUnit, { isLoading: isCreating }] = useCreateUnitMutation();
+    const [updateUnit, { isLoading: isUpdating }] = useUpdateUnitMutation();
+    const [deleteUnit] = useDeleteUnitMutation();
 
-            if (response?.success && Array.isArray(response?.data)) {
-                setUnits(response.data);
-            } else if (response?.data?.data && Array.isArray(response.data.data)) {
-                setUnits(response.data.data);
-            } else {
-                setUnits([]);
-            }
-        } catch (error) {
-            console.error("Failed to fetch units", error);
-            Swal.fire({
-                icon: "error",
-                title: "Connection Error",
-                text: "Could not retrieve units.",
-                toast: true,
-                position: "top-end",
-                showConfirmButton: false,
-                timer: 3000,
-            });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchUnits();
-    }, []);
+    // Fetch Business Units for options
+    const { data: businessUnits = [] } = useGetBusinessUnitsQuery(undefined);
 
     const handleDelete = async (id: string) => {
         const result = await Swal.fire({
@@ -82,129 +55,164 @@ export default function UnitsPage() {
 
         if (result.isConfirmed) {
             try {
-                const res: any = await axiosInstance.delete(`/super-admin/units/${id}`);
-                if (res?.success) {
-                    Swal.fire({
-                        title: "Deleted!",
-                        text: "Unit has been deleted.",
-                        icon: "success",
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                    setUnits(prev => prev.filter(unit => unit._id !== id));
-                }
-            } catch (error) {
+                await deleteUnit(id).unwrap();
+                Swal.fire({
+                    title: "Deleted!",
+                    text: "Unit has been deleted.",
+                    icon: "success",
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } catch (error: any) {
                 console.error("Delete failed", error);
-                Swal.fire("Error!", "Failed to delete unit.", "error");
+                Swal.fire("Error!", error?.data?.message || "Failed to delete unit.", "error");
             }
         }
     };
 
-    const filteredUnits = units.filter((unit) =>
-        unit.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        unit.symbol.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const buOptions = Array.isArray(businessUnits) ? businessUnits.map((bu: any) => ({
+        label: bu.name,
+        value: bu.name // Or ID depending on backend expectation, verified previously likely name/slug is fine for resolution
+    })) : [];
 
-    if (isLoading) {
-        return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
-    }
+    // Define Columns
+    const columns: ColumnDef<Unit>[] = [
+        {
+            accessorKey: "name",
+            header: "Name",
+            cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
+        },
+        {
+            accessorKey: "symbol",
+            header: "Symbol",
+            cell: ({ row }) => row.original.symbol,
+        },
+        {
+            accessorKey: "status",
+            header: "Status",
+            cell: ({ row }) => (
+                <Badge variant={row.original.status === "active" ? "default" : "secondary"}>
+                    {row.original.status}
+                </Badge>
+            ),
+        },
+        {
+            id: "actions",
+            header: "Actions",
+            cell: ({ row }) => (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => {
+                            setEditingUnit(row.original);
+                            setCreateModalOpen(true);
+                        }}>
+                            <Edit className="mr-2 h-4 w-4" /> Edit Unit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => handleDelete(row.original._id)}
+                        >
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            ),
+        },
+    ];
+
+    const handleSubmit = async (data: any) => {
+        try {
+            if (editingUnit) {
+                await updateUnit({ id: editingUnit._id, body: data }).unwrap();
+                toast.success("Unit updated successfully");
+            } else {
+                await createUnit(data).unwrap();
+                toast.success("Unit created successfully");
+            }
+            setCreateModalOpen(false);
+            setEditingUnit(null);
+        } catch (error: any) {
+            console.error("Operation failed", error);
+            toast.error(error?.data?.message || "Failed to save unit");
+        }
+    };
+
+    const createUnitFields: any[] = [
+        { name: "name", label: "Unit Name", type: "text", required: true, placeholder: "e.g. Kilogram" },
+        { name: "symbol", label: "Symbol", type: "text", required: true, placeholder: "e.g. kg" },
+        {
+            name: "relatedBusinessTypes",
+            label: "Business Types (Optional)",
+            type: "multi-select",
+            options: buOptions,
+            placeholder: "Select business types..."
+        },
+        {
+            name: "status",
+            label: "Status",
+            type: "select",
+            required: true,
+            options: [
+                { label: "Active", value: "active" },
+                { label: "Inactive", value: "inactive" }
+            ],
+            defaultValue: "active"
+        }
+    ];
 
     return (
-        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <div className="flex items-center justify-between space-y-2">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Measurement Units</h2>
-                    <p className="text-muted-foreground">
-                        Manage product measurement units (e.g., kg, pcs).
-                    </p>
-                </div>
-                <div className="flex items-center space-x-2">
-                    <Button onClick={() => router.push("unit/add")}>
-                        <Plus className="mr-2 h-4 w-4" /> Add Measurement Unit
-                    </Button>
-                </div>
-            </div>
-
-            {/* Compact Statistics */}
-            <div className="flex flex-wrap gap-3 py-2">
-                <div className="flex items-center gap-2 px-4 py-2 bg-card rounded-md border shadow-sm">
-                    <span className="text-sm font-medium text-muted-foreground">Total Units</span>
-                    <span className="text-lg font-bold">{units.length}</span>
-                </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-card rounded-md border shadow-sm">
-                    <div className="h-2 w-2 rounded-full bg-green-500" />
-                    <span className="text-sm font-medium text-muted-foreground">Active Units</span>
-                    <span className="text-lg font-bold">{units.filter(u => u.status === 'active').length}</span>
-                </div>
-                <Button variant="outline" size="sm" onClick={fetchUnits} className="ml-auto">
-                    <RefreshCw className="mr-2 h-4 w-4" /> Refresh
-                </Button>
-            </div>
-
-            <div className="flex items-center py-4">
-                <Input
-                    placeholder="Search units..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="max-w-sm"
+        <>
+            <DataPageLayout
+                title="Measurement Units"
+                description="Manage product measurement units (e.g., kg, pcs)."
+                createAction={{
+                    label: "Add Measurement Unit",
+                    onClick: () => {
+                        setEditingUnit(null);
+                        setCreateModalOpen(true);
+                    }
+                }}
+                stats={
+                    <div className="flex flex-row gap-4">
+                        <StatCard
+                            title="Total Units"
+                            value={units.length}
+                            icon={Package}
+                        />
+                        <StatCard
+                            title="Active Units"
+                            value={units.filter((u: any) => u.status === 'active').length}
+                            icon={CheckCircle}
+                        />
+                    </div>
+                }
+            >
+                <DataTable
+                    columns={columns}
+                    data={units}
+                    isLoading={isLoading}
+                    searchKey="name"
                 />
-            </div>
+            </DataPageLayout>
 
-            <div className="rounded-md border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Symbol</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {filteredUnits.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={4} className="h-24 text-center">
-                                    No units found.
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            filteredUnits.map((unit) => (
-                                <TableRow key={unit._id}>
-                                    <TableCell className="font-medium">{unit.name}</TableCell>
-                                    <TableCell>{unit.symbol}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={unit.status === "active" ? "default" : "secondary"}>
-                                            {unit.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                    <span className="sr-only">Open menu</span>
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuItem onClick={() => router.push(`unit/${unit._id}/edit`)}>
-                                                    <Edit className="mr-2 h-4 w-4" /> Edit Unit
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    className="text-destructive focus:text-destructive"
-                                                    onClick={() => handleDelete(unit._id)}
-                                                >
-                                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
-        </div>
+            <AutoFormModal
+                open={createModalOpen}
+                onOpenChange={setCreateModalOpen}
+                title={editingUnit ? "Edit Measurement Unit" : "Create Measurement Unit"}
+                description="Define a new measurement unit for products."
+                fields={createUnitFields}
+                defaultValues={editingUnit || { status: 'active' }}
+                onSubmit={handleSubmit}
+                isLoading={isCreating || isUpdating}
+                submitLabel={editingUnit ? "Update Unit" : "Create Unit"}
+            />
+        </>
     );
 }

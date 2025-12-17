@@ -11,6 +11,8 @@ export enum tagTypes {
   childCategory = "childCategory",
   product = "product",
   order = "order",
+  brand = "brand",
+  unit = "unit",
 }
 
 export const tagTypesList = Object.values(tagTypes);

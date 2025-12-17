@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { Plus, MoreHorizontal, Loader2, Trash2, Edit, RefreshCw } from "lucide-react";
+import { useState } from "react";
+import { MoreHorizontal, Trash2, Edit, Package, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
     DropdownMenu,
@@ -13,16 +11,15 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import { axiosInstance } from "@/lib/axios/axiosInstance";
+
 import Swal from "sweetalert2";
+import { DataTable } from "@/components/shared/DataTable";
+import { DataPageLayout } from "@/components/shared/DataPageLayout";
+import { StatCard } from "@/components/shared/StatCard";
+import { AutoFormModal } from "@/components/shared/AutoFormModal";
+import { ColumnDef } from "@tanstack/react-table";
+import { useCreateBrandMutation, useDeleteBrandMutation, useGetBrandsQuery, useUpdateBrandMutation } from "@/redux/api/brandApi";
+import { toast } from "sonner";
 
 interface Brand {
     _id: string;
@@ -34,44 +31,14 @@ interface Brand {
 }
 
 export default function BrandsPage() {
-    const router = useRouter();
-    const pathname = usePathname();
-    const [searchTerm, setSearchTerm] = useState("");
-    const [brands, setBrands] = useState<Brand[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
 
-    const fetchBrands = async () => {
-        try {
-            setIsLoading(true);
-            const response: any = await axiosInstance.get('/super-admin/brands'); // Adjusted endpoint
-
-            if (response?.success && Array.isArray(response?.data)) {
-                setBrands(response.data);
-            } else if (response?.data?.data && Array.isArray(response.data.data)) {
-                // Handle nested structure if backend uses standard ApiResponse with pagination
-                setBrands(response.data.data);
-            } else {
-                setBrands([]);
-            }
-        } catch (error) {
-            console.error("Failed to fetch brands", error);
-            Swal.fire({
-                icon: "error",
-                title: "Connection Error",
-                text: "Could not retrieve brands.",
-                toast: true,
-                position: "top-end",
-                showConfirmButton: false,
-                timer: 3000,
-            });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchBrands();
-    }, []);
+    // RTK Query Hooks
+    const { data: brands = [], isLoading } = useGetBrandsQuery({ limit: 1000 }); // Fetch all for now
+    const [createBrand, { isLoading: isCreating }] = useCreateBrandMutation();
+    const [updateBrand, { isLoading: isUpdating }] = useUpdateBrandMutation();
+    const [deleteBrand] = useDeleteBrandMutation();
 
     const handleDelete = async (id: string) => {
         const result = await Swal.fire({
@@ -86,129 +53,150 @@ export default function BrandsPage() {
 
         if (result.isConfirmed) {
             try {
-                const res: any = await axiosInstance.delete(`/super-admin/brands/${id}`);
-                if (res?.success) {
-                    Swal.fire({
-                        title: "Deleted!",
-                        text: "Brand has been deleted.",
-                        icon: "success",
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                    setBrands(prev => prev.filter(brand => brand._id !== id));
-                }
-            } catch (error) {
+                await deleteBrand(id).unwrap();
+                Swal.fire({
+                    title: "Deleted!",
+                    text: "Brand has been deleted.",
+                    icon: "success",
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } catch (error: any) {
                 console.error("Delete failed", error);
-                Swal.fire("Error!", "Failed to delete brand.", "error");
+                Swal.fire("Error!", error?.data?.message || "Failed to delete brand.", "error");
             }
         }
     };
 
-    const filteredBrands = brands.filter((brand) =>
-        brand.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Define Columns
+    const columns: ColumnDef<Brand>[] = [
+        {
+            accessorKey: "name",
+            header: "Name",
+            cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
+        },
+        {
+            accessorKey: "website",
+            header: "Website",
+            cell: ({ row }) => row.original.website || 'N/A',
+        },
+        {
+            accessorKey: "status",
+            header: "Status",
+            cell: ({ row }) => (
+                <Badge variant={row.original.status === "active" ? "default" : "secondary"}>
+                    {row.original.status}
+                </Badge>
+            ),
+        },
+        {
+            id: "actions",
+            header: "Actions",
+            cell: ({ row }) => (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => {
+                            setEditingBrand(row.original);
+                            setIsCreateOpen(true);
+                        }}>
+                            <Edit className="mr-2 h-4 w-4" /> Edit Brand
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => handleDelete(row.original._id)}
+                        >
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            ),
+        },
+    ];
 
-    if (isLoading) {
-        return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
-    }
+    const handleSubmit = async (data: any) => {
+        try {
+            if (editingBrand) {
+                await updateBrand({ id: editingBrand._id, body: data }).unwrap();
+                toast.success("Brand updated successfully");
+            } else {
+                await createBrand(data).unwrap();
+                toast.success("Brand created successfully");
+            }
+            setIsCreateOpen(false);
+            setEditingBrand(null);
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error?.data?.message || "Failed to save brand");
+        }
+    };
 
     return (
-        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <div className="flex items-center justify-between space-y-2">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Brands</h2>
-                    <p className="text-muted-foreground">
-                        Manage product brands.
-                    </p>
-                </div>
-                <div className="flex items-center space-x-2">
-                    <Button onClick={() => router.push(`${pathname}/add`)}>
-                        <Plus className="mr-2 h-4 w-4" /> Add New Brand
-                    </Button>
-                </div>
-            </div>
-
-            {/* Compact Statistics */}
-            <div className="flex flex-wrap gap-3 py-2">
-                <div className="flex items-center gap-2 px-4  bg-card rounded-md border shadow-sm">
-                    <span className="text-sm font-medium text-muted-foreground">Total Brands</span>
-                    <span className="text-lg font-bold">{brands.length}</span>
-                </div>
-                <div className="flex items-center gap-2 px-4  bg-card rounded-md border shadow-sm">
-                    <div className="h-2 w-2 rounded-full bg-green-500" />
-                    <span className="text-sm font-medium text-muted-foreground">Active Brands</span>
-                    <span className="text-lg font-bold">{brands.filter(b => b.status === 'active').length}</span>
-                </div>
-                <Button variant="outline" size="sm" onClick={fetchBrands} className="ml-auto">
-                    <RefreshCw className="mr-2 h-4 w-4" /> Refresh
-                </Button>
-            </div>
-
-
-            <div className="flex items-center py-4">
-                <Input
-                    placeholder="Search brands..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="max-w-sm"
+        <>
+            <DataPageLayout
+                title="Brands"
+                description="Manage product brands."
+                createAction={{
+                    label: "Add New Brand",
+                    onClick: () => {
+                        setEditingBrand(null);
+                        setIsCreateOpen(true);
+                    }
+                }}
+                stats={
+                    <>
+                        <StatCard
+                            title="Total Brands"
+                            value={brands.length}
+                            icon={Package}
+                        />
+                        <StatCard
+                            title="Active Brands"
+                            value={brands.filter((b: any) => b.status === 'active').length}
+                            icon={CheckCircle}
+                        />
+                    </>
+                }
+            >
+                <DataTable
+                    columns={columns}
+                    data={brands}
+                    isLoading={isLoading}
+                    searchKey="name"
                 />
-            </div>
+            </DataPageLayout>
 
-            <div className="rounded-md border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Website</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {filteredBrands.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={4} className="h-24 text-center">
-                                    No brands found.
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            filteredBrands.map((brand) => (
-                                <TableRow key={brand._id}>
-                                    <TableCell className="font-medium">{brand.name}</TableCell>
-                                    <TableCell>{brand.website || 'N/A'}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={brand.status === "active" ? "default" : "secondary"}>
-                                            {brand.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                    <span className="sr-only">Open menu</span>
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuItem onClick={() => router.push(`${pathname}/${brand._id}/edit`)}>
-                                                    <Edit className="mr-2 h-4 w-4" /> Edit Brand
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    className="text-destructive focus:text-destructive"
-                                                    onClick={() => handleDelete(brand._id)}
-                                                >
-                                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
-        </div>
+            <AutoFormModal<Brand>
+                open={isCreateOpen}
+                onOpenChange={setIsCreateOpen}
+                title={editingBrand ? "Edit Brand" : "Add New Brand"}
+                description="Manage product brands."
+                fields={[
+                    { name: "name", label: "Name", type: "text", required: true, placeholder: "Brand Name" },
+                    { name: "website", label: "Website", type: "text", placeholder: "https://example.com" },
+                    { name: "description", label: "Description", type: "textarea", placeholder: "Description" },
+                    {
+                        name: "status",
+                        label: "Status",
+                        type: "select",
+                        options: [
+                            { label: "Active", value: "active" },
+                            { label: "Inactive", value: "inactive" }
+                        ],
+                        defaultValue: "active",
+                        required: true
+                    }
+                ]}
+                defaultValues={editingBrand || { status: "active" }}
+                onSubmit={handleSubmit}
+                submitLabel={isCreating || isUpdating ? (editingBrand ? "Updating..." : "Creating...") : (editingBrand ? "Update Brand" : "Create Brand")}
+            />
+        </>
     );
 }
