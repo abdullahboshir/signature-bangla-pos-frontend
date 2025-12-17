@@ -466,6 +466,8 @@ export default function CreateOrder() {
                                         <SelectItem value="cash">Cash</SelectItem>
                                         <SelectItem value="card">Card</SelectItem>
                                         <SelectItem value="mobile_banking">Mobile Banking</SelectItem>
+                                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                                        <SelectItem value="credit">Credit</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

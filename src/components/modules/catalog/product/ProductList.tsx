@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { format } from "date-fns";
-import { Edit2, MoreHorizontal, Trash2, Eye } from "lucide-react";
+import { Edit2, MoreHorizontal, Trash2, Eye, DollarSign, Package, CheckCircle, AlertTriangle, Plus, Search, Copy, Power, Archive, ArrowUpRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { DateRange } from "react-day-picker";
 
 import {
     Table,
@@ -19,18 +21,21 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+import { StatCard } from "@/components/shared/StatCard";
+import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
+import { filterDataByDate } from "@/lib/dateFilterUtils";
 
 import { productService } from "@/services/catalog/product.service";
 
-interface ProductListProps {
-    searchQuery?: string;
-}
-
-export function ProductList({ searchQuery }: ProductListProps) {
+export function ProductList() {
     const router = useRouter();
     const params = useParams();
     const businessUnit = params["business-unit"] as string;
@@ -39,6 +44,17 @@ export function ProductList({ searchQuery }: ProductListProps) {
     const [products, setProducts] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
+
+    // Date Filter State
+    const [dateFilter, setDateFilter] = useState<string>("all");
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
+    // Search State
+    const [searchQuery, setSearchQuery] = useState("");
+
+    // Tab State
+    const [activeTab, setActiveTab] = useState("all");
 
     const fetchProducts = async () => {
         setIsLoading(true);
@@ -74,6 +90,24 @@ export function ProductList({ searchQuery }: ProductListProps) {
         router.push(`/${role}/${businessUnit}/catalog/product/edit/${id}`);
     }
 
+    const handleCopyId = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(id);
+        toast.success("Product ID copied to clipboard");
+    };
+
+    const handleStatusToggle = async (product: any, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const newStatus = product.statusInfo?.status === "published" ? "draft" : "published";
+        try {
+            await productService.update(product._id, { statusInfo: { status: newStatus } });
+            toast.success(`Product ${newStatus === "published" ? "Published" : "Moved to Draft"}`);
+            fetchProducts();
+        } catch (error) {
+            toast.error("Failed to update status");
+        }
+    };
+
     const toggleRow = (id: string) => {
         if (expandedProductId === id) {
             setExpandedProductId(null);
@@ -82,42 +116,73 @@ export function ProductList({ searchQuery }: ProductListProps) {
         }
     }
 
-    const filteredProducts = products.filter((p) =>
-        p.name.toLowerCase().includes((searchQuery || "").toLowerCase())
-    );
+    // Filter Logic
+    const getFilteredProducts = () => {
+        let filtered = filterDataByDate(products, "createdAt", dateFilter, dateRange);
 
-    if (isLoading) {
-        return <div className="text-center py-10">Loading products...</div>;
-    }
+        if (searchQuery) {
+            filtered = filtered.filter((p) =>
+                p.name.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
 
-    if (filteredProducts.length === 0) {
-        return <div className="text-center py-10 text-muted-foreground">No products found.</div>;
-    }
+        if (activeTab === "all") return filtered;
+        if (activeTab === "published") return filtered.filter(p => p.statusInfo?.status === "published");
+        if (activeTab === "draft") return filtered.filter(p => p.statusInfo?.status === "draft");
+        if (activeTab === "low_stock") {
+            return filtered.filter(p =>
+                (p.inventory?.inventory?.stock || 0) <= (p.inventory?.inventory?.lowStockThreshold || 0)
+            );
+        }
 
-    return (
+        return filtered;
+    };
+
+    const displayedProducts = getFilteredProducts();
+
+    // Stats Calculation
+    const totalValue = products.reduce((acc, p) => {
+        const cost = p.pricing?.costPrice || 0;
+        const stock = p.inventory?.inventory?.stock || 0;
+        return acc + (cost * stock);
+    }, 0);
+
+    const lowStockCount = products.filter(p =>
+        (p.inventory?.inventory?.stock || 0) <= (p.inventory?.inventory?.lowStockThreshold || 0)
+    ).length;
+
+    const ActiveTable = ({ data }: { data: any[] }) => (
         <div className="rounded-md border">
-            <div className="relative w-full overflow-auto" style={{ maxHeight: "calc(100vh - 200px)" }}>
-                <Table>
-                    <TableHeader className="sticky top-0 bg-background z-10">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead className="w-[80px]">Image</TableHead>
+                        <TableHead className="min-w-[200px]">Product Name</TableHead>
+                        <TableHead className="min-w-[100px]">SKU</TableHead>
+                        <TableHead className="min-w-[100px]">Brand</TableHead>
+                        <TableHead className="min-w-[100px]">Category</TableHead>
+                        <TableHead className="min-w-[120px]">Business Unit</TableHead>
+                        <TableHead className="min-w-[80px]">Unit</TableHead>
+                        <TableHead className="min-w-[100px]">Cost Price</TableHead>
+                        <TableHead className="min-w-[100px]">Sales Price</TableHead>
+                        <TableHead className="min-w-[100px]">Profit</TableHead>
+                        <TableHead className="min-w-[80px]">Stock</TableHead>
+                        <TableHead className="min-w-[100px]">Created At</TableHead>
+                        <TableHead className="min-w-[100px]">Status</TableHead>
+                        <TableHead className="text-right sticky right-0 bg-white z-10">Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {isLoading ? (
                         <TableRow>
-                            <TableHead className="w-[80px]">Image</TableHead>
-                            <TableHead className="min-w-[200px]">Product Name</TableHead>
-                            <TableHead className="min-w-[100px]">SKU</TableHead>
-                            <TableHead className="min-w-[100px]">Brand</TableHead>
-                            <TableHead className="min-w-[100px]">Category</TableHead>
-                            <TableHead className="min-w-[120px]">Business Unit</TableHead>
-                            <TableHead className="min-w-[80px]">Unit</TableHead>
-                            <TableHead className="min-w-[100px]">Cost Price</TableHead>
-                            <TableHead className="min-w-[100px]">Sales Price</TableHead>
-                            <TableHead className="min-w-[100px]">Profit</TableHead>
-                            <TableHead className="min-w-[80px]">Stock</TableHead>
-                            <TableHead className="min-w-[100px]">Created At</TableHead>
-                            <TableHead className="min-w-[100px]">Status</TableHead>
-                            <TableHead className="text-right sticky right-0 bg-background z-10">Actions</TableHead>
+                            <TableCell colSpan={14} className="text-center py-10">Loading products...</TableCell>
                         </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {filteredProducts.map((product) => {
+                    ) : data.length === 0 ? (
+                        <TableRow>
+                            <TableCell colSpan={14} className="text-center py-10 text-muted-foreground">No products found.</TableCell>
+                        </TableRow>
+                    ) : (
+                        data.map((product) => {
                             const cost = product.pricing?.costPrice || 0;
                             const sales = product.pricing?.basePrice || 0;
                             const profit = sales - cost;
@@ -193,19 +258,32 @@ export function ProductList({ searchQuery }: ProductListProps) {
                                                 {product.statusInfo?.status || "Draft"}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="text-right sticky right-0 bg-background">
+                                        <TableCell className="text-right sticky right-0 bg-white ">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+                                                    <Button variant="ghost" className="h-8 w-8 p-0 bg-background" onClick={(e) => e.stopPropagation()}>
                                                         <span className="sr-only">Open menu</span>
                                                         <MoreHorizontal className="h-4 w-4" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                    <DropdownMenuItem onClick={(e) => handleCopyId(product._id, e)}>
+                                                        <Copy className="mr-2 h-4 w-4" /> Copy ID
+                                                    </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={(e) => handleEdit(product._id, e)}>
                                                         <Edit2 className="mr-2 h-4 w-4" /> Edit
                                                     </DropdownMenuItem>
+                                                    {product.statusInfo?.status === "published" ? (
+                                                        <DropdownMenuItem onClick={(e) => handleStatusToggle(product, e)}>
+                                                            <Archive className="mr-2 h-4 w-4" /> Unpublish
+                                                        </DropdownMenuItem>
+                                                    ) : (
+                                                        <DropdownMenuItem onClick={(e) => handleStatusToggle(product, e)}>
+                                                            <CheckCircle className="mr-2 h-4 w-4" /> Publish
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                    <DropdownMenuSeparator />
                                                     <DropdownMenuItem onClick={(e) => handleDelete(product._id, e)} className="text-destructive">
                                                         <Trash2 className="mr-2 h-4 w-4" /> Delete
                                                     </DropdownMenuItem>
@@ -293,10 +371,98 @@ export function ProductList({ searchQuery }: ProductListProps) {
                                     )}
                                 </>
                             );
-                        })}
-                    </TableBody>
-                </Table>
+                        })
+                    )}
+                </TableBody>
+            </Table>
+        </div>
+    );
+
+    return (
+        <div className="space-y-4">
+            <div className="flex justify-between items-center">
+                <div>
+                    <h2 className="text-3xl font-bold tracking-tight">Products</h2>
+                </div>
+                <Button onClick={() => router.push(`/${role}/${businessUnit}/catalog/product/add`)}>
+                    <Plus className="mr-2 h-4 w-4" /> Create Product
+                </Button>
             </div>
+
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                    title="Stock Value"
+                    icon={DollarSign}
+                    value={`${totalValue.toLocaleString()} BDT`}
+                />
+                <StatCard
+                    title="Total Products"
+                    icon={Package}
+                    value={products.length}
+                />
+                <StatCard
+                    title="Active Products"
+                    icon={CheckCircle}
+                    value={products.filter(p => p.statusInfo?.status === "published").length}
+                />
+                <StatCard
+                    title="Low Stock"
+                    icon={AlertTriangle}
+                    value={lowStockCount}
+                />
+            </div>
+
+            <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 py-0">
+                        <div className="flex items-center gap-4 flex-1">
+                            <div className="overflow-x-auto">
+                                <TabsList>
+                                    <TabsTrigger value="all">All Products</TabsTrigger>
+                                    <TabsTrigger value="published">Published</TabsTrigger>
+                                    <TabsTrigger value="draft">Draft</TabsTrigger>
+                                    <TabsTrigger value="low_stock">Low Stock</TabsTrigger>
+                                </TabsList>
+                            </div>
+
+                            <div className="relative max-w-sm flex-1">
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search products..."
+                                    className="pl-8 h-8"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <DateRangeFilter
+                                dateFilter={dateFilter}
+                                setDateFilter={setDateFilter}
+                                dateRange={dateRange}
+                                setDateRange={setDateRange}
+                                isCalendarOpen={isCalendarOpen}
+                                setIsCalendarOpen={setIsCalendarOpen}
+                            />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <TabsContent value="all" className="mt-0">
+                            <ActiveTable data={displayedProducts} />
+                        </TabsContent>
+                        <TabsContent value="published" className="mt-0">
+                            <ActiveTable data={displayedProducts} />
+                        </TabsContent>
+                        <TabsContent value="draft" className="mt-0">
+                            <ActiveTable data={displayedProducts} />
+                        </TabsContent>
+                        <TabsContent value="low_stock" className="mt-0">
+                            <ActiveTable data={displayedProducts} />
+                        </TabsContent>
+                    </CardContent>
+                </Card>
+            </Tabs>
         </div>
     );
 }
