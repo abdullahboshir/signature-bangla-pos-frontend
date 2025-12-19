@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { format } from "date-fns";
-import { Edit2, MoreHorizontal, Trash2, DollarSign, Package, CheckCircle, AlertTriangle, Plus, Search, Copy, Archive } from "lucide-react";
+import { Edit2, MoreHorizontal, Trash2, DollarSign, Package, CheckCircle, AlertTriangle, Search, Copy, Archive } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
@@ -19,25 +19,24 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 
 import { StatCard } from "@/components/shared/StatCard";
-// import { DateRangeFilter } from "@/components/shared/DateRangeFilter"; // Removed as handled by DataPageLayout
 import { DataTable } from "@/components/shared/DataTable";
 import { DataPageLayout } from "@/components/shared/DataPageLayout";
 import { filterDataByDate } from "@/lib/dateFilterUtils";
 
-import { productService } from "@/services/catalog/product.service";
+import {
+    useGetProductsQuery,
+    useDeleteProductMutation,
+    useUpdateProductMutation
+} from "@/redux/api/productApi";
 
 export function ProductList() {
     const router = useRouter();
     const params = useParams();
     const businessUnit = params["business-unit"] as string;
     const role = params["role"] as string;
-
-    const [products, setProducts] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
 
     // Date Filter State
     const [dateFilter, setDateFilter] = useState<string>("all");
@@ -50,30 +49,21 @@ export function ProductList() {
     // Tab State
     const [activeTab, setActiveTab] = useState("all");
 
-    const fetchProducts = async () => {
-        setIsLoading(true);
-        try {
-            const data = await productService.getAll({ businessUnit });
-            setProducts(data);
-        } catch (error) {
-            console.error(error);
-            toast.error("Failed to load products");
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    // RTK Query hooks
+    const { data: products = [], isLoading } = useGetProductsQuery({
+        businessUnit: businessUnit === 'all' ? undefined : businessUnit,
+        limit: 1000 // Fetching all for client-side filtering currently
+    });
 
-    useEffect(() => {
-        fetchProducts();
-    }, [businessUnit]);
+    const [deleteProduct] = useDeleteProductMutation();
+    const [updateProduct] = useUpdateProductMutation();
 
     const handleDelete = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation(); // Prevent row click
         if (!confirm("Are you sure? This action cannot be undone.")) return;
         try {
-            await productService.delete(id);
+            await deleteProduct(id).unwrap();
             toast.success("Product deleted successfully");
-            fetchProducts();
         } catch (error) {
             toast.error("Failed to delete product");
         }
@@ -90,33 +80,32 @@ export function ProductList() {
         toast.success("Product ID copied to clipboard");
     };
 
-    const handleStatusToggle = async (product: any, e: React.MouseEvent) => {
+    const handleStatusUpdate = async (product: any, newStatus: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        const newStatus = product.statusInfo?.status === "published" ? "draft" : "published";
         try {
-            await productService.update(product._id, { statusInfo: { status: newStatus } });
-            toast.success(`Product ${newStatus === "published" ? "Published" : "Moved to Draft"}`);
-            fetchProducts();
+            await updateProduct({ id: product._id, body: { statusInfo: { status: newStatus } } }).unwrap();
+            toast.success(`Product status updated to ${newStatus}`);
         } catch (error) {
             toast.error("Failed to update status");
         }
     };
+
 
     // Filter Logic
     const getFilteredProducts = () => {
         let filtered = filterDataByDate(products, "createdAt", dateFilter, dateRange);
 
         if (searchQuery) {
-            filtered = filtered.filter((p) =>
+            filtered = filtered.filter((p: any) =>
                 p.name.toLowerCase().includes(searchQuery.toLowerCase())
             );
         }
 
         if (activeTab === "all") return filtered;
-        if (activeTab === "published") return filtered.filter(p => p.statusInfo?.status === "published");
-        if (activeTab === "draft") return filtered.filter(p => p.statusInfo?.status === "draft");
+        if (activeTab === "published") return filtered.filter((p: any) => p.statusInfo?.status === "published");
+        if (activeTab === "draft") return filtered.filter((p: any) => p.statusInfo?.status === "draft");
         if (activeTab === "low_stock") {
-            return filtered.filter(p =>
+            return filtered.filter((p: any) =>
                 (p.inventory?.inventory?.stock || 0) <= (p.inventory?.inventory?.lowStockThreshold || 0)
             );
         }
@@ -127,13 +116,13 @@ export function ProductList() {
     const displayedProducts = getFilteredProducts();
 
     // Stats Calculation
-    const totalValue = products.reduce((acc, p) => {
+    const totalValue = products.reduce((acc: number, p: any) => {
         const cost = p.pricing?.costPrice || 0;
         const stock = p.inventory?.inventory?.stock || 0;
         return acc + (cost * stock);
     }, 0);
 
-    const lowStockCount = products.filter(p =>
+    const lowStockCount = products.filter((p: any) =>
         (p.inventory?.inventory?.stock || 0) <= (p.inventory?.inventory?.lowStockThreshold || 0)
     ).length;
 
@@ -284,13 +273,25 @@ export function ProductList() {
                             <DropdownMenuItem onClick={(e) => handleEdit(product._id, e)}>
                                 <Edit2 className="mr-2 h-4 w-4" /> Edit
                             </DropdownMenuItem>
-                            {product.statusInfo?.status === "published" ? (
-                                <DropdownMenuItem onClick={(e) => handleStatusToggle(product, e)}>
-                                    <Archive className="mr-2 h-4 w-4" /> Unpublish
+                            {product.statusInfo?.status !== "published" && (
+                                <DropdownMenuItem onClick={(e) => handleStatusUpdate(product, "published", e)}>
+                                    <CheckCircle className="mr-2 h-4 w-4 text-green-600" /> Publish
                                 </DropdownMenuItem>
-                            ) : (
-                                <DropdownMenuItem onClick={(e) => handleStatusToggle(product, e)}>
-                                    <CheckCircle className="mr-2 h-4 w-4" /> Publish
+                            )}
+                            {product.statusInfo?.status !== "draft" && (
+                                <DropdownMenuItem onClick={(e) => handleStatusUpdate(product, "draft", e)}>
+                                    <Edit2 className="mr-2 h-4 w-4 text-muted-foreground" /> Mark as Draft
+                                </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            {product.statusInfo?.status !== "archived" && (
+                                <DropdownMenuItem onClick={(e) => handleStatusUpdate(product, "archived", e)}>
+                                    <Archive className="mr-2 h-4 w-4 text-orange-600" /> Archive
+                                </DropdownMenuItem>
+                            )}
+                            {product.statusInfo?.status !== "suspended" && (
+                                <DropdownMenuItem onClick={(e) => handleStatusUpdate(product, "suspended", e)}>
+                                    <AlertTriangle className="mr-2 h-4 w-4 text-red-600" /> Suspend
                                 </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />
@@ -378,6 +379,47 @@ export function ProductList() {
                         </div>
                     </div>
 
+                    {/* NEW: Variants / Attributes Section */}
+                    <div className="space-y-1 col-span-2 border-t pt-2 mt-2">
+                        <span className="text-xs font-semibold text-muted-foreground uppercase">Variants & Attributes</span>
+                        {(() => {
+                            const variants = product.variants?.length ? product.variants : (product.variantTemplate?.variants || []);
+
+                            if (variants && variants.length > 0) {
+                                return (
+                                    <div className="mt-2 space-y-2">
+                                        {variants.map((v: any, idx: number) => (
+                                            <div key={idx} className="flex flex-wrap items-center gap-4 text-xs bg-muted/50 p-2 rounded border">
+                                                {/* Variant Image */}
+                                                {(v.images?.[0] || v.image) && (
+                                                    <div className="h-8 w-8 rounded border overflow-hidden bg-background flex-shrink-0">
+                                                        <img src={v.images?.[0] || v.image} alt={v.name} className="h-full w-full object-cover" />
+                                                    </div>
+                                                )}
+                                                <div className="font-medium text-foreground">{v.name || `Variant ${idx + 1}`}</div>
+                                                <div><span className="text-muted-foreground">SKU:</span> {v.sku || "N/A"}</div>
+                                                <div><span className="text-muted-foreground">Price:</span> {v.price || v.pricing?.basePrice}</div>
+                                                <div><span className="text-muted-foreground">Stock:</span> {v.inventory?.stock ?? v.stock}</div>
+                                                {/* Display Attributes Key-Values if available */}
+                                                {v.attributes && (
+                                                    <div className="flex gap-2 ml-auto">
+                                                        {Array.isArray(v.attributes)
+                                                            ? v.attributes.map((a: any, i: number) => <Badge key={i} variant="outline" className="h-5 text-[10px]">{a.name}: {a.value}</Badge>)
+                                                            : Object.entries(v.attributes).map(([k, val]: any, i: number) => (
+                                                                <Badge key={i} variant="outline" className="h-5 text-[10px]">{k}: {val}</Badge>
+                                                            ))
+                                                        }
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            }
+                            return <div className="text-muted-foreground text-xs mt-1">No variants configured.</div>;
+                        })()}
+                    </div>
+
                 </div>
             </div>
         );
@@ -406,7 +448,7 @@ export function ProductList() {
                     <StatCard
                         title="Active Products"
                         icon={CheckCircle}
-                        value={products.filter(p => p.statusInfo?.status === "published").length}
+                        value={products.filter((p: any) => p.statusInfo?.status === "published").length}
                     />
                     <StatCard
                         title="Low Stock"

@@ -145,7 +145,7 @@ export default function ChildCategoriesPage() {
     ];
 
     return (
-        <div className="p-6">
+        <div>
             <DataPageLayout
                 title="Child-Categories"
                 description="Manage child-categories (Level 3)"

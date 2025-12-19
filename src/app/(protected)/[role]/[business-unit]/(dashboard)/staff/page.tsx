@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react"
+import { useMemo, useState } from "react"
 import { DataTable } from "@/components/shared/DataTable"
 import { DataPageLayout } from "@/components/shared/DataPageLayout"
 import { StatCard } from "@/components/shared/StatCard"
@@ -8,8 +8,6 @@ import { ColumnDef } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
 import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit"
 import { useAuth } from "@/hooks/useAuth"
-import { axiosInstance as api } from "@/lib/axios/axiosInstance"
-import { userService, roleService } from "@/services/user/user.service"
 import { Users, CheckCircle, MoreHorizontal, Edit, Trash2, Shield } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
@@ -22,12 +20,24 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { AutoFormModal } from "@/components/shared/AutoFormModal"
 import { FieldConfig } from "@/types/auto-form"
+import {
+    useGetAllUsersQuery,
+    useCreateUserMutation,
+    useUpdateUserMutation,
+    useDeleteUserMutation
+} from "@/redux/api/userApi"
+import { useGetRolesQuery } from "@/redux/api/roleApi"
 
 export default function StaffPage() {
-    // Data State
-    const [staff, setStaff] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
-    const [roles, setRoles] = useState<any[]>([])
+    // RTK Query Hooks
+    const { data: usersData, isLoading: isUsersLoading } = useGetAllUsersQuery({})
+    const { data: rolesData } = useGetRolesQuery({})
+    const [createUser, { isLoading: isCreating }] = useCreateUserMutation()
+    const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation()
+    const [deleteUser] = useDeleteUserMutation()
+
+    // Derived State
+    const roles = Array.isArray(rolesData) ? rolesData : []
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -37,86 +47,58 @@ export default function StaffPage() {
     const { currentBusinessUnit } = useCurrentBusinessUnit()
     const { user: currentUser } = useAuth()
 
-    useEffect(() => {
-        fetchStaff()
-        fetchRoles()
-    }, [currentBusinessUnit])
+    const staff = useMemo(() => {
+        if (!usersData?.data) return []
 
-    const fetchRoles = async () => {
-        try {
-            const data = await roleService.getAll()
-            setRoles(Array.isArray(data) ? data : [])
-        } catch (err) {
-            console.error("Failed to fetch roles:", err)
+        // Normalize users list
+        let allUsers: any[] = []
+        if (Array.isArray(usersData.data)) {
+            allUsers = usersData.data;
+        } else if (usersData.data && Array.isArray(usersData.data.data)) {
+            allUsers = usersData.data.data;
+        } else if (usersData.data && Array.isArray(usersData.data.result)) {
+            allUsers = usersData.data.result;
+        } else if (usersData.result && Array.isArray(usersData.result)) {
+            allUsers = usersData.result;
+        } else {
+            // Fallback for weird structures
+            const possibleArray = Object.values(usersData.data).find(val => Array.isArray(val));
+            allUsers = possibleArray ? (possibleArray as any[]) : [];
         }
-    }
 
-    const fetchStaff = async () => {
-        try {
-            setLoading(true)
-            const response = await api.get('/super-admin/users/all-users')
-            const resData = (response as any);
+        const isSuperAdmin = currentUser?.roles?.some((r: any) => r.name === 'super-admin')
 
-            if (resData.success || (resData.data && resData.data.success)) {
-                let allUsers: any[] = [];
-                // Data extraction logic same as CustomersPage
-                if (Array.isArray(resData.data)) {
-                    allUsers = resData.data;
-                } else if (resData.data && Array.isArray(resData.data.data)) {
-                    allUsers = resData.data.data;
-                } else if (resData.data && typeof resData.data === 'object' && Array.isArray(resData.data.result)) {
-                    allUsers = resData.data.result;
-                } else if (resData.result && Array.isArray(resData.result)) {
-                    allUsers = resData.result;
-                } else if (resData.data && typeof resData.data === 'object') {
-                    const possibleArray = Object.values(resData.data).find(val => Array.isArray(val));
-                    if (possibleArray) {
-                        allUsers = possibleArray as any[];
-                    } else {
-                        allUsers = [];
-                    }
-                }
-
-                const isSuperAdmin = currentUser?.roles?.some((r: any) => r.name === 'super-admin')
-
-                if (!isSuperAdmin && currentBusinessUnit) {
-                    allUsers = allUsers.filter((user: any) => {
-                        if (!user.businessUnits) return false;
-                        return user.businessUnits.some((bu: any) => {
-                            const buId = typeof bu === 'string' ? bu : (bu.id || bu.slug || bu._id);
-                            return buId === currentBusinessUnit.id || buId === currentBusinessUnit.slug || buId === currentBusinessUnit._id;
-                        });
-                    });
-                }
-
-                // Filter for Staff (Exclude customers)
-                const staffUsers = allUsers.filter((u: any) =>
-                    !u.roles?.some((r: any) => {
-                        const roleName = typeof r === 'string' ? r : r.name;
-                        return roleName === 'customer';
-                    })
-                );
-
-                const formattedStaff = staffUsers.map((user: any) => ({
-                    ...user,
-                    name: typeof user.name === 'object' && user.name !== null
-                        ? `${user.name.firstName || ''} ${user.name.lastName || ''}`.trim() || 'Unnamed'
-                        : user.name,
-                    role: user.roles?.[0]?.name || 'N/A', // Assuming single role for display
-                    status: user.status || 'inactive',
-                    email: user.email || 'N/A',
-                    phone: user.phone || 'N/A',
-                }));
-
-                setStaff(formattedStaff)
-            }
-        } catch (err) {
-            console.error("Error fetching staff:", err)
-            toast.error("Failed to fetch staff")
-        } finally {
-            setLoading(false)
+        // Filter by Business Unit
+        if (!isSuperAdmin && currentBusinessUnit) {
+            allUsers = allUsers.filter((user: any) => {
+                if (!user.businessUnits) return false;
+                return user.businessUnits.some((bu: any) => {
+                    const buId = typeof bu === 'string' ? bu : (bu.id || bu.slug || bu._id);
+                    return buId === currentBusinessUnit.id || buId === currentBusinessUnit.slug || buId === currentBusinessUnit._id;
+                });
+            });
         }
-    }
+
+        // Filter for Staff (Exclude customers)
+        const staffUsers = allUsers.filter((u: any) =>
+            !u.roles?.some((r: any) => {
+                const roleName = typeof r === 'string' ? r : r.name;
+                return roleName === 'customer';
+            })
+        );
+
+        return staffUsers.map((user: any) => ({
+            ...user,
+            name: typeof user.name === 'object' && user.name !== null
+                ? `${user.name.firstName || ''} ${user.name.lastName || ''}`.trim() || 'Unnamed'
+                : user.name,
+            role: user.roles?.[0]?.name || 'N/A', // Assuming single role for display
+            status: user.status || 'inactive',
+            email: user.email || 'N/A',
+            phone: user.phone || 'N/A',
+        }));
+
+    }, [usersData, currentBusinessUnit, currentUser]);
 
     const handleCreate = () => {
         setSelectedStaff(null)
@@ -140,13 +122,8 @@ export default function StaffPage() {
         if (!confirm("Are you sure you want to delete this staff member?")) return;
         try {
             const id = staffMember._id || staffMember.id;
-            const res = await userService.delete(id);
-            if (res && res.success) {
-                toast.success("Staff deleted successfully")
-                fetchStaff()
-            } else {
-                toast.error("Failed to delete staff")
-            }
+            await deleteUser(id).unwrap();
+            toast.success("Staff deleted successfully")
         } catch (error) {
             toast.error("An error occurred while deleting")
         }
@@ -165,10 +142,8 @@ export default function StaffPage() {
                     roles: [values.roleId]
                 }
                 const id = selectedStaff._id || selectedStaff.id;
-                const res = await userService.update(id, payload);
-                if (res && res.success) {
-                    toast.success("Staff updated successfully")
-                }
+                await updateUser({ id, data: payload }).unwrap();
+                toast.success("Staff updated successfully")
             } else {
                 const payload = {
                     name: {
@@ -182,16 +157,13 @@ export default function StaffPage() {
                     businessUnits: currentBusinessUnit ? [currentBusinessUnit.id || currentBusinessUnit._id] : [],
                     status: values.status
                 }
-                const res = await userService.create(payload)
-                if (res && res.success) {
-                    toast.success("Staff created successfully")
-                }
+                await createUser(payload).unwrap()
+                toast.success("Staff created successfully")
             }
             setIsModalOpen(false)
-            fetchStaff()
         } catch (error: any) {
             console.error("Submit error:", error)
-            toast.error(error?.message || "Operation failed")
+            toast.error(error?.data?.message || error?.message || "Operation failed")
         }
     }
 
@@ -224,7 +196,7 @@ export default function StaffPage() {
             label: "Role",
             type: "select",
             required: true,
-            options: roles.filter(r => r.name !== 'customer').map(r => ({ label: r.name, value: r._id || r.id }))
+            options: roles.filter((r: any) => r.name !== 'customer').map((r: any) => ({ label: r.name, value: r._id || r.id }))
         },
         {
             name: "password",
@@ -335,7 +307,7 @@ export default function StaffPage() {
                     </div>
                 }
             >
-                <DataTable columns={columns} data={staff} isLoading={loading} />
+                <DataTable columns={columns} data={staff} isLoading={isUsersLoading} />
             </DataPageLayout>
 
             <AutoFormModal
@@ -345,7 +317,7 @@ export default function StaffPage() {
                 fields={displayedFields}
                 onSubmit={handleSubmit}
                 initialValues={selectedStaff}
-                submitLabel={modalMode === 'create' ? "Create Staff" : "Update Staff"}
+                submitLabel={modalMode === 'create' ? (isCreating ? "Creating..." : "Create Staff") : (isUpdating ? "Updating..." : "Update Staff")}
             />
         </div>
     );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +18,12 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import Swal from 'sweetalert2';
-import { axiosInstance } from '@/lib/axios/axiosInstance';
+import {
+    useGetRolesQuery,
+    useCreateRoleMutation,
+    useUpdateRoleMutation,
+    useGetPermissionsQuery
+} from '@/redux/api/roleApi';
 
 // Types based on the user provided data
 interface Permission {
@@ -37,6 +42,7 @@ interface Role {
     permissions: string[]; // List of Permission IDs (strings)
     usersCount?: number;
     isSystem?: boolean; // If true, maybe uneditable
+    permissionGroups?: any[];
 }
 
 // Helper to map resource to icon
@@ -54,10 +60,6 @@ const getResourceIcon = (resource: string) => {
 };
 
 export default function RolesPermissionsPage() {
-    // Removed direct token access as axiosInstance handles it.
-    const [roles, setRoles] = useState<Role[]>([]);
-    const [permissions, setPermissions] = useState<Permission[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -66,48 +68,27 @@ export default function RolesPermissionsPage() {
     const [newRoleName, setNewRoleName] = useState('');
     const [newRoleDesc, setNewRoleDesc] = useState('');
 
-    // Fetch Data
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [rolesRes, permissionsRes] = await Promise.all([
-                    axiosInstance.get('/super-admin/role'),
-                    axiosInstance.get('/super-admin/permission')
-                ]);
+    // Local state for tracking unsaved permission changes
+    const [unsavedPermissions, setUnsavedPermissions] = useState<Record<string, string[]>>({});
 
-                // axiosInstance interceptor returns response.data (the body)
-                const fetchedRoles = (rolesRes as any).data || [];
-                const fetchedPermissions = (permissionsRes as any).data || [];
+    // RTK Query Hooks
+    const { data: roles = [], isLoading: isLoadingRoles } = useGetRolesQuery({});
+    const { data: permissions = [], isLoading: isLoadingPermissions } = useGetPermissionsQuery({});
 
-                setRoles(fetchedRoles);
-                setPermissions(fetchedPermissions);
+    const [createRole] = useCreateRoleMutation();
+    const [updateRole] = useUpdateRoleMutation();
 
-                if (fetchedRoles.length > 0) {
-                    setSelectedRoleId(fetchedRoles[0]._id);
-                }
-            } catch (error) {
-                console.error("Failed to fetch roles/permissions", error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Connection Error',
-                    text: 'Could not fetch roles and permissions. Please ensure backend is running.',
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 3000
-                });
-            } finally {
-                setIsLoading(false);
-            }
-        };
+    const isLoading = isLoadingRoles || isLoadingPermissions;
 
-        fetchData();
-    }, []);
+    // Set default selected role
+    if (!selectedRoleId && roles.length > 0) {
+        setSelectedRoleId(roles[0]._id);
+    }
 
-    const selectedRole = roles.find(r => r._id === selectedRoleId);
+    const selectedRole = roles.find((r: any) => r._id === selectedRoleId);
 
     // Group Permissions by Resource
-    const groupedPermissions = permissions.reduce((acc, perm) => {
+    const groupedPermissions = permissions.reduce((acc: any, perm: any) => {
         const resource = perm.resource || 'Other';
         if (!acc[resource]) {
             acc[resource] = [];
@@ -120,19 +101,16 @@ export default function RolesPermissionsPage() {
         if (!newRoleName) return;
 
         try {
-            const res = await axiosInstance.post('/super-admin/role', {
+            await createRole({
                 name: newRoleName,
                 description: newRoleDesc,
-                permissions: [], // Start empty
-                permissionGroups: [] // Required by schema
-            });
+                permissions: [],
+                permissionGroups: []
+            }).unwrap();
 
-            const newRole = (res as any).data;
-            setRoles([...roles, newRole]);
             setIsCreateDialogOpen(false);
             setNewRoleName('');
             setNewRoleDesc('');
-            setSelectedRoleId(newRole._id);
 
             Swal.fire({
                 icon: 'success',
@@ -146,36 +124,66 @@ export default function RolesPermissionsPage() {
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: error?.response?.data?.message || 'Failed to create role.',
+                text: error?.data?.message || 'Failed to create role.',
             });
         }
     };
 
     const handleTogglePermission = (permissionId: string) => {
-        if (!selectedRole) return;
-        // Optimistic update locally
-        const updatedRoles = roles.map(role => {
-            if (role._id === selectedRole._id) {
-                const hasPerm = role.permissions.includes(permissionId);
-                return {
-                    ...role,
-                    permissions: hasPerm
-                        ? role.permissions.filter(p => p !== permissionId)
-                        : [...role.permissions, permissionId]
-                };
-            }
-            return role;
+        if (!selectedRole || !selectedRoleId) return;
+
+        // Get current permissions from state or fallback to role permissions
+        const currentPermissions = unsavedPermissions[selectedRoleId] || selectedRole.permissions || [];
+
+        let newPermissions;
+        if (currentPermissions.includes(permissionId)) {
+            newPermissions = currentPermissions.filter(id => id !== permissionId);
+        } else {
+            newPermissions = [...currentPermissions, permissionId];
+        }
+
+        setUnsavedPermissions({
+            ...unsavedPermissions,
+            [selectedRoleId]: newPermissions
         });
-        setRoles(updatedRoles);
+    };
+
+    const handleSelectAll = (resourcePerms: Permission[]) => {
+        if (!selectedRole || !selectedRoleId) return;
+
+        const currentPermissions = unsavedPermissions[selectedRoleId] || selectedRole.permissions || [];
+        const idsToToggle = resourcePerms.map(p => p.id);
+        const allSelected = idsToToggle.every(id => currentPermissions.includes(id));
+
+        let newPermissions;
+        if (allSelected) {
+            newPermissions = currentPermissions.filter(id => !idsToToggle.includes(id));
+        } else {
+            newPermissions = [...new Set([...currentPermissions, ...idsToToggle])];
+        }
+
+        setUnsavedPermissions({
+            ...unsavedPermissions,
+            [selectedRoleId]: newPermissions
+        });
     };
 
     const handleSave = async () => {
-        if (!selectedRole) return;
+        if (!selectedRole || !selectedRoleId) return;
+
+        const permissionsToSave = unsavedPermissions[selectedRoleId];
+        if (!permissionsToSave) return; // No changes logic could be better, but acceptable for now
+
         try {
-            // Update role permissions via API
-            await axiosInstance.patch(`/super-admin/role/${selectedRole._id}`, {
-                permissions: selectedRole.permissions
-            });
+            await updateRole({
+                id: selectedRole._id,
+                permissions: permissionsToSave
+            }).unwrap();
+
+            // Clear unsaved state for this role
+            const newUnsaved = { ...unsavedPermissions };
+            delete newUnsaved[selectedRoleId];
+            setUnsavedPermissions(newUnsaved);
 
             Swal.fire({
                 icon: 'success',
@@ -184,33 +192,14 @@ export default function RolesPermissionsPage() {
                 timer: 1500,
                 showConfirmButton: false,
             });
-        } catch (error) {
+        } catch (error: any) {
             console.error("Save permissions error", error);
             Swal.fire({
                 icon: 'error',
                 title: 'Save Failed',
-                text: 'Could not update permissions.',
+                text: error?.data?.message || 'Could not update permissions.',
             });
         }
-    };
-
-    const handleSelectAll = (resourcePerms: Permission[]) => {
-        if (!selectedRole) return;
-
-        // Use the 'id' field (string code like "PRODUCT_VIEW") as identified in user request
-        const idsToToggle = resourcePerms.map(p => p.id);
-        const currentRolePerms = selectedRole.permissions || [];
-        const allSelected = idsToToggle.every(id => currentRolePerms.includes(id));
-
-        let newPerms;
-        if (allSelected) {
-            newPerms = currentRolePerms.filter(id => !idsToToggle.includes(id));
-        } else {
-            newPerms = [...new Set([...currentRolePerms, ...idsToToggle])];
-        }
-
-        const updatedRoles = roles.map(r => r._id === selectedRole._id ? { ...r, permissions: newPerms } : r);
-        setRoles(updatedRoles);
     };
 
     if (isLoading) {
@@ -218,7 +207,7 @@ export default function RolesPermissionsPage() {
     }
 
     return (
-        <div className="space-y-6 p-6 h-[calc(100vh-80px)] flex flex-col">
+        <div className="space-y-6 h-[calc(100vh-80px)] flex flex-col">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">Roles & Permissions</h1>
@@ -287,8 +276,8 @@ export default function RolesPermissionsPage() {
                     <div className="flex-1 overflow-auto p-2">
                         <div className="space-y-2">
                             {roles
-                                .filter(r => r.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                                .map((role) => (
+                                .filter((r: any) => r.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                                .map((role: any) => (
                                     <div
                                         key={role._id}
                                         onClick={() => setSelectedRoleId(role._id)}
@@ -325,9 +314,16 @@ export default function RolesPermissionsPage() {
                             </CardDescription>
                         </div>
                         {selectedRole?.id !== 'super-admin' && (
-                            <Button onClick={handleSave} size="sm" className="gap-2">
-                                <Save className="h-4 w-4" /> Save Changes
-                            </Button>
+                            <div className="flex gap-2">
+                                {unsavedPermissions[selectedRole?._id] && (
+                                    <span className="text-xs text-amber-500 flex items-center font-medium">
+                                        <AlertTriangle className="h-3 w-3 mr-1" /> Unsaved Changes
+                                    </span>
+                                )}
+                                <Button onClick={handleSave} size="sm" className="gap-2" disabled={!unsavedPermissions[selectedRole?._id]}>
+                                    <Save className="h-4 w-4" /> Save Changes
+                                </Button>
+                            </div>
                         )}
                     </CardHeader>
 
@@ -343,10 +339,10 @@ export default function RolesPermissionsPage() {
                         ) : (
                             <ScrollArea className="h-full">
                                 <div className="p-6 space-y-8">
-                                    {Object.entries(groupedPermissions).map(([resource, perms]) => {
+                                    {Object.entries(groupedPermissions).map(([resource, perms]: [string, any]) => {
                                         const ModuleIcon = getResourceIcon(resource);
-                                        // Check using the logic that selectedRole.permissions contains the 'id' string e.g. "PRODUCT_VIEW"
-                                        const allSelected = perms.every(p => selectedRole?.permissions?.includes(p.id));
+                                        const rolePerms = unsavedPermissions[selectedRole?._id] || selectedRole?.permissions || [];
+                                        const allSelected = perms.every((p: any) => rolePerms.includes(p.id));
 
                                         return (
                                             <div key={resource} className="space-y-3">
@@ -361,14 +357,14 @@ export default function RolesPermissionsPage() {
                                                         variant="ghost"
                                                         size="sm"
                                                         className="h-6 text-xs text-muted-foreground hover:text-primary"
-                                                        onClick={() => handleSelectAll(perms)}
+                                                        onClick={() => handleSelectAll(perms as any[])}
                                                     >
                                                         {allSelected ? 'Deselect All' : 'Select All'}
                                                     </Button>
                                                 </div>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                    {perms.map((perm) => {
-                                                        const isSelected = selectedRole?.permissions?.includes(perm.id);
+                                                    {perms.map((perm: any) => {
+                                                        const isSelected = rolePerms.includes(perm.id);
                                                         return (
                                                             <div
                                                                 key={perm.id}

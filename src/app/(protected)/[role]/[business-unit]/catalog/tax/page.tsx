@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { MoreHorizontal, Trash2, Edit, RefreshCw, Package, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,11 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { axiosInstance } from "@/lib/axios/axiosInstance";
+import {
+    useGetTaxesQuery,
+    useDeleteTaxMutation,
+    useCreateTaxMutation
+} from "@/redux/api/taxApi";
 import Swal from "sweetalert2";
 import { ITax } from "@/types/catalog";
 import { DataTable } from "@/components/shared/DataTable";
@@ -27,40 +31,12 @@ export default function TaxPage() {
     const router = useRouter();
     const pathname = usePathname();
     const [searchTerm, setSearchTerm] = useState("");
-    const [taxes, setTaxes] = useState<ITax[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { data: taxesResponse, isLoading: isTaxesLoading } = useGetTaxesQuery(undefined);
+    const [deleteTax] = useDeleteTaxMutation();
+    const [createTax] = useCreateTaxMutation();
 
-    const fetchTaxes = async () => {
-        try {
-            setIsLoading(true);
-            const response: any = await axiosInstance.get('/super-admin/taxes');
-
-            if (response?.success && Array.isArray(response?.data)) {
-                setTaxes(response.data);
-            } else if (response?.data?.data && Array.isArray(response.data.data)) {
-                setTaxes(response.data.data);
-            } else {
-                setTaxes([]);
-            }
-        } catch (error) {
-            console.error("Failed to fetch taxes", error);
-            Swal.fire({
-                icon: "error",
-                title: "Connection Error",
-                text: "Could not retrieve taxes.",
-                toast: true,
-                position: "top-end",
-                showConfirmButton: false,
-                timer: 3000,
-            });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchTaxes();
-    }, []);
+    const taxes: ITax[] = taxesResponse || [];
+    const isLoading = isTaxesLoading;
 
     const handleDelete = async (id: string) => {
         const result = await Swal.fire({
@@ -75,8 +51,9 @@ export default function TaxPage() {
 
         if (result.isConfirmed) {
             try {
-                const res: any = await axiosInstance.delete(`/super-admin/taxes/${id}`);
-                if (res?.success) {
+                // RTK Query mutation
+                const res: any = await deleteTax(id).unwrap();
+                if (res?.success || res?.data) {
                     Swal.fire({
                         title: "Deleted!",
                         text: "Tax has been deleted.",
@@ -84,7 +61,6 @@ export default function TaxPage() {
                         timer: 2000,
                         showConfirmButton: false
                     });
-                    setTaxes(prev => prev.filter(tax => tax._id !== id));
                 }
             } catch (error) {
                 console.error("Delete failed", error);
@@ -130,13 +106,15 @@ export default function TaxPage() {
     const handleCreateTax = async (data: any) => {
         try {
             setIsCreating(true);
-            const response: any = await axiosInstance.post('/super-admin/taxes', {
+            const payload = {
                 ...data,
                 rate: Number(data.rate),
                 isActive: data.status === 'active'
-            });
+            };
 
-            if (response?.success) {
+            const response: any = await createTax(payload).unwrap();
+
+            if (response?.success || response?.data) {
                 Swal.fire({
                     icon: 'success',
                     title: 'Success',
@@ -145,14 +123,13 @@ export default function TaxPage() {
                     showConfirmButton: false
                 });
                 setCreateModalOpen(false);
-                fetchTaxes();
             }
         } catch (error: any) {
             console.error("Create tax error", error);
             Swal.fire({
                 icon: "error",
                 title: "Error",
-                text: error?.response?.data?.message || "Failed to create tax"
+                text: error?.data?.message || "Failed to create tax"
             });
         } finally {
             setIsCreating(false);

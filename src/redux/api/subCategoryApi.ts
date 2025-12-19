@@ -19,7 +19,7 @@ const subCategoryApi = baseApi.injectEndpoints({
         method: "GET",
         params,
       }),
-      transformResponse: (response: any) => response.data,
+      transformResponse: (response: any) => response.data?.data?.result || response.data?.data || response.data?.result || response.data || [],
       providesTags: [tagTypes.subCategory],
     }),
     getSubCategoriesByParent: build.query({
@@ -27,7 +27,7 @@ const subCategoryApi = baseApi.injectEndpoints({
         url: `/super-admin/categories/sub/${categoryId}/getSubCategories`,
         method: "GET",
       }),
-      transformResponse: (response: any) => response.data,
+      transformResponse: (response: any) => response.data?.data?.result || response.data?.data || response.data?.result || response.data || [],
       providesTags: [tagTypes.subCategory],
     }),
     getSubCategory: build.query({

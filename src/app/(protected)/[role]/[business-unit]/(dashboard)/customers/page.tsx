@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react"
+import { useMemo, useState } from "react"
 import { DataTable } from "@/components/shared/DataTable"
 import { DataPageLayout } from "@/components/shared/DataPageLayout"
 import { StatCard } from "@/components/shared/StatCard"
@@ -8,8 +8,6 @@ import { ColumnDef } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
 import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit"
 import { useAuth } from "@/hooks/useAuth"
-import { axiosInstance as api } from "@/lib/axios/axiosInstance"
-import { userService, roleService } from "@/services/user/user.service"
 import { Users, CheckCircle, MoreHorizontal, Edit, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
@@ -22,12 +20,24 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { AutoFormModal } from "@/components/shared/AutoFormModal"
 import { FieldConfig } from "@/types/auto-form"
+import {
+    useGetAllUsersQuery,
+    useCreateUserMutation,
+    useUpdateUserMutation,
+    useDeleteUserMutation
+} from "@/redux/api/userApi"
+import { useGetRolesQuery } from "@/redux/api/roleApi"
 
 export default function CustomersPage() {
-    // Data State
-    const [customers, setCustomers] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
-    const [roles, setRoles] = useState<any[]>([])
+    // RTK Query Hooks
+    const { data: usersData, isLoading: isUsersLoading } = useGetAllUsersQuery({})
+    const { data: rolesData } = useGetRolesQuery({})
+    const [createUser, { isLoading: isCreating }] = useCreateUserMutation()
+    const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation()
+    const [deleteUser] = useDeleteUserMutation()
+
+    // Derived State
+    const roles = Array.isArray(rolesData) ? rolesData : []
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -37,85 +47,56 @@ export default function CustomersPage() {
     const { currentBusinessUnit } = useCurrentBusinessUnit()
     const { user: currentUser } = useAuth()
 
-    useEffect(() => {
-        fetchCustomers()
-        fetchRoles()
-    }, [currentBusinessUnit])
+    const customers = useMemo(() => {
+        if (!usersData?.data) return []
 
-    const fetchRoles = async () => {
-        try {
-            const data = await roleService.getAll()
-            setRoles(Array.isArray(data) ? data : [])
-        } catch (err) {
-            console.error("Failed to fetch roles:", err)
+        // Normalize users list
+        let allUsers: any[] = []
+        if (Array.isArray(usersData.data)) {
+            allUsers = usersData.data;
+        } else if (usersData.data && Array.isArray(usersData.data.data)) {
+            allUsers = usersData.data.data;
+        } else if (usersData.data && Array.isArray(usersData.data.result)) {
+            allUsers = usersData.data.result;
+        } else if (usersData.result && Array.isArray(usersData.result)) {
+            allUsers = usersData.result;
+        } else {
+            // Fallback for weird structures
+            const possibleArray = Object.values(usersData.data).find(val => Array.isArray(val));
+            allUsers = possibleArray ? (possibleArray as any[]) : [];
         }
-    }
 
-    const fetchCustomers = async () => {
-        try {
-            setLoading(true)
-            const response = await api.get('/super-admin/users/all-users')
+        const isSuperAdmin = currentUser?.roles?.some((r: any) => r.name === 'super-admin')
 
-            const resData = (response as any);
-
-            if (resData.success || (resData.data && resData.data.success)) {
-                let allUsers: any[] = [];
-
-                if (Array.isArray(resData.data)) {
-                    allUsers = resData.data;
-                } else if (resData.data && Array.isArray(resData.data.data)) {
-                    allUsers = resData.data.data;
-                } else if (resData.data && typeof resData.data === 'object' && Array.isArray(resData.data.result)) {
-                    allUsers = resData.data.result;
-                } else if (resData.result && Array.isArray(resData.result)) {
-                    allUsers = resData.result;
-                } else if (resData.data && typeof resData.data === 'object') {
-                    const possibleArray = Object.values(resData.data).find(val => Array.isArray(val));
-                    if (possibleArray) {
-                        allUsers = possibleArray as any[];
-                    } else {
-                        allUsers = [];
-                    }
-                }
-
-                const isSuperAdmin = currentUser?.roles?.some((r: any) => r.name === 'super-admin')
-
-                if (!isSuperAdmin && currentBusinessUnit) {
-                    allUsers = allUsers.filter((user: any) => {
-                        if (!user.businessUnits) return false;
-                        return user.businessUnits.some((bu: any) => {
-                            const buId = typeof bu === 'string' ? bu : (bu.id || bu.slug || bu._id);
-                            return buId === currentBusinessUnit.id || buId === currentBusinessUnit.slug || buId === currentBusinessUnit._id;
-                        });
-                    });
-                }
-
-                const customerUsers = allUsers.filter((u: any) =>
-                    u.roles?.some((r: any) => {
-                        const roleName = typeof r === 'string' ? r : r.name;
-                        return roleName === 'customer';
-                    })
-                );
-
-                const formattedCustomers = customerUsers.map((user: any) => ({
-                    ...user,
-                    name: typeof user.name === 'object' && user.name !== null
-                        ? `${user.name.firstName || ''} ${user.name.lastName || ''}`.trim() || 'Unnamed'
-                        : user.name,
-                    status: user.status || 'inactive',
-                    email: user.email || 'N/A',
-                    phone: user.phone || 'N/A',
-                }));
-
-                setCustomers(formattedCustomers)
-            }
-        } catch (err) {
-            console.error("Error fetching customers:", err)
-            toast.error("Failed to fetch customers")
-        } finally {
-            setLoading(false)
+        // Filter by Business Unit
+        if (!isSuperAdmin && currentBusinessUnit) {
+            allUsers = allUsers.filter((user: any) => {
+                if (!user.businessUnits) return false;
+                return user.businessUnits.some((bu: any) => {
+                    const buId = typeof bu === 'string' ? bu : (bu.id || bu.slug || bu._id);
+                    return buId === currentBusinessUnit.id || buId === currentBusinessUnit.slug || buId === currentBusinessUnit._id;
+                });
+            });
         }
-    }
+
+        // Filter for Customers
+        const customerUsers = allUsers.filter((u: any) =>
+            u.roles?.some((r: any) => {
+                const roleName = typeof r === 'string' ? r : r.name;
+                return roleName.toLowerCase() === 'customer';
+            })
+        );
+
+        return customerUsers.map((user: any) => ({
+            ...user,
+            name: typeof user.name === 'object' && user.name !== null
+                ? `${user.name.firstName || ''} ${user.name.lastName || ''}`.trim() || 'Unnamed'
+                : user.name,
+            status: user.status || 'inactive',
+            email: user.email || 'N/A',
+            phone: user.phone || 'N/A',
+        }));
+    }, [usersData, currentBusinessUnit, currentUser]);
 
     const handleCreate = () => {
         setSelectedCustomer(null)
@@ -140,13 +121,8 @@ export default function CustomersPage() {
 
         try {
             const customerId = customer._id || customer.id;
-            const res = await userService.delete(customerId);
-            if (res && res.success) {
-                toast.success("Customer deleted successfully")
-                fetchCustomers()
-            } else {
-                toast.error("Failed to delete customer")
-            }
+            await deleteUser(customerId).unwrap();
+            toast.success("Customer deleted successfully")
         } catch (error) {
             console.error("Delete error:", error)
             toast.error("An error occurred while deleting")
@@ -156,7 +132,7 @@ export default function CustomersPage() {
     const handleSubmit = async (values: any) => {
         try {
             // Find 'customer' role ID
-            const customerRole = roles.find(r => r.name === 'customer' || r.slug === 'customer');
+            const customerRole = roles.find((r: any) => r.name === 'customer' || r.slug === 'customer');
 
             if (!customerRole && modalMode === 'create') {
                 toast.error("System error: 'Customer' role not found.")
@@ -174,10 +150,8 @@ export default function CustomersPage() {
                     status: values.status
                 }
                 const customerId = selectedCustomer._id || selectedCustomer.id;
-                const res = await userService.update(customerId, payload);
-                if (res && res.success) {
-                    toast.success("Customer updated successfully")
-                }
+                await updateUser({ id: customerId, data: payload }).unwrap();
+                toast.success("Customer updated successfully")
             } else {
                 // Create
                 const payload = {
@@ -192,16 +166,13 @@ export default function CustomersPage() {
                     businessUnits: currentBusinessUnit ? [currentBusinessUnit.id || currentBusinessUnit._id] : [],
                     status: values.status
                 }
-                const res = await userService.create(payload)
-                if (res && res.success) {
-                    toast.success("Customer created successfully")
-                }
+                await createUser(payload).unwrap();
+                toast.success("Customer created successfully")
             }
             setIsModalOpen(false)
-            fetchCustomers()
         } catch (error: any) {
             console.error("Submit error:", error)
-            toast.error(error?.message || "Operation failed")
+            toast.error(error?.data?.message || error?.message || "Operation failed")
         }
     }
 
@@ -336,7 +307,7 @@ export default function CustomersPage() {
                     </div>
                 }
             >
-                <DataTable columns={columns} data={customers} isLoading={loading} />
+                <DataTable columns={columns} data={customers} isLoading={isUsersLoading} />
             </DataPageLayout>
 
             <AutoFormModal
@@ -346,7 +317,7 @@ export default function CustomersPage() {
                 fields={displayedFields}
                 onSubmit={handleSubmit}
                 initialValues={selectedCustomer}
-                submitLabel={modalMode === 'create' ? "Create Customer" : "Update Customer"}
+                submitLabel={modalMode === 'create' ? (isCreating ? "Creating..." : "Create Customer") : (isUpdating ? "Updating..." : "Update Customer")}
             />
         </div>
     );

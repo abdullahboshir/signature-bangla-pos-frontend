@@ -9,11 +9,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { 
-  User, 
-  Settings, 
-  LogOut, 
-  CreditCard, 
+import {
+  User,
+  Settings,
+  LogOut,
   Bell,
   Shield
 } from "lucide-react"
@@ -26,8 +25,8 @@ interface UserData {
   fullName: string
   profileImg?: string
   designation: string
-  role: string
-  businessUnit: string[]
+  role: string | string[]
+  businessUnit: string[] | string
 }
 
 interface UserMenuProps {
@@ -36,14 +35,14 @@ interface UserMenuProps {
 
 export function UserMenu({ user }: UserMenuProps) {
 
-   const { logout } = useAuth();
+  const { logout } = useAuth();
   const handleLogout = () => {
-  logout();
+    logout();
   }
 
-
-  const getRoleBadgeVariant = (role: string) => {
-    switch (role) {
+  const getRoleBadgeVariant = (role: string | string[]) => {
+    const roleStr = Array.isArray(role) ? role[0] : role;
+    switch (roleStr) {
       case "super-admin": return "destructive"
       case "business-admin": return "default"
       case "store-manager": return "secondary"
@@ -52,18 +51,31 @@ export function UserMenu({ user }: UserMenuProps) {
     }
   }
 
+  // Helper to safely get initials
+  const getInitials = (name: string) => {
+    if (typeof name !== 'string') return "U";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase();
+  }
+
+  const roleStr = Array.isArray(user.role) ? user.role[0] : String(user.role || "");
+  const businessUnitStr = Array.isArray(user.businessUnit)
+    ? user.businessUnit.map((unit: string) => unit.replace('-', ' ')).join(', ')
+    : String(user.businessUnit || "").replace('-', ' ');
+
+  const fullNameSafe = typeof user.fullName === 'string' ? user.fullName : "User";
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
           <Avatar className="h-9 w-9 border">
-            <AvatarImage src={user.profileImg} alt={user.fullName} />
+            <AvatarImage src={user.profileImg} alt={fullNameSafe} />
             <AvatarFallback className="bg-primary/10 text-primary font-medium">
-              {user.fullName
-                .split(" ")
-                .map((n) => n[0])
-                .join("")
-                .toUpperCase()}
+              {getInitials(fullNameSafe)}
             </AvatarFallback>
           </Avatar>
         </Button>
@@ -74,25 +86,21 @@ export function UserMenu({ user }: UserMenuProps) {
         <DropdownMenuLabel className="p-4">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
-              <AvatarImage src={user.profileImg} alt={user.fullName} />
+              <AvatarImage src={user.profileImg} alt={fullNameSafe} />
               <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                {user.fullName
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .toUpperCase()}
+                {getInitials(fullNameSafe)}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm truncate">{user.fullName}</p>
+              <p className="font-semibold text-sm truncate">{fullNameSafe}</p>
               <p className="text-xs text-muted-foreground truncate">
                 {user.designation}
               </p>
-              <Badge 
-                variant={getRoleBadgeVariant(user.role)} 
+              <Badge
+                variant={getRoleBadgeVariant(user.role)}
                 className="mt-1 text-xs capitalize"
               >
-                {user.role[0].replace('-', ' ')}
+                {roleStr.replace('-', ' ')}
               </Badge>
             </div>
           </div>
@@ -119,7 +127,7 @@ export function UserMenu({ user }: UserMenuProps) {
           <span>Settings</span>
         </DropdownMenuItem>
 
-        {user.role === "super-admin" && (
+        {roleStr === "super-admin" && (
           <DropdownMenuItem className="cursor-pointer">
             <Shield className="mr-2 h-4 w-4" />
             <span>Admin Panel</span>
@@ -131,15 +139,14 @@ export function UserMenu({ user }: UserMenuProps) {
         {/* Business Info */}
         <div className="px-2 py-1.5 text-xs text-muted-foreground">
           <p>Business Unit: <span className="font-medium capitalize">
-            {/* {user.businessUnit.replace('-', ' ')} */}
-            {user.businessUnit?.map((unit: string) => unit.replace('-', ' ')).join(', ')}
-            </span></p>
+            {businessUnitStr}
+          </span></p>
         </div>
 
         <DropdownMenuSeparator />
 
         {/* Logout */}
-        <DropdownMenuItem 
+        <DropdownMenuItem
           className="cursor-pointer text-destructive focus:text-destructive"
           onClick={handleLogout}
         >

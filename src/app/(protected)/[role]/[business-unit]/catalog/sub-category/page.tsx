@@ -144,7 +144,7 @@ export default function SubCategoriesPage() {
     ];
 
     return (
-        <div className="p-6">
+        <div>
             <DataPageLayout
                 title="Sub-Categories"
                 description="Manage sub-categories (Level 2)"

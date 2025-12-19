@@ -20,10 +20,15 @@ import { SeoSection } from "./components/SeoSection";
 import { ComplianceSection } from "./components/ComplianceSection";
 import { BundleSection } from "./components/BundleSection";
 
-export default function AddProductForm() {
+interface AddProductFormProps {
+    initialData?: any;
+}
+
+export default function AddProductForm({ initialData }: AddProductFormProps) {
     const {
         form,
         isLoading,
+        isRefDataLoading,
         isUploading,
         categories,
         brands,
@@ -39,17 +44,29 @@ export default function AddProductForm() {
         appendVariant,
         removeVariant,
         replaceVariant
-    } = useProductForm();
+    } = useProductForm(initialData);
+
+
+    if (isRefDataLoading) {
+        return (
+            <div className="flex h-[50vh] items-center justify-center">
+                <div className="text-center space-y-2">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                    <p className="text-muted-foreground text-sm">Loading product data...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold tracking-tight">Add New Product</h1>
+                <h1 className="text-3xl font-bold tracking-tight">{initialData ? "Edit Product" : "Add New Product"}</h1>
                 <Button onClick={form.handleSubmit(onSubmit, (errors) => {
                     console.error("Form Validation Errors:", errors);
                     toast.error("Please check the form for errors");
                 })} disabled={isLoading || isUploading}>
-                    {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : "Create Product"}
+                    {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : (initialData ? "Update Product" : "Create Product")}
                 </Button>
             </div>
 

@@ -30,8 +30,9 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { axiosInstance } from "@/lib/axios/axiosInstance";
 import Swal from "sweetalert2";
+import { useGetUnitQuery, useUpdateUnitMutation } from "@/redux/api/unitApi";
+import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
 
 // Hardcoded types removed
 
@@ -55,43 +56,30 @@ export default function EditUnitPage() {
 
     const selectedTypes = watch("relatedBusinessTypes");
 
+    const [updateUnit, { isLoading: isUpdating }] = useUpdateUnitMutation();
+    const { data: unitData, isLoading: isUnitLoading } = useGetUnitQuery(id, { skip: !id });
+    const { data: businessUnitsData } = useGetBusinessUnitsQuery({ limit: 1000 });
+
     useEffect(() => {
-        const fetchData = async () => {
-            if (!id) return;
-            try {
-                const [unitResponse, businessUnitResponse] = await Promise.all([
-                    axiosInstance.get(`/super-admin/units/${id}`),
-                    axiosInstance.get('/super-admin/business-unit')
-                ]);
 
-                // Handle Business Types
-                if (businessUnitResponse?.data?.success || businessUnitResponse?.data) {
-                    const data = Array.isArray(businessUnitResponse?.data) ? businessUnitResponse.data : businessUnitResponse?.data?.data || [];
-                    const options = data.map((bu: any) => ({
-                        label: bu.name,
-                        value: bu.name
-                    })).filter((v: any, i: any, a: any) => a.findIndex((t: any) => t.value === v.value) === i);
-                    setBusinessTypes(options);
-                }
+        if (businessUnitsData) {
+            const data = Array.isArray(businessUnitsData) ? businessUnitsData : businessUnitsData?.data || [];
+            const options = data.map((bu: any) => ({
+                label: bu.name,
+                value: bu.name
+            })).filter((v: any, i: any, a: any) => a.findIndex((t: any) => t.value === v.value) === i);
+            setBusinessTypes(options);
+        }
 
-                // Handle Unit Data
-                const data = unitResponse?.data?.data || unitResponse?.data;
-                if (data) {
-                    setValue("name", data.name || "");
-                    setValue("symbol", data.symbol || "");
-                    setValue("status", data.status || "active");
-                    setValue("relatedBusinessTypes", data.relatedBusinessTypes || []);
-                }
-            } catch (error) {
-                console.error("Fetch error", error);
-                Swal.fire("Error", "Failed to fetch details", "error");
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchData();
-    }, [id, setValue]);
+        // Populate Form Data
+        if (unitData) {
+            const data = unitData; // Transform response handled in API slice
+            setValue("name", data.name || "");
+            setValue("symbol", data.symbol || "");
+            setValue("status", data.status || "active");
+            setValue("relatedBusinessTypes", data.relatedBusinessTypes || []);
+        }
+    }, [unitData, businessUnitsData, setValue]);
 
     const toggleType = (value: string) => {
         const current = selectedTypes || [];
@@ -105,9 +93,9 @@ export default function EditUnitPage() {
     const onSubmit = async (data: any) => {
         try {
             setIsSaving(true);
-            const response: any = await axiosInstance.patch(`/super-admin/units/${id}`, data);
+            const result = await updateUnit({ id, body: data }).unwrap();
 
-            if (response?.success) {
+            if (result?.success || result?.data) {
                 Swal.fire({
                     icon: 'success',
                     title: 'Updated!',
@@ -119,7 +107,7 @@ export default function EditUnitPage() {
             }
         } catch (error: any) {
             console.error("Update error", error);
-            const errorMessage = error?.response?.data?.message || error?.message || "Failed to update unit";
+            const errorMessage = error?.data?.message || error?.message || "Failed to update unit";
             Swal.fire({
                 icon: "error",
                 title: "Error",
@@ -240,7 +228,7 @@ export default function EditUnitPage() {
                                         name="status"
                                         control={control}
                                         render={({ field }) => (
-                                            <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                            <Select key={field.value} onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Select status" />
                                                 </SelectTrigger>

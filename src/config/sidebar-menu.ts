@@ -57,7 +57,6 @@ const MENU_MODULES = {
     resource: "user",
     children: [
       { title: "All Users", path: "user-management/all-users" },
-      { title: "Add User", path: "user-management/add-user", action: "create" },
       { title: "Roles & Permissions", path: "user-management/roles-permissions", resource: "role" },
     ],
   },
@@ -74,6 +73,7 @@ const MENU_MODULES = {
       { title: "Child-Categories", path: "catalog/child-category", resource: "category" },
       { title: "Brands", path: "catalog/brand", resource: "brand" },
       { title: "Units", path: "catalog/unit", resource: "unit" },
+      { title: "Attributes", path: "catalog/attribute", resource: "attribute" },
       { title: "Tax", path: "catalog/tax", resource: "tax" },
     ],
   },
@@ -272,6 +272,7 @@ export const sidebarMenuConfig = {
           { title: "Child-Categories", path: "catalog/child-category", resource: "category" },
           { title: "Brands", path: "catalog/brand", resource: "brand" },
           { title: "Units", path: "catalog/unit", resource: "unit" },
+          { title: "Attributes", path: "catalog/attribute", resource: "attribute" },
           { title: "Tax", path: "catalog/tax", resource: "tax" },
         ],
       },
@@ -396,6 +397,7 @@ export const sidebarMenuConfig = {
            { title: "Categories", path: "catalog/category", resource: "category" },
            { title: "Brands", path: "catalog/brand", resource: "brand" },
            { title: "Units", path: "catalog/unit", resource: "product" },
+           { title: "Attributes", path: "catalog/attribute", resource: "attribute" },
            { title: "Tax", path: "catalog/tax", resource: "system" },
         ]
       },

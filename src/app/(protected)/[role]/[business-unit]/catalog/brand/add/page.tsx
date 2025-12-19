@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { ArrowLeft, Loader2 } from "lucide-react";
@@ -16,12 +15,12 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { axiosInstance } from "@/lib/axios/axiosInstance";
+import { useCreateBrandMutation } from "@/redux/api/brandApi";
 import Swal from "sweetalert2";
 
 export default function AddBrandPage() {
     const router = useRouter();
-    const [isSaving, setIsSaving] = useState(false);
+    const [createBrand, { isLoading: isSaving }] = useCreateBrandMutation();
 
     const { register, handleSubmit, control, formState: { errors } } = useForm({
         defaultValues: {
@@ -34,10 +33,9 @@ export default function AddBrandPage() {
 
     const onSubmit = async (data: any) => {
         try {
-            setIsSaving(true);
-            const response: any = await axiosInstance.post('/super-admin/brands', data);
+            const response: any = await createBrand(data).unwrap();
 
-            if (response?.success) {
+            if (response?.success || response?.data) {
                 Swal.fire({
                     icon: 'success',
                     title: 'Created!',
@@ -50,8 +48,6 @@ export default function AddBrandPage() {
         } catch (error) {
             console.error("Create error", error);
             Swal.fire("Error", "Failed to create brand", "error");
-        } finally {
-            setIsSaving(false);
         }
     };
 

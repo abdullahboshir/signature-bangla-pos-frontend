@@ -13,6 +13,13 @@ export enum tagTypes {
   order = "order",
   brand = "brand",
   unit = "unit",
+  attribute = "attribute",
+  tax = "tax",
+  role = "role",
+  permission = "permission",
+  businessUnit = "businessUnit",
+  supplier = "supplier",
+  purchase = "purchase",
 }
 
 export const tagTypesList = Object.values(tagTypes);

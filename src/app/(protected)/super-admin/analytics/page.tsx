@@ -1,26 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { superAdminService } from "@/services/super-admin/superadmin.service";
+import { useGetAnalyticsQuery } from "@/redux/api/adminApi";
 
 export default function AnalyticsPage() {
-    const [loading, setLoading] = useState(true);
-    const [analytics, setAnalytics] = useState<any>(null);
-
-    useEffect(() => {
-        const fetchAnalytics = async () => {
-            try {
-                const data = await superAdminService.getAnalytics();
-                setAnalytics(data);
-            } catch (error) {
-                console.error("Failed to fetch analytics:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchAnalytics();
-    }, []);
+    // RTK Query
+    const { data: analytics, isLoading: loading } = useGetAnalyticsQuery({});
 
     if (loading) {
         return (
@@ -31,7 +16,7 @@ export default function AnalyticsPage() {
     }
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Analytics & Insights</h1>

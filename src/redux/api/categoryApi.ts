@@ -18,7 +18,7 @@ const categoryApi = baseApi.injectEndpoints({
         method: "GET",
         params,
       }),
-      transformResponse: (response: any) => response.data,
+      transformResponse: (response: any) => response.data?.data?.result || response.data?.data || response.data?.result || response.data || [],
       providesTags: [tagTypes.category],
     }),
     getCategory: build.query({
@@ -26,7 +26,7 @@ const categoryApi = baseApi.injectEndpoints({
         url: `/super-admin/categories/${id}`,
         method: "GET",
       }),
-      transformResponse: (response: any) => response.data,
+      transformResponse: (response: any) => response.data?.data || response.data,
       providesTags: [tagTypes.category],
     }),
     updateCategory: build.mutation({

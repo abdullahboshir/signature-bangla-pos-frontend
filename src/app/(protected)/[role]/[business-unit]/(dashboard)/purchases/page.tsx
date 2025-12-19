@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AutoFormModal } from "@/components/shared/AutoFormModal";
 import { FieldConfig } from "@/types/auto-form";
-import { axiosInstance as api } from "@/lib/axios/axiosInstance";
+import {
+  useGetPurchasesQuery,
+  useCreatePurchaseMutation,
+  useUpdatePurchaseMutation,
+  useDeletePurchaseMutation
+} from "@/redux/api/purchaseApi";
+import { useGetSuppliersQuery } from "@/redux/api/supplierApi";
 import { toast } from "sonner";
 import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit";
 import { PurchaseItemsField } from "./_components/PurchaseItemsField";
@@ -32,9 +38,16 @@ const statusColors = {
 } as const;
 
 export default function PurchasesPage() {
-  const [purchases, setPurchases] = useState<any[]>([]);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  // RTK Query Hooks
+  const { data: purchasesResponse, isLoading: isPurchasesLoading } = useGetPurchasesQuery(undefined);
+  const { data: suppliersResponse } = useGetSuppliersQuery(undefined);
+  const [createPurchase] = useCreatePurchaseMutation();
+  const [updatePurchase] = useUpdatePurchaseMutation();
+  const [deletePurchase] = useDeletePurchaseMutation();
+
+  const purchases = purchasesResponse?.data || [];
+  const suppliers = suppliersResponse?.data || [];
+  const loading = isPurchasesLoading;
   const [searchTerm, setSearchTerm] = useState("");
 
   // Modal State
@@ -43,36 +56,6 @@ export default function PurchasesPage() {
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
 
   const { currentBusinessUnit } = useCurrentBusinessUnit();
-
-  useEffect(() => {
-    fetchPurchases();
-    fetchSuppliers();
-  }, [currentBusinessUnit]);
-
-  const fetchPurchases = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get('/super-admin/purchases');
-      if (res.success) {
-        setPurchases(res.data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch purchases", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchSuppliers = async () => {
-    try {
-      const res = await api.get('/super-admin/suppliers');
-      if (res.success) {
-        setSuppliers(res.data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch suppliers", error);
-    }
-  };
 
   const handleCreate = () => {
     setSelectedPurchase({
@@ -93,10 +76,9 @@ export default function PurchasesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this purchase?")) return;
     try {
-      const res = await api.delete(`/super-admin/purchases/${id}`);
-      if (res.success) {
+      const res = await deletePurchase(id).unwrap();
+      if (res.success || res.data) {
         toast.success("Purchase deleted successfully");
-        fetchPurchases();
       }
     } catch (error) {
       toast.error("Failed to delete purchase");
@@ -117,18 +99,17 @@ export default function PurchasesPage() {
       }
 
       if (modalMode === 'create') {
-        const res = await api.post('/super-admin/purchases/create', values);
-        if (res.success) {
+        const res = await createPurchase(values).unwrap();
+        if (res.success || res.data) {
           toast.success("Purchase created successfully");
         }
       } else {
-        const res = await api.patch(`/super-admin/purchases/${selectedPurchase._id}`, values);
-        if (res.success) {
+        const res = await updatePurchase({ id: selectedPurchase._id, body: values }).unwrap();
+        if (res.success || res.data) {
           toast.success("Purchase updated successfully");
         }
       }
       setIsModalOpen(false);
-      fetchPurchases();
     } catch (error) {
       console.error(error);
       toast.error(`Failed to ${modalMode} purchase`);

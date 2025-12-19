@@ -15,70 +15,76 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { axiosInstance } from "@/lib/axios/axiosInstance";
+import { useGetBusinessUnitByIdQuery, useUpdateBusinessUnitMutation } from "@/redux/api/businessUnitApi";
 import Swal from "sweetalert2";
+import { BUSINESS_UNIT_STATUS, BUSINESS_UNIT_STATUS_OPTIONS, BUSINESS_UNIT_TYPE, BUSINESS_UNIT_TYPE_OPTIONS } from "@/constant/business-unit.constant";
 
 export default function EditBusinessUnitPage() {
     const router = useRouter();
     const params = useParams();
     const id = params?.id as string;
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSaving, setIsSaving] = useState(false);
+    const { data: businessUnit, isLoading: isFetching } = useGetBusinessUnitByIdQuery(id);
+    const [updateBusinessUnit, { isLoading: isSaving }] = useUpdateBusinessUnitMutation();
 
-    const { register, handleSubmit, control, setValue, formState: { errors } } = useForm({
+    const { register, handleSubmit, control, setValue, reset, watch, formState: { errors } } = useForm({
         defaultValues: {
             name: "",
+            description: "",
             email: "",
             phone: "",
             city: "",
             country: "",
-            status: "active"
+            status: "",
+            type: ""
         }
     });
 
+    // console.log('data', data)
+
     useEffect(() => {
-        const fetchUnit = async () => {
-            if (!id) return;
-            try {
-                const response: any = await axiosInstance.get(`/super-admin/business-unit/${id}`);
+        if (!businessUnit) return;
 
-                // Handle potentially nested data structure based on user feedback
-                // API returns { success: ..., data: { success: ..., data: { branding: ... } } }
-                const responseData = response?.data?.data ? response.data.data : (response?.data || response);
+        reset({
+            name: businessUnit.branding?.name ?? businessUnit.name ?? "",
+            description: businessUnit.branding?.description ?? "",
+            email: businessUnit.contact?.email ?? "",
+            phone: businessUnit.contact?.phone ?? "",
+            city: businessUnit.location?.city ?? "",
+            country: businessUnit.location?.country ?? "",
 
-                if (responseData && (responseData.branding || responseData.name)) {
-                    setValue("name", responseData.branding?.name || responseData.name || "");
-                    setValue("email", responseData.contact?.email || "");
-                    setValue("phone", responseData.contact?.phone || "");
-                    setValue("city", responseData.location?.city || "");
-                    setValue("country", responseData.location?.country || "");
-                    setValue("status", responseData.status || "active");
-                } else {
-                    console.warn("Unexpected response structure:", response);
-                    Swal.fire("Error", "Could not load business unit details", "error");
-                }
-            } catch (error) {
-                console.error("Fetch error", error);
-                Swal.fire("Error", "Failed to fetch business unit details", "error");
-            } finally {
-                setIsLoading(false);
-            }
-        };
+            status: BUSINESS_UNIT_STATUS_OPTIONS.some(
+                (s) => s.value === businessUnit.status
+            )
+                ? businessUnit.status
+                : BUSINESS_UNIT_STATUS.DRAFT,
 
-        fetchUnit();
-    }, [id, setValue]);
+            type: BUSINESS_UNIT_TYPE_OPTIONS.some(
+                (t) => t.value === businessUnit.businessUnitType
+            )
+                ? businessUnit.businessUnitType
+                : BUSINESS_UNIT_TYPE.GENERAL,
+        });
+    }, [businessUnit, reset]);
+
+
 
     const onSubmit = async (data: any) => {
         try {
-            setIsSaving(true);
+
             const payload = {
-                branding: { name: data.name },
+                name: data.name, // Top level name often required
+                branding: {
+                    name: data.name,
+                    description: data.description || `Business unit for ${data.name}`
+                },
                 contact: { email: data.email, phone: data.phone },
                 location: { city: data.city, country: data.country },
+
                 status: data.status,
+                businessUnitType: data.type
             };
 
-            const response: any = await axiosInstance.patch(`/super-admin/business-unit/${id}`, payload);
+            const response: any = await updateBusinessUnit({ id, body: payload }).unwrap();
 
             if (response?.success || response?.data?.success) {
                 Swal.fire({
@@ -90,15 +96,15 @@ export default function EditBusinessUnitPage() {
                 });
                 router.back();
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Update error", error);
-            Swal.fire("Error", "Failed to update business unit", "error");
-        } finally {
-            setIsSaving(false);
+            // Show more detailed error if available
+            const errorMsg = error?.data?.message || "Failed to update business unit";
+            Swal.fire("Error", errorMsg, "error");
         }
     };
 
-    if (isLoading) {
+    if (isFetching) {
         return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
     }
 
@@ -125,24 +131,63 @@ export default function EditBusinessUnitPage() {
                             </div>
 
                             <div className="space-y-2">
+                                <Label htmlFor="description">Description</Label>
+                                <Input id="description" {...register("description")} />
+                            </div>
+
+                            <div className="space-y-2">
                                 <Label htmlFor="status">Status</Label>
+
                                 <Controller
                                     name="status"
                                     control={control}
                                     render={({ field }) => (
-                                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                        <Select
+                                            key={field.value} // 🔥 THIS IS THE FIX
+                                            value={field.value || undefined}
+                                            onValueChange={field.onChange}
+                                        >
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select status" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="active">Active</SelectItem>
-                                                <SelectItem value="inactive">Inactive</SelectItem>
-                                                <SelectItem value="published">Published</SelectItem>
-                                                <SelectItem value="draft">Draft</SelectItem>
+                                                {BUSINESS_UNIT_STATUS_OPTIONS.map((status) => (
+                                                    <SelectItem key={status.value} value={status.value}>
+                                                        {status.label}
+                                                    </SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
                                     )}
                                 />
+
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="type">Type</Label>
+                                <Controller
+                                    name="type"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Select
+                                            key={field.value} // 🔥 THIS IS THE FIX
+                                            value={field.value || undefined}
+                                            onValueChange={field.onChange}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select type" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {BUSINESS_UNIT_TYPE_OPTIONS.map((type) => (
+                                                    <SelectItem key={type.value} value={type.value}>
+                                                        {type.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+
                             </div>
 
                             <div className="space-y-2">
@@ -164,8 +209,8 @@ export default function EditBusinessUnitPage() {
                                 <Label htmlFor="country">Country</Label>
                                 <Input id="country" {...register("country")} />
                             </div>
-                        </div>
 
+                        </div>
                         <div className="flex justify-end space-x-2">
                             <Button variant="outline" type="button" onClick={() => router.back()}>Cancel</Button>
                             <Button type="submit" disabled={isSaving}>

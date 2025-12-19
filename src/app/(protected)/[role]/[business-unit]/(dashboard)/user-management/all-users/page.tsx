@@ -1,18 +1,16 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
-import { Users, User, Search, MoreHorizontal, Edit, Trash2, ShieldCheck, MapPin, Smartphone, CheckCircle, RefreshCw, Download, Clock, Calendar, Check, X, Building, Layers } from "lucide-react"
+import { Users, User, Search, MoreHorizontal, Edit, Trash2, ShieldCheck, MapPin, Smartphone, CheckCircle, RefreshCw, Download, Check, X, Building, Layers } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit"
 import { useAuth } from "@/hooks/useAuth"
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner"
-import { axiosInstance as api } from "@/lib/axios/axiosInstance"
 import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DataTable } from "@/components/shared/DataTable"
 import { DataPageLayout } from "@/components/shared/DataPageLayout"
 import { StatCard } from "@/components/shared/StatCard"
@@ -26,7 +24,10 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { AutoFormModal } from "@/components/shared/AutoFormModal"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
+import { useGetAllUsersQuery, useCreateUserMutation, useUpdateUserMutation, useDeleteUserMutation } from "@/redux/api/userApi"
+import Swal from "sweetalert2"
+import { useGetRolesQuery } from "@/redux/api/roleApi"
 
 const USER_STATUS = {
   ACTIVE: 'active',
@@ -37,29 +38,71 @@ const USER_STATUS = {
 } as const;
 
 export default function AllUsersPage() {
-  const [users, setUsers] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
 
   // Edit/Create State
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any>(null)
-  const [availableRoles, setAvailableRoles] = useState<any[]>([])
 
   const { currentBusinessUnit } = useCurrentBusinessUnit()
   const { user: currentUser } = useAuth()
   const params = useParams();
+  const router = useRouter();
+
+  // RTK Query Hooks
+  const {
+    data: rawUsers,
+    isLoading: isLoadingUsers,
+    refetch: refetchUsers
+  } = useGetAllUsersQuery({});
+
+  const { data: rawRoles = [] } = useGetRolesQuery({});
+
+  const [createUser] = useCreateUserMutation();
+  const [updateUser] = useUpdateUserMutation();
+
+  // Normalize Users Data
+  const users = useMemo(() => {
+    let allUsers: any[] = [];
+    if (Array.isArray(rawUsers)) {
+      allUsers = rawUsers;
+    } else if (rawUsers?.data && Array.isArray(rawUsers.data)) {
+      allUsers = rawUsers.data;
+    } else if (rawUsers?.result && Array.isArray(rawUsers.result)) {
+      allUsers = rawUsers.result;
+    } else if (rawUsers?.data?.result && Array.isArray(rawUsers.data.result)) {
+      allUsers = rawUsers.data.result;
+    }
+
+    const isSuperAdmin = currentUser?.roles?.some((r: any) => r.name === 'super-admin')
+
+    if (!isSuperAdmin && currentBusinessUnit) {
+      allUsers = allUsers.filter((user: any) => {
+        if (!user.businessUnits) return false;
+        return user.businessUnits.some((bu: any) => {
+          const buId = typeof bu === 'string' ? bu : (bu.id || bu.slug || bu._id);
+          return buId === currentBusinessUnit.id || buId === currentBusinessUnit.slug || buId === currentBusinessUnit._id;
+        });
+      });
+    }
+
+    return allUsers.map((user: any) => ({
+      ...user,
+      name: typeof user.name === 'object' && user.name !== null
+        ? `${user.name.firstName || ''} ${user.name.lastName || ''}`.trim() || 'Unnamed'
+        : user.name,
+    }));
+  }, [rawUsers, currentUser, currentBusinessUnit]);
 
   // Derived state for filtered users
-  const getFilteredUsers = () => {
+  const filteredData = useMemo(() => {
     let data = users;
 
     // Search Filter
     if (searchTerm) {
       const lower = searchTerm.toLowerCase();
-      data = data.filter(u =>
+      data = data.filter((u: any) =>
         u.name?.toLowerCase().includes(lower) ||
         u.email?.toLowerCase().includes(lower) ||
         u.phone?.includes(searchTerm)
@@ -68,88 +111,29 @@ export default function AllUsersPage() {
 
     if (activeTab === 'all') return data;
     if (activeTab === 'staff') {
-      return data.filter(u => u.roles?.some((r: any) =>
-        ['super-admin', 'admin', 'manager', 'sales-associate', 'support-agent'].includes(typeof r === 'string' ? r : r.name) || r.isSystemRole
-      ));
+      return data.filter((u: any) => u.roles?.some((r: any) => {
+        const roleName = (typeof r === 'string' ? r : r.name).toLowerCase();
+        return ['super-admin', 'admin', 'manager', 'sales-associate', 'support-agent'].includes(roleName) || r.isSystemRole;
+      }));
     }
     if (activeTab === 'customer') {
-      return data.filter(u => u.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'customer'));
+      return data.filter((u: any) => u.roles?.some((r: any) =>
+        (typeof r === 'string' ? r : r.name).toLowerCase() === 'customer'
+      ));
     }
     if (activeTab === 'supplier') {
-      return data.filter(u => u.roles?.some((r: any) => ['supplier', 'vendor'].includes(typeof r === 'string' ? r : r.name)));
+      return data.filter((u: any) => u.roles?.some((r: any) => {
+        const roleName = (typeof r === 'string' ? r : r.name).toLowerCase();
+        return ['supplier', 'vendor'].includes(roleName);
+      }));
     }
     return data;
-  }
+  }, [users, searchTerm, activeTab]);
 
-  const filteredData = getFilteredUsers();
+  const availableRoles = useMemo(() => {
+    return Array.isArray(rawRoles) ? rawRoles : [];
+  }, [rawRoles]);
 
-  useEffect(() => {
-    fetchUsers()
-    fetchRoles()
-  }, [currentBusinessUnit])
-
-  const fetchRoles = async () => {
-    try {
-      const response = await api.get('/super-admin/users/roles')
-      if ((response.data as any)?.success) {
-        const rolesData = Array.isArray(response.data) ? response.data : (response.data.data || response.data);
-        setAvailableRoles(Array.isArray(rolesData) ? rolesData : []);
-      }
-    } catch (err) {
-      console.error("Failed to fetch roles", err);
-    }
-  }
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true)
-      const response = await api.get('/super-admin/users/all-users')
-      const resData = (response as any);
-
-      if (resData.success || (resData.data && resData.data.success)) {
-        let allUsers: any[] = [];
-        if (Array.isArray(resData.data)) {
-          allUsers = resData.data;
-        } else if (resData.data && Array.isArray(resData.data.data)) {
-          allUsers = resData.data.data;
-        } else if (resData.data && typeof resData.data === 'object' && Array.isArray(resData.data.result)) {
-          allUsers = resData.data.result;
-        } else if (resData.result && Array.isArray(resData.result)) {
-          allUsers = resData.result;
-        } else if (resData.data && typeof resData.data === 'object') {
-          const possibleArray = Object.values(resData.data).find(val => Array.isArray(val));
-          if (possibleArray) allUsers = possibleArray as any[];
-        }
-
-        const isSuperAdmin = currentUser?.roles?.some((r: any) => r.name === 'super-admin')
-
-        if (!isSuperAdmin && currentBusinessUnit) {
-          allUsers = allUsers.filter((user: any) => {
-            if (!user.businessUnits) return false;
-            return user.businessUnits.some((bu: any) => {
-              const buId = typeof bu === 'string' ? bu : (bu.id || bu.slug || bu._id);
-              return buId === currentBusinessUnit.id || buId === currentBusinessUnit.slug || buId === currentBusinessUnit._id;
-            });
-          });
-        }
-
-        const formattedUsers = allUsers.map((user: any) => ({
-          ...user,
-          name: typeof user.name === 'object' && user.name !== null
-            ? `${user.name.firstName || ''} ${user.name.lastName || ''}`.trim() || 'Unnamed'
-            : user.name,
-        }));
-        setUsers(formattedUsers)
-      } else {
-        setError("Failed to fetch users")
-      }
-    } catch (err) {
-      console.error("Error fetching users:", err)
-      setError("An error occurred while fetching users")
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleCreate = () => {
     setEditingUser(null);
@@ -165,11 +149,12 @@ export default function AllUsersPage() {
     try {
       if (editingUser) {
         // Edit Mode
-        const updatePayload = {
+        const userId = editingUser._id || editingUser.id;
+        const updateData = {
           roles: [data.role],
           status: data.status,
         };
-        await api.patch(`/super-admin/users/${editingUser._id || editingUser.id}`, updatePayload);
+        await updateUser({ id: userId, data: updateData }).unwrap();
         toast.success("User updated successfully");
       } else {
         // Create Mode
@@ -182,33 +167,57 @@ export default function AllUsersPage() {
           businessUnits: [currentBusinessUnit?.id || params["business-unit"]],
           status: "active"
         };
-        await api.post('/super-admin/users/create', createPayload);
+        await createUser(createPayload).unwrap();
         toast.success("User created successfully");
       }
       setIsModalOpen(false);
-      fetchUsers();
     } catch (err: any) {
       console.error(err);
-      toast.error(err?.response?.data?.message || "Operation failed");
+      toast.error(err?.data?.message || err?.message || "Operation failed");
     }
   };
 
-  const handleDelete = (user: any) => {
-    if (confirm("Are you sure you want to delete this user?")) {
-      toast.info("Delete functionality implementation in progress");
+  /* Delete Functionality */
+  const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
+
+  const handleDelete = async (user: any) => {
+    // Show confirmation dialog before deleting
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, delete it!'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await deleteUser(user._id || user.id).unwrap();
+        Swal.fire(
+          'Deleted!',
+          'User has been deleted.',
+          'success'
+        );
+      } catch (err: any) {
+        console.error("Delete error", err);
+        Swal.fire(
+          'Error!',
+          err?.data?.message || 'Failed to delete user.',
+          'error'
+        );
+      }
     }
-  }
+  };
 
   const handleQuickStatusUpdate = async (userId: string, newStatus: string) => {
     try {
       toast.promise(
-        api.patch(`/super-admin/users/${userId}`, { status: newStatus }),
+        updateUser({ id: userId, data: { status: newStatus } }).unwrap(),
         {
           loading: 'Updating status...',
-          success: (data: any) => {
-            fetchUsers();
-            return `Status updated to ${newStatus}`;
-          },
+          success: `Status updated to ${newStatus}`,
           error: 'Failed to update status',
         }
       );
@@ -329,6 +338,9 @@ export default function AllUsersPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => router.push(`/${params.role}/${params["business-unit"]}/user-management/users/${row.original._id || row.original.id}`)}>
+                <User className="mr-2 h-4 w-4" /> View Profile
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleEdit(row.original)}>
                 <Edit className="mr-2 h-4 w-4" /> Edit Role/Status
               </DropdownMenuItem>
@@ -360,17 +372,17 @@ export default function AllUsersPage() {
             />
             <StatCard
               title="Active Staff"
-              value={users.filter(u => u.status === 'active' && u.roles?.some((r: any) => ['super-admin', 'admin', 'manager', 'sales-associate'].includes(typeof r === 'string' ? r : r.name))).length}
+              value={users.filter((u: any) => u.status === 'active' && u.roles?.some((r: any) => ['super-admin', 'admin', 'manager', 'sales-associate'].includes(typeof r === 'string' ? r : r.name))).length}
               icon={ShieldCheck}
             />
             <StatCard
               title="Active Customers"
-              value={users.filter(u => u.status === 'active' && u.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'customer')).length}
+              value={users.filter((u: any) => u.status === 'active' && u.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'customer')).length}
               icon={User}
             />
             <StatCard
               title="New (Pending)"
-              value={users.filter(u => u.status === 'pending').length}
+              value={users.filter((u: any) => u.status === 'pending').length}
               icon={CheckCircle}
             />
           </div>
@@ -394,7 +406,7 @@ export default function AllUsersPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Button variant="outline" size="sm" onClick={fetchUsers}>
+            <Button variant="outline" size="sm" onClick={() => refetchUsers()}>
               <RefreshCw className="mr-2 h-4 w-4" /> Refresh
             </Button>
             <Button variant="outline" size="sm" onClick={() => console.log('Export')}>
@@ -406,7 +418,7 @@ export default function AllUsersPage() {
         <DataTable
           columns={columns}
           data={filteredData}
-          isLoading={loading}
+          isLoading={isLoadingUsers}
           renderSubComponent={(row) => {
             const user = row.original;
             return (
@@ -590,7 +602,7 @@ export default function AllUsersPage() {
             label: "Role",
             type: "select",
             required: true,
-            options: availableRoles.map(r => ({ label: r.name, value: r._id || r.id })),
+            options: availableRoles.map((r: any) => ({ label: r.name, value: r._id || r.id })),
             placeholder: "Select Role"
           },
           {

@@ -1,85 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Store, Loader2, MapPin, Phone, User as UserIcon, Building2 } from "lucide-react"
+import { Plus, Store, Loader2, MapPin, Map, Phone } from "lucide-react"
 import { Badge } from "@/components/ui/badge";
-import { axiosInstance } from "@/lib/axios/axiosInstance";
-import Swal from "sweetalert2";
+import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
 
-interface BusinessUnit {
-  _id: string;
-  id: string;
-  branding: {
-    name: string;
-  };
-  contact: {
-    email: string;
-    phone: string;
-  };
-  location: {
-    city: string;
-    country: string;
-  };
-  status: string;
-  businessUnitType?: string;
-}
-
-export default function SuperAdminBusinessUnitsPage() {
+export default function BusinessUnitsPage() {
   const router = useRouter();
-  const [businessUnits, setBusinessUnits] = useState<BusinessUnit[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchBusinessUnits = async () => {
-      try {
-        const response = await axiosInstance.get('/super-admin/business-unit');
-        console.log("Business Unit Response:", response);
-
-        // Defensive parsing
-        let data: BusinessUnit[] = [];
-
-        // Scenario 1: Interceptor returns { success: true, data: [...] }
-        if ((response as any)?.data && Array.isArray((response as any).data)) {
-          data = (response as any).data;
-        }
-        // Scenario 2: Interceptor returns direct array [...]
-        else if (Array.isArray(response)) {
-          data = response as BusinessUnit[];
-        }
-        // Scenario 3: data property exists but somehow at top level (unlikely with this interceptor but possible)
-        else if (Array.isArray((response as any)?.data?.data)) {
-          data = (response as any).data.data;
-        }
-
-        setBusinessUnits(data);
-      } catch (error) {
-        console.error("Failed to fetch business units", error);
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Failed to load business units.",
-          toast: true,
-          position: "top-end",
-          showConfirmButton: false,
-          timer: 3000,
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchBusinessUnits();
-  }, []);
+  // RTK Query
+  const { data: businessUnits = [], isLoading } = useGetBusinessUnitsQuery({});
 
   if (isLoading) {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
   // Calculate stats safely
-  const activeCount = Array.isArray(businessUnits) ? businessUnits.filter(u => u.status === 'published' || u.status === 'active').length : 0;
+  const activeCount = Array.isArray(businessUnits) ? businessUnits.filter((u: any) => u.status === 'published' || u.status === 'active').length : 0;
   const totalCount = Array.isArray(businessUnits) ? businessUnits.length : 0;
 
   return (
@@ -144,7 +83,7 @@ export default function SuperAdminBusinessUnitsPage() {
                     <td colSpan={6} className="p-4 text-center text-muted-foreground">No business units found</td>
                   </tr>
                 ) : (
-                  businessUnits.map((unit) => (
+                  businessUnits.map((unit: any) => (
                     <tr key={unit._id} className="border-b transition-colors hover:bg-muted/50">
                       <td className="p-4 align-middle font-medium">{unit.branding?.name}</td>
                       <td className="p-4 align-middle capitalize">{unit.businessUnitType || 'General'}</td>

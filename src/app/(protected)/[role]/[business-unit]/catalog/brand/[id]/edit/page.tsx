@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { ArrowLeft, Loader2 } from "lucide-react";
@@ -16,15 +16,18 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { axiosInstance } from "@/lib/axios/axiosInstance";
+import { useGetBrandQuery, useUpdateBrandMutation } from "@/redux/api/brandApi";
 import Swal from "sweetalert2";
 
 export default function EditBrandPage() {
     const router = useRouter();
     const params = useParams();
     const id = params?.id as string;
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSaving, setIsSaving] = useState(false);
+    const [updateBrand, { isLoading: isSaving }] = useUpdateBrandMutation();
+    const { data: brandData, isLoading: isBrandLoading } = useGetBrandQuery(id, { skip: !id });
+
+    // Derived loading state
+    const isLoading = isBrandLoading;
 
     const { register, handleSubmit, control, setValue, formState: { errors } } = useForm({
         defaultValues: {
@@ -36,35 +39,19 @@ export default function EditBrandPage() {
     });
 
     useEffect(() => {
-        const fetchBrand = async () => {
-            if (!id) return;
-            try {
-                const response: any = await axiosInstance.get(`/super-admin/brands/${id}`);
-                const data = response?.data?.data || response?.data;
-
-                if (data) {
-                    setValue("name", data.name || "");
-                    setValue("description", data.description || "");
-                    setValue("website", data.website || "");
-                    setValue("status", data.status || "active");
-                }
-            } catch (error) {
-                console.error("Fetch error", error);
-                Swal.fire("Error", "Failed to fetch brand details", "error");
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchBrand();
-    }, [id, setValue]);
+        if (brandData) {
+            setValue("name", brandData.name || "");
+            setValue("description", brandData.description || "");
+            setValue("website", brandData.website || "");
+            setValue("status", brandData.status || "active");
+        }
+    }, [brandData, setValue]);
 
     const onSubmit = async (data: any) => {
         try {
-            setIsSaving(true);
-            const response: any = await axiosInstance.patch(`/super-admin/brands/${id}`, data);
+            const response: any = await updateBrand({ id, body: data }).unwrap();
 
-            if (response?.success) {
+            if (response?.success || response?.data) {
                 Swal.fire({
                     icon: 'success',
                     title: 'Updated!',
@@ -77,8 +64,6 @@ export default function EditBrandPage() {
         } catch (error) {
             console.error("Update error", error);
             Swal.fire("Error", "Failed to update brand", "error");
-        } finally {
-            setIsSaving(false);
         }
     };
 

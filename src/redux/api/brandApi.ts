@@ -20,7 +20,7 @@ const brandApi = baseApi.injectEndpoints({
         method: "GET",
         params,
       }),
-      transformResponse: (response: any) => response.data,
+      transformResponse: (response: any) => response.data?.data?.result || response.data?.data || response.data?.result || response.data || [],
       providesTags: [tagTypes.brand],
     }),
     getBrand: build.query({
@@ -28,7 +28,7 @@ const brandApi = baseApi.injectEndpoints({
         url: `/super-admin/brands/${id}`,
         method: "GET",
       }),
-      transformResponse: (response: any) => response.data,
+      transformResponse: (response: any) => response.data?.data || response.data,
       providesTags: [tagTypes.brand],
     }),
     updateBrand: build.mutation({

@@ -20,7 +20,7 @@ const unitApi = baseApi.injectEndpoints({
         method: "GET",
         params,
       }),
-      transformResponse: (response: any) => response.data,
+      transformResponse: (response: any) => response.data?.data?.result || response.data?.data || response.data?.result || response.data || [],
       providesTags: [tagTypes.unit],
     }),
     getUnit: build.query({
@@ -28,7 +28,7 @@ const unitApi = baseApi.injectEndpoints({
         url: `/super-admin/units/${id}`,
         method: "GET",
       }),
-      transformResponse: (response: any) => response.data,
+      transformResponse: (response: any) => response.data?.data || response.data,
       providesTags: [tagTypes.unit],
     }),
     updateUnit: build.mutation({

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,16 +9,21 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
-import { userService, roleService } from "@/services/user/user.service"
 import { Loader2 } from "lucide-react"
+import { useGetRolesQuery } from "@/redux/api/roleApi"
+import { useCreateUserMutation } from "@/redux/api/userApi"
 
 export default function AddUserPage() {
   const router = useRouter()
   const params = useParams()
   const businessUnit = params["business-unit"] as string
 
-  const [loading, setLoading] = useState(false)
-  const [roles, setRoles] = useState<any[]>([])
+  // Query Hooks
+  const { data: rolesData, isLoading: isLoadingRoles } = useGetRolesQuery({})
+  const [createUser, { isLoading: isCreating }] = useCreateUserMutation()
+
+  const roles = Array.isArray(rolesData) ? rolesData : []
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -28,21 +33,6 @@ export default function AddUserPage() {
     role: "",
     businessUnit: businessUnit || ""
   })
-
-  // Fetch roles on mount
-  useEffect(() => {
-    const fetchRoles = async () => {
-      try {
-        const data = await roleService.getAll()
-        console.log("Fetched roles:", data)
-        setRoles(data)
-      } catch (error) {
-        console.error("Failed to fetch roles:", error)
-        toast.error("Failed to load roles")
-      }
-    }
-    fetchRoles()
-  }, [])
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -56,8 +46,6 @@ export default function AddUserPage() {
       toast.error("Please fill all required fields")
       return
     }
-
-    setLoading(true)
 
     try {
       const payload = {
@@ -75,19 +63,14 @@ export default function AddUserPage() {
 
       console.log("Submitting user:", payload)
 
-      const result = await userService.create(payload)
+      await createUser(payload).unwrap()
 
-      if (result?.success) {
-        toast.success("User created successfully!")
-        router.push(`/${params.role}/${businessUnit}/user-management/all-users`)
-      } else {
-        throw new Error(result?.message || "Failed to create user")
-      }
+      toast.success("User created successfully!")
+      router.push(`/${params.role}/${businessUnit}/user-management/all-users`)
+
     } catch (error: any) {
       console.error("User creation error:", error)
-      toast.error(error?.response?.data?.message || error?.message || "Failed to create user")
-    } finally {
-      setLoading(false)
+      toast.error(error?.data?.message || error?.message || "Failed to create user")
     }
   }
 
@@ -176,10 +159,12 @@ export default function AddUserPage() {
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  {roles.length === 0 ? (
+                  {isLoadingRoles ? (
                     <div className="p-2 text-sm text-gray-500">Loading roles...</div>
+                  ) : roles.length === 0 ? (
+                    <div className="p-2 text-sm text-gray-500">No roles found</div>
                   ) : (
-                    roles.map((role) => (
+                    roles.map((role: any) => (
                       <SelectItem key={role._id} value={role._id}>
                         {role.name}
                       </SelectItem>
@@ -194,13 +179,13 @@ export default function AddUserPage() {
                 type="button"
                 variant="outline"
                 onClick={() => router.back()}
-                disabled={loading}
+                disabled={isCreating}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {loading ? "Creating..." : "Create User"}
+              <Button type="submit" disabled={isCreating}>
+                {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isCreating ? "Creating..." : "Create User"}
               </Button>
             </div>
           </CardContent>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { ArrowLeft, Loader2 } from "lucide-react";
@@ -16,7 +16,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { axiosInstance } from "@/lib/axios/axiosInstance";
+import { useGetTaxQuery, useUpdateTaxMutation } from "@/redux/api/taxApi";
 import Swal from "sweetalert2";
 
 interface TaxFormValues {
@@ -32,8 +32,11 @@ export default function EditTaxPage() {
     const router = useRouter();
     const params = useParams();
     const id = params?.id as string;
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSaving, setIsSaving] = useState(false);
+    const [updateTax, { isLoading: isSaving }] = useUpdateTaxMutation();
+    const { data: taxData, isLoading: isTaxLoading } = useGetTaxQuery(id, { skip: !id });
+
+    // Use derived state for loading if needed, or just rely on isTaxLoading
+    const isLoading = isTaxLoading;
 
     const { register, handleSubmit, control, setValue, formState: { errors } } = useForm<TaxFormValues>({
         defaultValues: {
@@ -46,37 +49,21 @@ export default function EditTaxPage() {
     });
 
     useEffect(() => {
-        const fetchTax = async () => {
-            if (!id) return;
-            try {
-                const response: any = await axiosInstance.get(`/super-admin/taxes/${id}`);
-                const data = response?.data?.data || response?.data;
-
-                if (data) {
-                    setValue("name", data.name);
-                    setValue("rate", data.rate);
-                    setValue("type", data.type);
-                    setValue("isDefault", data.isDefault);
-                    setValue("isActive", data.isActive);
-                }
-            } catch (error) {
-                console.error("Fetch error", error);
-                Swal.fire("Error", "Failed to fetch tax details", "error");
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchTax();
-    }, [id, setValue]);
+        if (taxData) {
+            setValue("name", taxData.name);
+            setValue("rate", taxData.rate);
+            setValue("type", taxData.type);
+            setValue("isDefault", taxData.isDefault);
+            setValue("isActive", taxData.isActive);
+        }
+    }, [taxData, setValue]);
 
     const onSubmit = async (data: TaxFormValues) => {
         try {
-            setIsSaving(true);
             const payload = { ...data, rate: Number(data.rate) };
-            const response: any = await axiosInstance.patch(`/super-admin/taxes/${id}`, payload);
+            const response: any = await updateTax({ id, body: payload }).unwrap();
 
-            if (response?.success) {
+            if (response?.success || response?.data) {
                 Swal.fire({
                     icon: 'success',
                     title: 'Updated!',
@@ -89,8 +76,6 @@ export default function EditTaxPage() {
         } catch (error) {
             console.error("Update error", error);
             Swal.fire("Error", "Failed to update tax", "error");
-        } finally {
-            setIsSaving(false);
         }
     };
 
@@ -137,7 +122,7 @@ export default function EditTaxPage() {
                                     name="type"
                                     control={control}
                                     render={({ field }) => (
-                                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                        <Select key={field.value} onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select type" />
                                             </SelectTrigger>

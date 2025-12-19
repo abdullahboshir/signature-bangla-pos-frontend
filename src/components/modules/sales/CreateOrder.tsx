@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Minus, Plus, Search, ShoppingCart, Trash2, X, CheckCircle, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,10 +30,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { OrderService } from "./OrderService";
 import { CreateOrderPayload } from "./order.types";
-import { axiosInstance } from "@/lib/axios/axiosInstance";
 import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit";
+import { useGetProductsQuery } from "@/redux/api/productApi";
+import { useGetAllUsersQuery } from "@/redux/api/userApi";
+import { useCreateOrderMutation } from "@/redux/api/orderApi";
 
 // Types for POS
 interface Product {
@@ -64,85 +65,52 @@ interface CartItem {
 
 export default function CreateOrder() {
     const router = useRouter();
-    const [products, setProducts] = useState<Product[]>([]);
-    const [customers, setCustomers] = useState<any[]>([]); // Use proper type if available
     const [searchQuery, setSearchQuery] = useState("");
     const [cart, setCart] = useState<CartItem[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
+
+    // API Hooks
+    // Fetch products with search query
+    const { data: rawProducts = [], isLoading: isLoadingProducts } = useGetProductsQuery({
+        search: searchQuery,
+        limit: 20
+    });
+
+    // Normalize products data structure if needed
+    const products: Product[] = useMemo(() => {
+        if (Array.isArray(rawProducts)) return rawProducts;
+        if (rawProducts?.results && Array.isArray(rawProducts.results)) return rawProducts.results;
+        return [];
+    }, [rawProducts]);
+
+    // Fetch all users for customer selection
+    const { data: rawUsers = [] } = useGetAllUsersQuery({});
+
+    // Filter customers from all users
+    const customers = useMemo(() => {
+        let allUsers: any[] = [];
+        // Normalize user response
+        if (Array.isArray(rawUsers)) {
+            allUsers = rawUsers;
+        } else if (rawUsers?.data && Array.isArray(rawUsers.data)) {
+            allUsers = rawUsers.data;
+        } else if (rawUsers?.result && Array.isArray(rawUsers.result)) {
+            allUsers = rawUsers.result;
+        }
+
+        return allUsers.filter((u: any) =>
+            u.roles?.some((r: any) => {
+                const roleName = typeof r === 'string' ? r : r.name;
+                return roleName === 'customer';
+            })
+        );
+    }, [rawUsers]);
+
+    const [createOrder, { isLoading: isSubmitting }] = useCreateOrderMutation();
 
     // Order State
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
     const [paymentMethod, setPaymentMethod] = useState("cash");
     const [paidAmount, setPaidAmount] = useState<string>("");
-
-    useEffect(() => {
-        fetchProducts();
-        fetchCustomers();
-    }, []);
-
-    const fetchProducts = async (query = "") => {
-        try {
-            setLoading(true);
-            const res = await axiosInstance.get("/super-admin/products", { params: { search: query, limit: 20 } });
-            if (res.data?.success) {
-                // Handle both array directly or paginated results structure
-                const data = res.data.data;
-                if (Array.isArray(data)) {
-                    setProducts(data);
-                } else if (data?.results && Array.isArray(data.results)) {
-                    setProducts(data.results);
-                } else {
-                    setProducts([]);
-                }
-            }
-        } catch (error) {
-            console.error(error);
-            toast.error("Failed to load products");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchCustomers = async () => {
-        try {
-            const res = await axiosInstance.get("/super-admin/users/all-users");
-            // Standardized response parsing logic
-            const resData = (res as any);
-            let allUsers: any[] = [];
-
-            if (resData.data?.success || resData.success) {
-                if (Array.isArray(resData.data)) {
-                    allUsers = resData.data;
-                } else if (resData.data && Array.isArray(resData.data.data)) {
-                    allUsers = resData.data.data;
-                } else if (resData.data && typeof resData.data === 'object' && Array.isArray(resData.data.result)) {
-                    allUsers = resData.data.result;
-                } else if (resData.result && Array.isArray(resData.result)) {
-                    allUsers = resData.result;
-                } else if (resData.data && typeof resData.data === 'object') {
-                    const possibleArray = Object.values(resData.data).find(val => Array.isArray(val));
-                    if (possibleArray) {
-                        allUsers = possibleArray as any[];
-                    }
-                }
-
-                // Filter for customers
-                const customersList = allUsers.filter((u: any) =>
-                    // Check if roles array contains 'customer' string or object with name 'customer'
-                    u.roles?.some((r: any) => {
-                        const roleName = typeof r === 'string' ? r : r.name;
-                        return roleName === 'customer';
-                    })
-                );
-
-                setCustomers(customersList);
-            }
-        } catch (error) {
-            console.error("Failed to load customers", error);
-            // toast.error("Failed to load customers"); // Optional: don't block UI if customers fail
-        }
-    };
 
     const addToCart = (product: Product) => {
         setCart(prev => {
@@ -193,8 +161,6 @@ export default function CreateOrder() {
 
     const [orderSuccess, setOrderSuccess] = useState<any>(null); // State for success modal
 
-    // ... (existing helper functions)
-
     const handleCheckout = async () => {
         if (cart.length === 0) {
             toast.error("Cart is empty");
@@ -233,15 +199,14 @@ export default function CreateOrder() {
         };
 
         try {
-            setSubmitting(true);
-            const res = await OrderService.createOrder(payload);
+            const res = await createOrder(payload).unwrap();
             if (res.success) {
                 toast.success("Order created successfully");
                 setOrderSuccess(res.data); // Open Success Modal with order data
             }
         } catch (error: any) {
             console.error("Checkout Error Full Object:", error);
-            const resData = error.response?.data;
+            const resData = error.data || error; // RTK Query error structure
             console.log("Error Response Data:", resData);
 
             let errorMessage = "Checkout failed";
@@ -272,8 +237,6 @@ export default function CreateOrder() {
             }
 
             toast.error(errorMessage);
-        } finally {
-            setSubmitting(false);
         }
     };
 
@@ -285,7 +248,13 @@ export default function CreateOrder() {
         toast.info("Ready for new sale");
     }
 
-    const { subTotal, totalAmount } = calculateTotals();
+    const { totalAmount } = calculateTotals();
+
+    // Debounce search input
+    useEffect(() => {
+        // Optional: Implement debounce here if search causes too many requests
+        // RTK Query has keepUnusedDataFor defaults which helps.
+    }, [searchQuery]);
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-100px)]">
@@ -299,15 +268,12 @@ export default function CreateOrder() {
                                 placeholder="Search products..."
                                 className="pl-8"
                                 value={searchQuery}
-                                onChange={(e) => {
-                                    setSearchQuery(e.target.value);
-                                    fetchProducts(e.target.value);
-                                }}
+                                onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
                     </CardHeader>
                     <CardContent className="flex-1 overflow-auto p-4">
-                        {loading && products.length === 0 ? (
+                        {isLoadingProducts ? (
                             <div className="flex justify-center items-center h-40">Loading products...</div>
                         ) : (
                             <div className="rounded-md border">
@@ -322,57 +288,65 @@ export default function CreateOrder() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {products.map((product) => (
-                                            <TableRow
-                                                key={product._id}
-                                                className="cursor-pointer hover:bg-muted/50"
-                                                onClick={() => addToCart(product)}
-                                            >
-                                                <TableCell>
-                                                    <div className="h-10 w-10 bg-muted rounded overflow-hidden flex items-center justify-center">
-                                                        {product.details?.images?.[0] ? (
-                                                            <img
-                                                                src={product.details.images[0]}
-                                                                alt={product.name}
-                                                                className="h-full w-full object-cover"
-                                                            />
-                                                        ) : (
-                                                            <span className="text-[10px] text-muted-foreground">No img</span>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="font-medium text-sm">{product.name}</div>
-                                                    <div className="text-xs text-muted-foreground">SKU: {product.sku || 'N/A'}</div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="font-bold text-primary">
-                                                        {product.pricing.salePrice || product.pricing.basePrice} BDT
-                                                        {product.unit && (
-                                                            <span className="text-xs font-normal text-muted-foreground ml-1">
-                                                                / {typeof product.unit === 'object' ? (product.unit as any).name || (product.unit as any).symbol : product.unit}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge
-                                                        variant={product.inventory?.inventory?.stock > 10 ? "secondary" : "destructive"}
-                                                        className="whitespace-nowrap"
-                                                    >
-                                                        {product.inventory?.inventory?.stock || 0} in stock
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <Button size="sm" variant="outline" onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        addToCart(product);
-                                                    }}>
-                                                        Add
-                                                    </Button>
+                                        {products.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                                                    No products found.
                                                 </TableCell>
                                             </TableRow>
-                                        ))}
+                                        ) : (
+                                            products.map((product) => (
+                                                <TableRow
+                                                    key={product._id}
+                                                    className="cursor-pointer hover:bg-muted/50"
+                                                    onClick={() => addToCart(product)}
+                                                >
+                                                    <TableCell>
+                                                        <div className="h-10 w-10 bg-muted rounded overflow-hidden flex items-center justify-center">
+                                                            {product.details?.images?.[0] ? (
+                                                                <img
+                                                                    src={product.details.images[0]}
+                                                                    alt={product.name}
+                                                                    className="h-full w-full object-cover"
+                                                                />
+                                                            ) : (
+                                                                <span className="text-[10px] text-muted-foreground">No img</span>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="font-medium text-sm">{product.name}</div>
+                                                        <div className="text-xs text-muted-foreground">SKU: {product.sku || 'N/A'}</div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="font-bold text-primary">
+                                                            {product.pricing.salePrice || product.pricing.basePrice} BDT
+                                                            {product.unit && (
+                                                                <span className="text-xs font-normal text-muted-foreground ml-1">
+                                                                    / {typeof product.unit === 'object' ? (product.unit as any).name || (product.unit as any).symbol : product.unit}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge
+                                                            variant={product.inventory?.inventory?.stock > 10 ? "secondary" : "destructive"}
+                                                            className="whitespace-nowrap"
+                                                        >
+                                                            {product.inventory?.inventory?.stock || 0} in stock
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        <Button size="sm" variant="outline" onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            addToCart(product);
+                                                        }}>
+                                                            Add
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        )}
                                     </TableBody>
                                 </Table>
                             </div>
@@ -446,7 +420,7 @@ export default function CreateOrder() {
                                         <SelectValue placeholder="Select Customer" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {customers.map((c) => (
+                                        {customers.map((c: any) => (
                                             <SelectItem key={c._id} value={c._id}>
                                                 {c.name?.firstName} {c.name?.lastName} ({c.phone || c.email})
                                             </SelectItem>
@@ -482,8 +456,8 @@ export default function CreateOrder() {
                             </div>
                         </div>
 
-                        <Button className="w-full" size="lg" disabled={cart.length === 0 || submitting} onClick={handleCheckout}>
-                            {submitting ? "Processing..." : `Complete Order (${totalAmount} BDT)`}
+                        <Button className="w-full" size="lg" disabled={cart.length === 0 || isSubmitting} onClick={handleCheckout}>
+                            {isSubmitting ? "Processing..." : `Complete Order (${totalAmount} BDT)`}
                         </Button>
                     </div>
                 </Card>

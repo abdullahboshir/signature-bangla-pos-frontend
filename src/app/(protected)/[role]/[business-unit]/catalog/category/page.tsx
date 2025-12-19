@@ -134,7 +134,7 @@ export default function CategoriesPage() {
     ];
 
     return (
-        <div className="p-6">
+        <div>
             <DataPageLayout
                 title="Categories"
                 description="Manage your product categories (Level 1)"

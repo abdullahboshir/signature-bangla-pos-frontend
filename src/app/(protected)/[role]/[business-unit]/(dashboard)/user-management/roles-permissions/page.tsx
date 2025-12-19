@@ -18,7 +18,13 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import Swal from 'sweetalert2';
-import { axiosInstance } from '@/lib/axios/axiosInstance';
+import {
+    useGetRolesQuery,
+    useGetPermissionsQuery,
+    useCreateRoleMutation,
+    useUpdateRoleMutation,
+    useDeleteRoleMutation
+} from "@/redux/api/roleApi";
 
 // Types based on the user provided data
 interface Permission {
@@ -54,10 +60,17 @@ const getResourceIcon = (resource: string) => {
 };
 
 export default function RolesPermissionsPage() {
-    // Removed direct token access as axiosInstance handles it.
+    // RTK Query Hooks
+    const { data: rolesData, isLoading: isRolesLoading } = useGetRolesQuery({ limit: 1000 });
+    const { data: permissionsData, isLoading: isPermsLoading } = useGetPermissionsQuery(undefined);
+
+    // Mutations
+    const [createRole] = useCreateRoleMutation();
+    const [updateRole] = useUpdateRoleMutation();
+    const [deleteRole] = useDeleteRoleMutation();
+
     const [roles, setRoles] = useState<Role[]>([]);
     const [permissions, setPermissions] = useState<Permission[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -66,74 +79,47 @@ export default function RolesPermissionsPage() {
     const [newRoleName, setNewRoleName] = useState('');
     const [newRoleDesc, setNewRoleDesc] = useState('');
 
-    // Fetch Data
+    // Sync RTK Data to Local State
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // Fetch all permissions by setting a high limit (1000 should suffice)
-                const [rolesRes, permissionsRes] = await Promise.all([
-                    axiosInstance.get('/super-admin/role?limit=1000'),
-                    axiosInstance.get('/super-admin/permission?limit=1000')
-                ]);
+        if (rolesData) {
+            // Normalize Roles like before
+            let fetchedRoles: Role[] = Array.isArray(rolesData) ? rolesData : rolesData?.data?.result || rolesData?.data || [];
 
-                // Defensive parsing and Normalization
-                let fetchedRoles: Role[] = [];
-                let fetchedPermissions: Permission[] = [];
+            // Normalize Permissions array in roles
+            fetchedRoles = fetchedRoles.map((role: any) => {
+                const rawPerms = Array.isArray(role.permissions)
+                    ? role.permissions.map((p: any) => (typeof p === 'object' && p !== null && p._id) ? p._id : p)
+                    : [];
 
-                // Parse Roles
-                const rData = (rolesRes as any);
-                let rawRoles = [];
-                if (Array.isArray(rData)) {
-                    rawRoles = rData;
-                } else if (Array.isArray(rData?.data)) {
-                    rawRoles = rData.data;
-                } else if (Array.isArray(rData?.data?.data)) {
-                    rawRoles = rData.data.data;
-                }
+                // Deduplicate permissions
+                const uniquePerms = Array.from(new Set(rawPerms)) as string[];
 
-                // Normalize Roles: permissions should be array of _id strings
-                fetchedRoles = rawRoles.map((role: any) => ({
+                return {
                     ...role,
-                    permissions: Array.isArray(role.permissions)
-                        ? role.permissions.map((p: any) => (typeof p === 'object' && p !== null && p._id) ? p._id : p)
-                        : []
-                }));
+                    permissions: uniquePerms
+                };
+            });
 
-                // Parse Permissions
-                const pData = (permissionsRes as any);
-                if (Array.isArray(pData)) {
-                    fetchedPermissions = pData;
-                } else if (Array.isArray(pData?.data)) {
-                    fetchedPermissions = pData.data;
-                } else if (Array.isArray(pData?.data?.data)) {
-                    fetchedPermissions = pData.data.data;
-                }
+            setRoles(fetchedRoles);
 
-                setRoles(fetchedRoles);
-                setPermissions(fetchedPermissions);
-
-                if (fetchedRoles.length > 0) {
-                    setSelectedRoleId(fetchedRoles[0]._id);
-                }
-            } catch (error) {
-                console.error("Failed to fetch roles/permissions", error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Connection Error',
-                    text: 'Could not fetch roles and permissions. Please ensure backend is running.',
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 3000
-                });
-            } finally {
-                setIsLoading(false);
+            // Set default selected role if not set
+            if (fetchedRoles.length > 0 && !selectedRoleId) {
+                // If previously selected role still exists, keep it, else select first
+                setSelectedRoleId(fetchedRoles[0]._id);
             }
-        };
+        }
+    }, [rolesData]); // Only update when API data changes (e.g., after refetch)
 
-        fetchData();
-    }, []);
+    useEffect(() => {
+        if (permissionsData) {
+            const fetchedPermissions: Permission[] = Array.isArray(permissionsData) ? permissionsData : permissionsData?.data || [];
+            console.log("Fetched Permissions Count:", fetchedPermissions.length);
+            setPermissions(fetchedPermissions);
+        }
+    }, [permissionsData]);
 
+
+    const isLoading = isRolesLoading || isPermsLoading;
     const selectedRole = roles.find(r => r._id === selectedRoleId);
 
     // Group Permissions by Resource
@@ -146,61 +132,66 @@ export default function RolesPermissionsPage() {
         return acc;
     }, {} as Record<string, Permission[]>);
 
+    const isSuperAdmin = (role: Role | null | undefined) => {
+        if (!role) return false;
+
+        // Debugging
+        console.log("Checking Super Admin:", role.name, role.id, role.isSystem);
+
+        // Check ID, or Name (case-insensitive) - REMOVED isSystem check to allow other system roles to be edited
+        const nameLower = role.name ? role.name.toLowerCase() : '';
+        return (
+            role.id === 'super-admin' ||
+            nameLower === 'super admin' ||
+            nameLower === 'super-admin'
+        );
+    };
+
     const handleCreateRole = async () => {
         if (!newRoleName) return;
 
         try {
-            const res = await axiosInstance.post('/super-admin/role', {
+            const payload = {
                 name: newRoleName,
                 description: newRoleDesc,
-                permissions: [], // Start empty
-                permissionGroups: [] // Required by schema
+                permissions: [],
+                permissionGroups: []
+            };
+
+            const response: any = await createRole(payload).unwrap();
+
+            // The mutation invalidates 'role' tag, so useGetRolesQuery will refetch.
+            // We just need to handle UI success state.
+            // However, RTK refetch is async. We might want to select the new role when it appears.
+            // For now, simple success message.
+
+            setIsCreateDialogOpen(false);
+            setNewRoleName('');
+            setNewRoleDesc('');
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Role Created',
+                text: `${newRoleName} has been created successfully.`,
+                timer: 1500,
+                showConfirmButton: false,
             });
 
-            // Handle different potential response structures
-            // Unwrap multiple levels of 'data' if necessary
-            let responseData = (res as any);
-            if (responseData.data) responseData = responseData.data;
-            if (responseData.data) responseData = responseData.data;
+            // Note: selectedRoleId update logic is handled in useEffect when new list arrives or we can explicitly set it here if we key it 
+            // But we rely on refetch for list update.
 
-            const newRole = responseData;
-
-            // Ensure newRole is valid
-            if (newRole && (newRole._id || newRole.id)) {
-                const roleToAdd = {
-                    ...newRole,
-                    _id: newRole._id || newRole.id,
-                    permissions: [] // New role has no permissions
-                };
-                setRoles([...roles, roleToAdd]);
-                setIsCreateDialogOpen(false);
-                setNewRoleName('');
-                setNewRoleDesc('');
-                setSelectedRoleId(roleToAdd._id);
-
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Role Created',
-                    text: `${newRoleName} has been created successfully.`,
-                    timer: 1500,
-                    showConfirmButton: false,
-                });
-            } else {
-                console.error("Invalid role creation response:", res);
-                throw new Error("Invalid response from server when creating role");
-            }
         } catch (error: any) {
             console.error("Create role error", error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: error?.response?.data?.message || 'Failed to create role. Ensure name is unique and valid.',
+                text: error?.data?.message || 'Failed to create role. Ensure name is unique and valid.',
             });
         }
     };
 
     const handleTogglePermission = (permissionId: string) => {
-        if (!selectedRole) return;
+        if (!selectedRole || isSuperAdmin(selectedRole)) return;
         // Optimistic update locally
         const updatedRoles = roles.map(role => {
             if (role._id === selectedRole._id) {
@@ -218,13 +209,10 @@ export default function RolesPermissionsPage() {
     };
 
     const handleSave = async () => {
-        if (!selectedRole) return;
+        if (!selectedRole || isSuperAdmin(selectedRole)) return;
         try {
-            // Update role permissions via API
-            // Backend expects array of ObjectId strings
             const payload = { permissions: selectedRole.permissions };
-
-            await axiosInstance.patch(`/super-admin/role/${selectedRole._id}`, payload);
+            await updateRole({ id: selectedRole._id, ...payload }).unwrap();
 
             Swal.fire({
                 icon: 'success',
@@ -238,13 +226,13 @@ export default function RolesPermissionsPage() {
             Swal.fire({
                 icon: 'error',
                 title: 'Save Failed',
-                text: error?.response?.data?.message || 'Could not update permissions.',
+                text: error?.data?.message || 'Could not update permissions.',
             });
         }
     };
 
     const handleSelectAll = (resourcePerms: Permission[]) => {
-        if (!selectedRole) return;
+        if (!selectedRole || isSuperAdmin(selectedRole)) return;
 
         // Use _id (Mongo ID) for selection/saving
         const idsToToggle = resourcePerms.map(p => p._id);
@@ -267,22 +255,21 @@ export default function RolesPermissionsPage() {
     const [editingRoleDesc, setEditingRoleDesc] = useState('');
 
     const handleEditRole = () => {
-        if (!selectedRole) return;
+        if (!selectedRole || isSuperAdmin(selectedRole)) return;
         setEditingRoleName(selectedRole.name);
         setEditingRoleDesc(selectedRole.description || '');
         setIsEditDialogOpen(true);
     };
 
     const handleUpdateRole = async () => {
-        if (!selectedRole || !editingRoleName) return;
+        if (!selectedRole || !editingRoleName || isSuperAdmin(selectedRole)) return;
         try {
-            await axiosInstance.patch(`/super-admin/role/${selectedRole._id}`, {
+            await updateRole({
+                id: selectedRole._id,
                 name: editingRoleName,
                 description: editingRoleDesc
-            });
+            }).unwrap();
 
-            const updatedRoles = roles.map(r => r._id === selectedRole._id ? { ...r, name: editingRoleName, description: editingRoleDesc } : r);
-            setRoles(updatedRoles);
             setIsEditDialogOpen(false);
 
             Swal.fire({
@@ -297,13 +284,13 @@ export default function RolesPermissionsPage() {
             Swal.fire({
                 icon: 'error',
                 title: 'Update Failed',
-                text: error?.response?.data?.message || 'Failed to update role.',
+                text: error?.data?.message || 'Failed to update role.',
             });
         }
     };
 
     const handleDeleteRole = async () => {
-        if (!selectedRole) return;
+        if (!selectedRole || isSuperAdmin(selectedRole)) return;
 
         const result = await Swal.fire({
             title: 'Are you sure?',
@@ -317,8 +304,9 @@ export default function RolesPermissionsPage() {
 
         if (result.isConfirmed) {
             try {
-                await axiosInstance.delete(`/super-admin/role/${selectedRole._id}`);
+                await deleteRole(selectedRole._id).unwrap();
 
+                // Optimistic UI update (optional, usually refetch handles it, but deleting selected ID needs care)
                 const remainingRoles = roles.filter(r => r._id !== selectedRole._id);
                 setRoles(remainingRoles);
                 if (remainingRoles.length > 0) {
@@ -337,7 +325,7 @@ export default function RolesPermissionsPage() {
                 Swal.fire({
                     icon: 'error',
                     title: 'Delete Failed',
-                    text: error?.response?.data?.message || 'Failed to delete role. It might be assigned to users.',
+                    text: error?.data?.message || 'Failed to delete role. It might be assigned to users.',
                 });
             }
         }
@@ -348,7 +336,7 @@ export default function RolesPermissionsPage() {
     }
 
     return (
-        <div className="space-y-6 p-6 h-[calc(100vh-80px)] flex flex-col">
+        <div className="space-y-6 h-[calc(100vh-80px)] flex flex-col">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">Roles & Permissions</h1>
@@ -505,12 +493,12 @@ export default function RolesPermissionsPage() {
                                         </Badge>
                                     </div>
                                     <CardDescription className="mt-1">
-                                        {selectedRole?.id === 'super-admin'
+                                        {isSuperAdmin(selectedRole)
                                             ? 'Super Admin has full system access.'
                                             : 'Configure what this role can access and modify.'}
                                     </CardDescription>
                                 </div>
-                                {selectedRole?.id !== 'super-admin' && (
+                                {!isSuperAdmin(selectedRole) && (
                                     <div className="flex gap-2">
                                         <Button onClick={handleEditRole} variant="outline" size="sm" className="gap-2">
                                             <Pencil className="h-4 w-4" /> Edit
@@ -528,31 +516,25 @@ export default function RolesPermissionsPage() {
                     })()}
 
                     <div className="flex-1 overflow-auto bg-muted/10">
-                        {selectedRole?.id === 'super-admin' ? (
-                            <div className="h-full flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
-                                <Shield className="h-16 w-16 mb-4 text-primary/20" />
-                                <h3 className="text-lg font-medium text-foreground">Unlimited Access</h3>
-                                <p className="max-w-md mt-2">
-                                    The Super Admin role is the highest level of authority and has implied access to all current and future modules.
-                                </p>
-                            </div>
-                        ) : (
-                            <ScrollArea className="h-full">
-                                <div className="p-6 space-y-8">
-                                    {Object.entries(groupedPermissions).map(([resource, perms]) => {
-                                        const ModuleIcon = getResourceIcon(resource);
-                                        // Use _id for checking selection
-                                        const allSelected = perms.every(p => selectedRole?.permissions?.includes(p._id));
+                        <ScrollArea className="h-full">
+                            <div className="p-6 space-y-8">
+                                {Object.entries(groupedPermissions).map(([resource, perms]) => {
+                                    const ModuleIcon = getResourceIcon(resource);
+                                    // Use _id for checking selection
+                                    // For Super Admin, EVERYTHING is selected
+                                    const isSuper = isSuperAdmin(selectedRole);
+                                    const allSelected = isSuper || perms.every(p => selectedRole?.permissions?.includes(p._id));
 
-                                        return (
-                                            <div key={resource} className="space-y-3">
-                                                <div className="flex items-center justify-between pb-2 border-b">
-                                                    <h3 className="font-medium flex items-center gap-2 text-foreground capitalize">
-                                                        <div className="p-1 bg-primary/10 rounded">
-                                                            <ModuleIcon className="h-4 w-4 text-primary" />
-                                                        </div>
-                                                        {resource} Module
-                                                    </h3>
+                                    return (
+                                        <div key={resource} className="space-y-3">
+                                            <div className="flex items-center justify-between pb-2 border-b">
+                                                <h3 className="font-medium flex items-center gap-2 text-foreground capitalize">
+                                                    <div className="p-1 bg-primary/10 rounded">
+                                                        <ModuleIcon className="h-4 w-4 text-primary" />
+                                                    </div>
+                                                    {resource} Module
+                                                </h3>
+                                                {!isSuper && (
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
@@ -561,43 +543,44 @@ export default function RolesPermissionsPage() {
                                                     >
                                                         {allSelected ? 'Deselect All' : 'Select All'}
                                                     </Button>
-                                                </div>
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                    {perms.map((perm) => {
-                                                        const isSelected = selectedRole?.permissions?.includes(perm._id);
-                                                        return (
-                                                            <div
-                                                                key={perm._id}
-                                                                onClick={() => handleTogglePermission(perm._id)}
-                                                                className={`
-                                                                    flex items-center space-x-3 p-3 rounded-md border text-sm cursor-pointer transition-all
-                                                                    ${isSelected
-                                                                        ? 'bg-primary/5 border-primary/50'
-                                                                        : 'bg-background hover:border-primary/30'}
-                                                                `}
-                                                            >
-                                                                <div className={`
-                                                                    h-4 w-4 rounded border flex items-center justify-center transition-colors
-                                                                    ${isSelected ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground/30'}
-                                                                `}>
-                                                                    {isSelected && <Check className="h-3 w-3" />}
-                                                                </div>
-                                                                <div className="flex flex-col">
-                                                                    <span className={isSelected ? 'font-medium text-foreground' : 'text-muted-foreground'} >
-                                                                        {perm.action.replace(/_/g, ' ').toUpperCase()}
-                                                                    </span>
-                                                                    <span className="text-[10px] text-muted-foreground/70">{perm.description}</span>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
+                                                )}
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                            </ScrollArea>
-                        )}
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                {perms.map((perm) => {
+                                                    const isSelected = isSuper || selectedRole?.permissions?.includes(perm._id);
+                                                    return (
+                                                        <div
+                                                            key={perm._id}
+                                                            onClick={() => !isSuper && handleTogglePermission(perm._id)}
+                                                            className={`
+                                                                flex items-center space-x-3 p-3 rounded-md border text-sm transition-all
+                                                                ${isSelected
+                                                                    ? 'bg-primary/5 border-primary/50'
+                                                                    : 'bg-background hover:border-primary/30'}
+                                                                ${isSuper ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'}
+                                                            `}
+                                                        >
+                                                            <div className={`
+                                                                h-4 w-4 rounded border flex items-center justify-center transition-colors
+                                                                ${isSelected ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground/30'}
+                                                            `}>
+                                                                {isSelected && <Check className="h-3 w-3" />}
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <span className={isSelected ? 'font-medium text-foreground' : 'text-muted-foreground'} >
+                                                                    {perm.action.replace(/_/g, ' ').toUpperCase()}
+                                                                </span>
+                                                                <span className="text-[10px] text-muted-foreground/70">{perm.description}</span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </ScrollArea>
                     </div>
                 </Card>
             </div>

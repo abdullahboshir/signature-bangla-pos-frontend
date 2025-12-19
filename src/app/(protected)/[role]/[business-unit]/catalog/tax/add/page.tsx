@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { ArrowLeft, Loader2 } from "lucide-react";
@@ -16,7 +15,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { axiosInstance } from "@/lib/axios/axiosInstance";
+import { useCreateTaxMutation } from "@/redux/api/taxApi";
 import Swal from "sweetalert2";
 
 interface TaxFormValues {
@@ -30,7 +29,7 @@ interface TaxFormValues {
 
 export default function AddTaxPage() {
     const router = useRouter();
-    const [isSaving, setIsSaving] = useState(false);
+    const [createTax, { isLoading: isSaving }] = useCreateTaxMutation();
 
     const { register, handleSubmit, control, formState: { errors } } = useForm<TaxFormValues>({
         defaultValues: {
@@ -44,13 +43,12 @@ export default function AddTaxPage() {
 
     const onSubmit = async (data: TaxFormValues) => {
         try {
-            setIsSaving(true);
             // Ensure rate is a number
             const payload = { ...data, rate: Number(data.rate) };
 
-            const response: any = await axiosInstance.post('/super-admin/taxes', payload);
+            const response: any = await createTax(payload).unwrap();
 
-            if (response?.success) {
+            if (response?.success || response?.data) {
                 Swal.fire({
                     icon: 'success',
                     title: 'Created!',
@@ -63,8 +61,6 @@ export default function AddTaxPage() {
         } catch (error) {
             console.error("Create error", error);
             Swal.fire("Error", "Failed to create tax", "error");
-        } finally {
-            setIsSaving(false);
         }
     };
 

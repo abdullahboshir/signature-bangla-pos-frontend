@@ -2,7 +2,7 @@
 import { UseFormReturn, UseFieldArrayAppend, UseFieldArrayRemove, UseFieldArrayReplace, FieldArrayWithId } from "react-hook-form";
 import { Plus, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
-import { axiosInstance } from "@/lib/axios/axiosInstance";
+
 import { FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VariantGenerator } from "./VariantGenerator";
 import { ProductFormValues } from "../product.schema";
+import { useUploadFileMutation } from "@/redux/api/uploadApi";
 
 interface AttributeSectionProps {
     form: UseFormReturn<ProductFormValues>;
@@ -20,6 +21,7 @@ interface AttributeSectionProps {
 }
 
 export const AttributeSection = ({ form, variantFields, appendVariant, removeVariant, replaceVariant }: AttributeSectionProps) => {
+    const [uploadFile] = useUploadFileMutation();
     return (
         <Card>
             <CardHeader>
@@ -141,11 +143,10 @@ export const AttributeSection = ({ form, variantFields, appendVariant, removeVar
                                                                                     for (let i = 0; i < files.length; i++) {
                                                                                         const formData = new FormData();
                                                                                         formData.append('image', files[i]);
-                                                                                        const res = await axiosInstance.post("/super-admin/upload/image", formData, {
-                                                                                            headers: { 'Content-Type': 'multipart/form-data' }
-                                                                                        });
-                                                                                        if (res.data?.success) {
-                                                                                            newUrls.push(res.data.data.url);
+                                                                                        const res = await uploadFile(formData).unwrap();
+                                                                                        const url = res?.url || res?.data?.url;
+                                                                                        if (url) {
+                                                                                            newUrls.push(url);
                                                                                         }
                                                                                     }
 

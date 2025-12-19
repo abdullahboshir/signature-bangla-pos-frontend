@@ -44,7 +44,7 @@ export function AppLayout({ children, showFooter = true }: AppLayoutProps) {
       <div className="flex-1 flex flex-col min-w-0">
         <DasboardHeader onMenuClick={() => setMobileOpen(true)} />
 
-        <main className="flex-1 overflow-auto mx-2">{children}</main>
+        <main className="flex-1 overflow-auto px-5 pt-4">{children}</main>
 
         {showFooter && <Footer />}
       </div>

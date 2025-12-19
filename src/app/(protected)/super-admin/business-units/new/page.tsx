@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Swal from "sweetalert2";
-import { axiosInstance } from "@/lib/axios/axiosInstance";
+import { useCreateBusinessUnitMutation } from "@/redux/api/businessUnitApi";
 
 export default function SuperAdminAddBusinessUnitPage() {
     const router = useRouter();
@@ -61,26 +61,30 @@ export default function SuperAdminAddBusinessUnitPage() {
                 }
             };
 
-            await axiosInstance.post('/super-admin/business-unit/create', payload);
+            // API Call - Using RTK Mutation
+            const result = await createBusinessUnit(payload).unwrap();
 
-            Swal.fire({
-                icon: "success",
-                title: "Success",
-                text: "Business Unit created successfully!",
-                timer: 1500,
-                showConfirmButton: false,
-            });
-
-            router.push("/super-admin/business-units");
+            if (result.success) {
+                Swal.fire({
+                    icon: "success",
+                    title: "Success",
+                    text: "Business Unit created successfully!",
+                    timer: 1500,
+                    showConfirmButton: false,
+                });
+                router.push("/super-admin/business-units");
+            } else {
+                throw new Error(result.message || "Failed to create");
+            }
         } catch (error: any) {
-            console.error("Creation error", error);
+            console.error("Failed to create business unit:", error);
             Swal.fire({
                 icon: "error",
                 title: "Failed",
-                text: error?.message || error?.response?.data?.message || "Could not create business unit."
+                text: error?.data?.message || error?.message || "Could not create business unit."
             });
         } finally {
-            setLoading(false);
+            setLoading(false); // Reset local loading state
         }
     };
 

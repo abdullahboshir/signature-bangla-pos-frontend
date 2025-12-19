@@ -3,19 +3,21 @@
 import {
     createContext,
     useContext,
-    useEffect,
-    useState,
     ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
 import {
-    login as authLogin,
-    restoreAuthSession,
-    clearAuthSession,
-    getCurrentUser,
     User,
     LoginResponse,
+    setAuthSession,
+    clearAuthSession as clearAuthCookies,
+    getRedirectPath
 } from "@/services/auth/authService";
+import {
+    useLoginMutation,
+    useLogoutMutation,
+    useGetMeQuery
+} from "@/redux/api/authApi";
 
 interface AuthContextType {
     user: User | null;
@@ -30,93 +32,84 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const router = useRouter();
 
-    // Restore session on mount
-    useEffect(() => {
-        let mounted = true;
+    // RTK Query Hooks
+    // useGetMeQuery handles initial load, session restoration, and acts as the source of truth for 'user'
+    const {
+        data: user,
+        isLoading: isUserLoading,
+        refetch: refetchUser,
+        isError
+    } = useGetMeQuery(undefined, {
+        pollingInterval: 0,
+        refetchOnFocus: false, // Don't aggressive refetch
+    });
 
-        const initAuth = async () => {
-            try {
-                const restoredUser = await restoreAuthSession();
-                if (mounted) {
-                    setUser(restoredUser);
-                }
-            } catch (err) {
-                console.error("Auth initialization failed", err);
-            } finally {
-                if (mounted) {
-                    setIsLoading(false);
-                }
-            }
-        };
-
-        initAuth();
-
-        return () => {
-            mounted = false;
-        };
-    }, []);
+    const [loginMutation] = useLoginMutation();
+    const [logoutMutation] = useLogoutMutation();
 
     const login = async (formData: any): Promise<LoginResponse> => {
-        setIsLoading(true);
-        setError(null);
-
         try {
-            const response: LoginResponse = await authLogin(formData);
+            const res: any = await loginMutation(formData).unwrap();
 
-            if (!response.success || !response.accessToken) {
-                const message = response.message || "Login failed";
-                setError(message);
-                setUser(null);
-                return {
-                    success: false,
-                    message,
-                };
+            // Debugging login response structure
+            console.log("LOGIN RESPONSE DEBUG:", res);
+
+            // Adjust based on actual API response structure. 
+            // authApi transformResponse typically returns res.data or res.data.data from baseApi
+            // But mutation returns exactly what backend sends usually unless transformed.
+            // Let's assume standard response: { success, data: { accessToken, user } }
+
+            const data = res.data || res;
+            const accessToken = data?.accessToken;
+            const userData = data?.user;
+
+            if (!accessToken) {
+                return { success: false, message: "Invalid login response" };
             }
 
-            // Fetch fresh user data to keep context consistent
-            const userData: any = (await getCurrentUser()) || response.user;
-            setUser(userData);
-            setError(null);
+            // Set cookie
+            setAuthSession(accessToken);
+
+            // Determine redirect
+            const redirect = getRedirectPath(accessToken, userData);
 
             return {
                 success: true,
-                accessToken: response.accessToken,
+                accessToken,
                 user: userData,
-                redirect: response.redirect,
+                redirect,
             };
+
         } catch (err: any) {
-            const message = err?.message || "Login failed";
-            setError(message);
-            setUser(null);
             return {
                 success: false,
-                message,
+                message: err?.data?.message || err?.message || "Login failed",
             };
-        } finally {
-            setIsLoading(false);
         }
     };
 
-    const logout = () => {
-        clearAuthSession();
-        setUser(null);
-        setError(null);
-        router.push("/auth/login");
+    const logout = async () => {
+        try {
+            await logoutMutation({}).unwrap();
+        } catch (e) {
+            console.error("Logout error", e);
+        }
+
+        clearAuthCookies();
+        // Force hard reload to clear all states and prevent protected layout loops
+        window.location.href = "/auth/login";
+        // router.push("/auth/login");
+        // We can manually reset api state if needed, but invalidation should handle it
+        // dispatch(baseApi.util.resetApiState()); // Optional if full clear required
     };
 
     const refreshSession = async (): Promise<boolean> => {
         try {
-            const user = await restoreAuthSession();
-            setUser(user);
-            return !!user;
-        } catch (err: any) {
-            setError("Session refresh failed");
-            setUser(null);
+            const result = await refetchUser();
+            return !!result.data;
+        } catch {
             return false;
         }
     };
@@ -124,9 +117,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return (
         <AuthContext.Provider
             value={{
-                user,
-                isLoading,
-                error,
+                user: user || null,
+                isLoading: isUserLoading,
+                error: isError ? "Authentication error" : null,
                 isAuthenticated: !!user,
                 login,
                 logout,
@@ -137,8 +130,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         </AuthContext.Provider>
     );
 }
-
-
 
 export function useAuthContext() {
     const context = useContext(AuthContext);

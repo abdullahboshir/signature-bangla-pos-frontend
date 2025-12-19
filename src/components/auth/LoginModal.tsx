@@ -81,8 +81,11 @@ export default function LoginModal({ open = false, onOpenChange }: LoginModalPro
                 password: formData.password,
             });
 
-            if (!res?.success || !res?.accessToken) {
-                throw new Error("Invalid credentials");
+            if (!res?.success) {
+                throw new Error(res?.message || "Invalid credentials");
+            }
+            if (!res?.accessToken) {
+                throw new Error("Invalid response: Missing access token");
             }
 
             Swal.fire({

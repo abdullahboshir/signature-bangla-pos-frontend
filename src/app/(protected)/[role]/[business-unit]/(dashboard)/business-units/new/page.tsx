@@ -10,11 +10,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Swal from "sweetalert2";
-import { axiosInstance } from "@/lib/axios/axiosInstance";
+import { useCreateBusinessUnitMutation } from "@/redux/api/businessUnitApi";
 
 export default function AddBusinessUnitPage() {
     const router = useRouter();
-    const [loading, setLoading] = useState(false);
+    const [createBusinessUnit, { isLoading: isCreating }] = useCreateBusinessUnitMutation();
+    const loading = isCreating;
 
     // Form state
     const [name, setName] = useState("");
@@ -27,8 +28,6 @@ export default function AddBusinessUnitPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        setLoading(true);
 
         try {
             // Payload based on creation requirements
@@ -50,26 +49,26 @@ export default function AddBusinessUnitPage() {
                 businessUnitType: type
             };
 
-            await axiosInstance.post('/super-admin/business-unit/create', payload);
+            const res: any = await createBusinessUnit(payload).unwrap();
 
-            Swal.fire({
-                icon: "success",
-                title: "Success",
-                text: "Business Unit created successfully!",
-                timer: 1500,
-                showConfirmButton: false,
-            });
+            if (res?.success) {
+                Swal.fire({
+                    icon: "success",
+                    title: "Success",
+                    text: "Business Unit created successfully!",
+                    timer: 1500,
+                    showConfirmButton: false,
+                });
 
-            router.push("../business-units");
+                router.push("../business-units");
+            }
         } catch (error: any) {
             console.error("Creation error", error);
             Swal.fire({
                 icon: "error",
                 title: "Failed",
-                text: error?.message || error?.response?.data?.message || "Could not create business unit."
+                text: error?.message || error?.data?.message || "Could not create business unit."
             });
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -128,6 +127,7 @@ export default function AddBusinessUnitPage() {
                                             <SelectItem value="boutique">Boutique</SelectItem>
                                             <SelectItem value="brand">Brand</SelectItem>
                                             <SelectItem value="marketplace">Marketplace</SelectItem>
+                                            <SelectItem value="specialty">Specialty</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -138,9 +138,10 @@ export default function AddBusinessUnitPage() {
                                             <SelectValue placeholder="Select status" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="published">Active</SelectItem>
-                                            <SelectItem value="draft">Setup Phase</SelectItem>
-                                            <SelectItem value="suspended">Inactive</SelectItem>
+                                            <SelectItem value="published">Published</SelectItem>
+                                            <SelectItem value="draft">Draft</SelectItem>
+                                            <SelectItem value="under_review">Under Review</SelectItem>
+                                            <SelectItem value="suspended">Suspended</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>

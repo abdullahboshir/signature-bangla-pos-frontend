@@ -1,4 +1,5 @@
 
+import { useEffect } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -10,15 +11,33 @@ interface BasicInfoProps {
     form: UseFormReturn<ProductFormValues>;
     categories: any[];
     brands: any[];
-    level1: string;
-    setLevel1: (val: string) => void;
-    level2: string;
-    setLevel2: (val: string) => void;
-    level3: string;
-    setLevel3: (val: string) => void;
+    level1?: string;
+    level2?: string;
+    level3?: string;
+    setLevel1?: (val: string) => void;
+    setLevel2?: (val: string) => void;
+    setLevel3?: (val: string) => void;
 }
 
-export const BasicInfo = ({ form, categories, brands, level1, setLevel1, level2, setLevel2, level3, setLevel3 }: BasicInfoProps) => {
+export const BasicInfo = ({ form, categories, brands, setLevel1, setLevel2, setLevel3 }: BasicInfoProps) => {
+    // Watch category fields to drive the hierarchy options dynamically
+    const watchedL1 = form.watch("primaryCategory");
+    const watchedL2 = form.watch("subCategory");
+    const watchedL3 = form.watch("childCategory");
+
+    const selectedL1 = categories.find(c => (c._id || c.id) === watchedL1);
+    const selectedL2 = (selectedL1?.children || []).find((c: any) => (c._id || c.id) === watchedL2);
+
+    console.log("DEBUG: BasicInfo Render ->", {
+        catsLen: categories?.length,
+        brandsLen: brands?.length,
+        wL1: watchedL1,
+        wL2: watchedL2,
+        wL3: watchedL3,
+        l1hasChildren: selectedL1?.children?.length,
+        l2hasChildren: selectedL2?.children?.length
+    });
+
     return (
         <Card>
             <CardHeader>
@@ -69,23 +88,24 @@ export const BasicInfo = ({ form, categories, brands, level1, setLevel1, level2,
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     {/* Category Hierarchy */}
-                    {/* Category Hierarchy */}
                     <FormField
                         control={form.control}
                         name="primaryCategory"
                         render={({ field }) => (
                             <FormItem className="col-span-1">
                                 <FormLabel>Category</FormLabel>
-                                <Select onValueChange={(val) => {
-                                    setLevel1(val);
-                                    setLevel2("");
-                                    setLevel3("");
-                                    field.onChange(val);
-                                    // Reset sub and child in form
-                                    form.setValue("subCategory", "");
-                                    form.setValue("childCategory", "");
-                                    form.setValue('categories', [val]);
-                                }} value={level1}>
+                                <Select
+                                    key={field.value || "empty"}
+                                    onValueChange={(val) => {
+                                        if (setLevel1) setLevel1(val);
+                                        if (setLevel2) setLevel2("");
+                                        if (setLevel3) setLevel3("");
+                                        field.onChange(val);
+                                        // Reset sub and child in form
+                                        form.setValue("subCategory", "");
+                                        form.setValue("childCategory", "");
+                                        form.setValue('categories', [val]);
+                                    }} value={field.value || ""}>
                                     <FormControl>
                                         <SelectTrigger><SelectValue placeholder="Main Category" /></SelectTrigger>
                                     </FormControl>
@@ -104,22 +124,23 @@ export const BasicInfo = ({ form, categories, brands, level1, setLevel1, level2,
                         name="subCategory"
                         render={({ field }) => {
                             // Find selected Level 1 to get Level 2 options
-                            const selectedL1 = categories.find(c => (c._id || c.id) === level1);
+                            const selectedL1 = categories.find(c => (c._id || c.id) === watchedL1);
                             const l2Ops = selectedL1?.children || [];
 
                             return (
                                 <FormItem className="col-span-1">
                                     <FormLabel>Sub Category</FormLabel>
                                     <Select
-                                        disabled={!level1 || l2Ops.length === 0}
+                                        key={field.value || "empty"}
+                                        disabled={!watchedL1 || l2Ops.length === 0}
                                         onValueChange={(val) => {
-                                            setLevel2(val);
-                                            setLevel3("");
+                                            if (setLevel2) setLevel2(val);
+                                            if (setLevel3) setLevel3("");
                                             field.onChange(val);
                                             // Reset child in form
                                             form.setValue("childCategory", "");
-                                            form.setValue('categories', [level1, val]);
-                                        }} value={level2}>
+                                            form.setValue('categories', [watchedL1, val]);
+                                        }} value={field.value || ""}>
                                         <FormControl>
                                             <SelectTrigger><SelectValue placeholder="Sub Category" /></SelectTrigger>
                                         </FormControl>
@@ -139,22 +160,23 @@ export const BasicInfo = ({ form, categories, brands, level1, setLevel1, level2,
                         name="childCategory"
                         render={({ field }) => {
                             // Find selected Level 1 and Level 2 to get Level 3 options
-                            const selectedL1 = categories.find(c => (c._id || c.id) === level1);
+                            const selectedL1 = categories.find(c => (c._id || c.id) === watchedL1);
                             const l2Ops = selectedL1?.children || [];
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            const selectedL2 = l2Ops.find((c: any) => (c._id || c.id) === level2);
+                            const selectedL2 = l2Ops.find((c: any) => (c._id || c.id) === watchedL2);
                             const l3Ops = selectedL2?.children || [];
 
                             return (
                                 <FormItem className="col-span-1">
                                     <FormLabel>Child Category</FormLabel>
                                     <Select
-                                        disabled={!level2 || l3Ops.length === 0}
+                                        key={field.value || "empty"}
+                                        disabled={!watchedL2 || l3Ops.length === 0}
                                         onValueChange={(val) => {
-                                            setLevel3(val);
+                                            if (setLevel3) setLevel3(val);
                                             field.onChange(val);
-                                            form.setValue('categories', [level1, level2, val]);
-                                        }} value={level3}>
+                                            form.setValue('categories', [watchedL1, watchedL2 || "", val]);
+                                        }} value={field.value || ""}>
                                         <FormControl>
                                             <SelectTrigger><SelectValue placeholder="Child Category" /></SelectTrigger>
                                         </FormControl>
@@ -176,6 +198,7 @@ export const BasicInfo = ({ form, categories, brands, level1, setLevel1, level2,
                             <FormItem>
                                 <FormLabel>Brand</FormLabel>
                                 <Select
+                                    key={field.value?.[0] || "empty"}
                                     onValueChange={(val) => field.onChange([val])}
                                     value={field.value?.[0] || ""}
                                 >

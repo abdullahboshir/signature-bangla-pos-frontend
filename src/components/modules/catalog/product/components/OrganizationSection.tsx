@@ -23,7 +23,7 @@ export const OrganizationSection = ({ form, units }: OrganizationSectionProps) =
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Unit of Measure</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
+                                <Select key={field.value || "empty"} onValueChange={field.onChange} value={field.value || ""}>
                                     <FormControl>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select Unit" />
@@ -47,7 +47,7 @@ export const OrganizationSection = ({ form, units }: OrganizationSectionProps) =
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Product Status</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
+                                <Select key={field.value || "empty"} onValueChange={field.onChange} value={field.value}>
                                     <FormControl>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select Status" />

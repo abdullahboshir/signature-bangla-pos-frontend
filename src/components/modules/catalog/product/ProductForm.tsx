@@ -1,13 +1,24 @@
 "use client";
 
-import { axiosInstance } from "@/lib/axios/axiosInstance";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ChevronsUpDown, Check, Loader2, Plus, Trash, Trash2, Upload, X } from "lucide-react";
+import { Check, Loader2, Upload, X, Trash2 } from "lucide-react";
+
+import { useGetCategoriesQuery } from "@/redux/api/categoryApi";
+import { useGetSubCategoriesQuery, useGetSubCategoriesByParentQuery } from "@/redux/api/subCategoryApi";
+import { useGetChildCategoriesQuery, useGetChildCategoriesByParentQuery } from "@/redux/api/childCategoryApi";
+import { useGetBrandsQuery } from "@/redux/api/brandApi";
+import { useGetUnitsQuery } from "@/redux/api/unitApi";
+import { useGetTaxesQuery } from "@/redux/api/taxApi";
+import {
+    useCreateProductMutation,
+    useUpdateProductMutation,
+} from "@/redux/api/productApi";
+import { useUploadFileMutation } from "@/redux/api/uploadApi";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -34,8 +45,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Separator } from "@/components/ui/separator";
 
 import { defaultProductValues, productSchema, ProductFormValues } from "./product.schema";
-import { productService } from "@/services/catalog/product.service";
-import { categoryService } from "@/services/catalog/category.service";
 import { VariantGenerator } from "./components/VariantGenerator";
 
 
@@ -50,12 +59,18 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     const businessUnit = params["business-unit"] as string;
     const role = params["role"] as string;
 
-    const [isLoading, setIsLoading] = useState(false);
-    const [categories, setCategories] = useState<any[]>([]);
-    const [subCategories, setSubCategories] = useState<any[]>([]);
-    const [childCategories, setChildCategories] = useState<any[]>([]);
-    const [brands, setBrands] = useState<any[]>([]);
-    const [units, setUnits] = useState<any[]>([]);
+    // RTK Query Hooks
+    const { data: categories = [] } = useGetCategoriesQuery({});
+    const { data: brands = [] } = useGetBrandsQuery({});
+    const { data: units = [] } = useGetUnitsQuery({});
+    const { data: taxes = [] } = useGetTaxesQuery({});
+
+    // Mutations
+    const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
+    const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
+    const [uploadFile] = useUploadFileMutation();
+
+    const isLoading = isCreating || isUpdating;
 
     // Normalize initialData to handle populated fields (objects -> IDs)
     const normalizedDefaultValues = initialData ? {
@@ -115,9 +130,31 @@ export default function ProductForm({ initialData }: ProductFormProps) {
         mode: "onChange",
     });
 
-    const [taxes, setTaxes] = useState<any[]>([]);
+
+
+    // Cascading Effects
+    const selectedPrimary = form.watch("primaryCategory");
+    const selectedSub = form.watch("subCategory");
+
+    // Fetch Sub/Child based on selection
+    // Note: We use 'skip' to prevent fetching when no parent is selected.
+    const { data: subCategories = [] } = useGetSubCategoriesByParentQuery(
+        selectedPrimary,
+        { skip: !selectedPrimary }
+    );
+
+    const { data: childCategories = [] } = useGetChildCategoriesByParentQuery(
+        selectedSub,
+        { skip: !selectedSub }
+    );
 
     // Calculation Logic (Moved to proper scope)
+    const { fields: variantFields, append: appendVariant, remove: removeVariant, replace: replaceVariants } = useFieldArray({
+        control: form.control,
+        name: "variants",
+    });
+
+    // Price Calculation Logic
     // Debugging Form Errors
     console.log("Form Errors:", form.formState.errors);
 
@@ -176,131 +213,12 @@ export default function ProductForm({ initialData }: ProductFormProps) {
         }
     }, [marginType]);
 
-    const { fields: variantFields, append: appendVariant, remove: removeVariant, replace: replaceVariants } = useFieldArray({
-        control: form.control,
-        name: "variants",
-    });
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const cats = await categoryService.getAll({ limit: 100 });
-                const brandsRes = await axiosInstance.get("/super-admin/brands");
-                const unitsRes = await axiosInstance.get("/super-admin/units");
 
-                const taxList = await productService.getTaxes();
 
-                setTaxes(taxList);
-                setCategories(cats);
-                setBrands(brandsRes.data?.data?.result || brandsRes.data?.data || []);
-                setUnits(unitsRes.data?.data?.result || unitsRes.data?.data || []);
-
-                // If editing and we have initial values, we need to load sub/child cats to show the selected labels
-                if (initialData) {
-                    // Normalize for reset as well
-                    const resetValues = {
-                        ...defaultProductValues,
-                        ...initialData,
-                        primaryCategory: initialData.primaryCategory?._id || initialData.primaryCategory,
-                        subCategory: initialData.subCategory?._id || initialData.subCategory,
-                        childCategory: initialData.childCategory?._id || initialData.childCategory,
-                        unit: initialData.unit?._id || initialData.unit,
-                        businessUnit: initialData.businessUnit?._id || initialData.businessUnit,
-                        brands: initialData.brands?.map((b: any) => b._id || b) || [],
-                        pricing: {
-                            ...defaultProductValues.pricing,
-                            ...initialData.pricing,
-                            tax: {
-                                ...defaultProductValues.pricing.tax,
-                                ...(initialData.pricing?.tax || initialData.tax)
-                            }
-                        },
-                        inventory: {
-                            ...defaultProductValues.inventory,
-                            ...initialData.inventory,
-                            inventory: {
-                                ...defaultProductValues.inventory.inventory,
-                                ...(initialData.inventory?.inventory || {})
-                            }
-                        },
-                        shipping: {
-                            ...defaultProductValues.shipping,
-                            ...initialData.shipping
-                        },
-                        details: {
-                            ...defaultProductValues.details,
-                            ...initialData.details
-                        },
-                        marketing: {
-                            ...defaultProductValues.marketing,
-                            ...initialData.marketing
-                        },
-                        statusInfo: {
-                            ...defaultProductValues.statusInfo,
-                            ...initialData.statusInfo
-                        },
-                        // Fix warranty for reset too
-                        warranty: (initialData.warranty && typeof initialData.warranty === 'object' && !Array.isArray(initialData.warranty))
-                            ? initialData.warranty
-                            : defaultProductValues.warranty,
-                    };
-                    form.reset(resetValues);
-
-                    // Pre-fetch SubCategories if Primary Category exists
-                    if (initialData.primaryCategory) {
-                        const catId = typeof initialData.primaryCategory === 'string' ? initialData.primaryCategory : initialData.primaryCategory._id;
-                        const subs = await categoryService.getAllSub({ category: catId });
-                        setSubCategories(subs);
-
-                        // Pre-fetch ChildCategories if SubCategory exists
-                        if (initialData.subCategory) {
-                            const subId = typeof initialData.subCategory === 'string' ? initialData.subCategory : initialData.subCategory._id;
-                            const childs = await categoryService.getAllChild({ subCategory: subId });
-                            setChildCategories(childs);
-                        }
-                    }
-                }
-
-            } catch (error) {
-                console.error("Error fetching dependencies:", error);
-                toast.error("Failed to load categories");
-            }
-        };
-        fetchData();
-    }, [initialData, form]);
-
-    // Cascading Effects
-    const selectedPrimary = form.watch("primaryCategory");
-    const selectedSub = form.watch("subCategory");
-
-    useEffect(() => {
-        if (selectedPrimary) {
-            // Only fetch if changed and not initial load (controlled by logic below or user iteration)
-            // Actually, simplest is to fetch whenever it changes.
-            // But we avoid re-fetching on initial load if we handled it above.
-            // To allow dynamic switching:
-            categoryService.getAllSub({ category: selectedPrimary }).then(setSubCategories);
-            // Clear downstream
-            if (!initialData || (initialData.primaryCategory !== selectedPrimary)) {
-                // Only clear if user changed it, not on initial hydration
-                // Hard to detect "user change" vs "initial populate" perfectly in this effect structure without refs.
-                // But generally safe to fetch. resetting downstream fields is needed if user changes parent.
-            }
-        } else {
-            setSubCategories([]);
-        }
-    }, [selectedPrimary]);
-
-    useEffect(() => {
-        if (selectedSub) {
-            categoryService.getAllChild({ subCategory: selectedSub }).then(setChildCategories);
-        } else {
-            setChildCategories([]);
-        }
-    }, [selectedSub]);
 
     const onSubmit = async (data: ProductFormValues) => {
-        setIsLoading(true);
+
         try {
             // Remove warranty from payload if it's default/invalid to preserve backend reference or avoid error
             const payload: any = { ...data, businessUnit };
@@ -335,19 +253,17 @@ export default function ProductForm({ initialData }: ProductFormProps) {
 
 
             if (initialData && initialData._id) {
-                await productService.update(initialData._id, payload);
+                await updateProduct({ id: initialData._id, body: payload }).unwrap();
                 toast.success("Product updated successfully!");
             } else {
-                await productService.create(payload);
+                await createProduct(payload).unwrap();
                 toast.success("Product created successfully!");
             }
             router.push(`/${role}/${businessUnit}/catalog/product`);
         } catch (error: any) {
             console.error("Product Save Error:", error);
-            toast.error(error?.response?.data?.message || "Failed to save product");
-        } finally {
-            setIsLoading(false);
-        }
+            toast.error(error?.data?.message || "Failed to save product");
+        } // Loading state handled by hooks
     };
 
     const onFormError = (errors: any) => {
@@ -769,11 +685,12 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                                                 const formData = new FormData();
                                                                 formData.append('image', file);
                                                                 toast.info("Uploading image...");
-                                                                const res = await axiosInstance.post("/super-admin/upload/image", formData, {
-                                                                    headers: { 'Content-Type': 'multipart/form-data' }
-                                                                });
-                                                                if (res.data?.success) {
-                                                                    const url = res.data.data.url;
+
+                                                                const res = await uploadFile(formData).unwrap();
+
+                                                                // Handle response structure { url: "..." } or { data: { url: "..." } }
+                                                                const url = res?.url || res?.data?.url;
+                                                                if (url) {
                                                                     const current = form.getValues("details.images") || [];
                                                                     form.setValue("details.images", [...current, url]);
                                                                     toast.success("Image uploaded!");
@@ -856,7 +773,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                                                                     size="icon"
                                                                                     className="absolute top-0 right-0 h-4 w-4 opacity-0 group-hover:opacity-100 p-0 rounded-none"
                                                                                     onClick={() => {
-                                                                                        const newImages = [...field.value];
+                                                                                        const newImages = [...(field.value || [])];
                                                                                         newImages.splice(imgIdx, 1);
                                                                                         field.onChange(newImages);
                                                                                     }}
@@ -882,11 +799,10 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                                                                             for (let i = 0; i < files.length; i++) {
                                                                                                 const formData = new FormData();
                                                                                                 formData.append('image', files[i]);
-                                                                                                const res = await axiosInstance.post("/super-admin/upload/image", formData, {
-                                                                                                    headers: { 'Content-Type': 'multipart/form-data' }
-                                                                                                });
-                                                                                                if (res.data?.success) {
-                                                                                                    newUrls.push(res.data.data.url);
+                                                                                                const res = await uploadImage(formData).unwrap();
+
+                                                                                                if (res.success) {
+                                                                                                    newUrls.push(res.data.url);
                                                                                                 }
                                                                                             }
 

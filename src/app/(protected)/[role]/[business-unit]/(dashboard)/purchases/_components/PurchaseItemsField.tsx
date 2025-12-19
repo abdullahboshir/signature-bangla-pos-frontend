@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { axiosInstance as api } from "@/lib/axios/axiosInstance";
+import { useGetProductsQuery } from "@/redux/api/productApi";
 import {
     Select,
     SelectContent,
@@ -25,31 +25,11 @@ export function PurchaseItemsField({ control, name }: Action) {
         name,
     });
 
-    const [products, setProducts] = useState<any[]>([]);
+    // RTK Query hook for fetching products
+    const { data: products = [] } = useGetProductsQuery({});
 
-    useEffect(() => {
-        fetchProducts();
-    }, []);
-
-    const fetchProducts = async () => {
-        try {
-            // Fetch products for dropdown
-            // Assuming endpoint exists. If not, needs to be created or use 'product-core'
-            const res = await api.get('/inventory/product/list'); // Verify endpoint! 
-            // Previous audits showed '/inventory/product/list' might be valid or 'catalog/product'
-            // I'll assume '/inventory/product/list' based on context or use a standard one.
-            // Actually, product list might be paginated. I'll just check what `ProductList.tsx` uses.
-            // ProductList uses `useGetProductsQuery` from RTK Query usually.
-            // Here I'm using axios.
-            // Let's assume `/catalog/product` endpoint exists for now or generic list.
-            // I will double check later. If it fails, I'll fix it.
-            if ((res as any).success) {
-                setProducts((res as any).data);
-            }
-        } catch (e) {
-            console.error("Failed to fetch products", e);
-        }
-    };
+    // Previous manual fetch logic removed
+    // const fetchProducts = async () => { ... }
 
     // Auto-calculate total when quantity or cost changes
     // This is tricky with useFieldArray. 
@@ -139,7 +119,7 @@ export function PurchaseItemsField({ control, name }: Action) {
 
 import { Controller } from "react-hook-form";
 
-function ProductSelect({ control, index, name, products, onProductSelect }: any) {
+function ProductSelect({ control, index, name, products, onProductSelect }: { control: any, index: number, name: string, products: any[], onProductSelect: (prod: any) => void }) {
     return (
         <Controller
             control={control}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Mail, Phone, Truck, MoreHorizontal, Search, Trash, Edit } from "lucide-react";
 import { DataTable } from "@/components/shared/DataTable";
@@ -17,13 +17,25 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AutoFormModal } from "@/components/shared/AutoFormModal";
 import { FieldConfig } from "@/types/auto-form";
-import { axiosInstance as api } from "@/lib/axios/axiosInstance";
+import {
+    useGetSuppliersQuery,
+    useCreateSupplierMutation,
+    useUpdateSupplierMutation,
+    useDeleteSupplierMutation
+} from "@/redux/api/supplierApi";
 import { toast } from "sonner";
 import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit";
 
 export default function SuppliersPage() {
-    const [suppliers, setSuppliers] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    // RTK Query Hooks
+    const { data: suppliersResponse, isLoading: isSuppliersLoading } = useGetSuppliersQuery(undefined);
+    const [createSupplier] = useCreateSupplierMutation();
+    const [updateSupplier] = useUpdateSupplierMutation();
+    const [deleteSupplier] = useDeleteSupplierMutation();
+
+    // Derived state from RTK Query data
+    const suppliers = suppliersResponse?.data || [];
+    const loading = isSuppliersLoading;
     const [searchTerm, setSearchTerm] = useState("");
 
     // Modal State
@@ -32,24 +44,6 @@ export default function SuppliersPage() {
     const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
 
     const { currentBusinessUnit } = useCurrentBusinessUnit();
-
-    useEffect(() => {
-        fetchSuppliers();
-    }, [currentBusinessUnit]);
-
-    const fetchSuppliers = async () => {
-        try {
-            setLoading(true);
-            const res = await api.get('/super-admin/suppliers');
-            if (res.success) {
-                setSuppliers(res.data);
-            }
-        } catch (error) {
-            console.error("Failed to fetch suppliers", error);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleCreate = () => {
         setSelectedSupplier(null);
@@ -66,10 +60,9 @@ export default function SuppliersPage() {
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this supplier?")) return;
         try {
-            const res = await api.delete(`/super-admin/suppliers/${id}`);
-            if (res.success) {
+            const res = await deleteSupplier(id).unwrap();
+            if (res.success || res.data) {
                 toast.success("Supplier deleted successfully");
-                fetchSuppliers();
             }
         } catch (error) {
             toast.error("Failed to delete supplier");
@@ -84,18 +77,17 @@ export default function SuppliersPage() {
             }
 
             if (modalMode === 'create') {
-                const res = await api.post('/super-admin/suppliers/create', values);
-                if (res.success) {
+                const res = await createSupplier(values).unwrap();
+                if (res.success || res.data) {
                     toast.success("Supplier created successfully");
                 }
             } else {
-                const res = await api.patch(`/super-admin/suppliers/${selectedSupplier._id}`, values);
-                if (res.success) {
+                const res = await updateSupplier({ id: selectedSupplier._id, body: values }).unwrap();
+                if (res.success || res.data) {
                     toast.success("Supplier updated successfully");
                 }
             }
             setIsModalOpen(false);
-            fetchSuppliers();
         } catch (error) {
             console.error(error);
             toast.error(`Failed to ${modalMode} supplier`);

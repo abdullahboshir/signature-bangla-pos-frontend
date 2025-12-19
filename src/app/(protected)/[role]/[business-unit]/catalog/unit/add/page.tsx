@@ -30,8 +30,9 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { axiosInstance } from "@/lib/axios/axiosInstance";
 import Swal from "sweetalert2";
+import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
+import { useCreateUnitMutation } from "@/redux/api/unitApi";
 
 const BUSINESS_TYPES: any[] = []; // Removed hardcoded types
 
@@ -52,34 +53,27 @@ export default function AddUnitPage() {
 
     const selectedTypes = watch("relatedBusinessTypes");
 
+    const [createUnit, { isLoading: isCreating }] = useCreateUnitMutation();
+    // Fetch Business Units using RTK Query
+    const { data: businessUnitsData } = useGetBusinessUnitsQuery({ limit: 1000 });
+
     useEffect(() => {
-        const fetchBusinessUnits = async () => {
-            try {
-                // Fetching business units to populate the types
-                const response: any = await axiosInstance.get('/super-admin/business-unit');
-
-                if (response?.success || response?.data) {
-                    const data = Array.isArray(response?.data) ? response.data : response?.data?.data || [];
-                    const options = data.map((bu: any) => ({
-                        label: bu.name,
-                        value: bu.name
-                    })).filter((v: any, i: any, a: any) => a.findIndex((t: any) => t.value === v.value) === i);
-
-                    setBusinessTypes(options);
-                }
-            } catch (error) {
-                console.error("Failed to fetch business units", error);
-            }
-        };
-        fetchBusinessUnits();
-    }, []);
+        if (businessUnitsData) {
+            const data = Array.isArray(businessUnitsData) ? businessUnitsData : businessUnitsData?.data || [];
+            const options = data.map((bu: any) => ({
+                label: bu.name,
+                value: bu.name
+            })).filter((v: any, i: any, a: any) => a.findIndex((t: any) => t.value === v.value) === i);
+            setBusinessTypes(options);
+        }
+    }, [businessUnitsData]);
 
     const onSubmit = async (data: any) => {
         try {
             setIsSaving(true);
-            const response: any = await axiosInstance.post('/super-admin/units', data);
+            const result = await createUnit(data).unwrap();
 
-            if (response?.success) {
+            if (result?.success || result?.data) {
                 Swal.fire({
                     icon: 'success',
                     title: 'Created!',
@@ -91,7 +85,7 @@ export default function AddUnitPage() {
             }
         } catch (error: any) {
             console.error("Create error", error);
-            const errorMessage = error?.response?.data?.message || error?.message || "Failed to create unit";
+            const errorMessage = error?.data?.message || error?.message || "Failed to create unit";
             Swal.fire({
                 icon: "error",
                 title: "Error",

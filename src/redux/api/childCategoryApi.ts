@@ -19,7 +19,7 @@ const childCategoryApi = baseApi.injectEndpoints({
         method: "GET",
         params,
       }),
-      transformResponse: (response: any) => response.data,
+      transformResponse: (response: any) => response.data?.data?.result || response.data?.data || response.data?.result || response.data || [],
       providesTags: [tagTypes.childCategory],
     }),
     getChildCategoriesByParent: build.query({
@@ -27,7 +27,7 @@ const childCategoryApi = baseApi.injectEndpoints({
         url: `/super-admin/categories/child/${subCategoryId}/getChildCategories`,
         method: "GET",
       }),
-      transformResponse: (response: any) => response.data,
+      transformResponse: (response: any) => response.data?.data?.result || response.data?.data || response.data?.result || response.data || [],
       providesTags: [tagTypes.childCategory],
     }),
     getChildCategory: build.query({

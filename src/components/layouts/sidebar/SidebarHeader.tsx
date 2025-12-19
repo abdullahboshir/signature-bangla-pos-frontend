@@ -103,7 +103,7 @@ export function SidebarHeader({ onMenuClick, className }: HeaderProps) {
         {/* User Menu */}
         {user && <UserMenu user={{
           fullName: user.name || "User",
-          profileImg: "/avatars/01.png", // Fallback
+          profileImg: user.avatar || "/avatars/01.png", // Fallback
           designation: role,
           role: role,
           businessUnit: currentBusinessUnit?.name || "Global"

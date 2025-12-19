@@ -17,7 +17,7 @@ import {
     TabsTrigger,
 } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { OrderService } from "./OrderService";
+import { useGetOrdersQuery, useUpdateOrderStatusMutation } from "@/redux/api/orderApi";
 import { IOrder } from "./order.types";
 import { toast } from "sonner";
 import {
@@ -59,7 +59,7 @@ export default function OrderList({ initialTab = "all" }: OrderListProps) {
     const router = useRouter();
     const pathname = usePathname();
     const [orders, setOrders] = useState<IOrder[]>([]);
-    const [loading, setLoading] = useState(true);
+    // const [loading, setLoading] = useState(true); // Replaced by RTK Query loading
 
     // Quick Update State
     const [updateOpen, setUpdateOpen] = useState(false);
@@ -78,24 +78,18 @@ export default function OrderList({ initialTab = "all" }: OrderListProps) {
     // Tab State
     const [activeTab, setActiveTab] = useState<string>(initialTab);
 
-    useEffect(() => {
-        fetchOrders();
-    }, []);
+    // RTK Query
+    const { data: orderData, isLoading: queryLoading } = useGetOrdersQuery({});
+    const [updateOrderStatus] = useUpdateOrderStatusMutation();
 
-    const fetchOrders = async () => {
-        try {
-            setLoading(true);
-            const res = await OrderService.getAllOrders();
-            if (res.success) {
-                setOrders(res.data);
-            }
-        } catch (error: any) {
-            console.error("Failed to fetch orders:", error);
-            toast.error(`Failed to load orders: ${error.message || "Unknown error"}`);
-        } finally {
-            setLoading(false);
+    // Derived state from RTK Query data
+    useEffect(() => {
+        if (orderData) {
+            setOrders(orderData);
         }
-    };
+    }, [orderData]);
+
+    const loading = queryLoading; // Map loading state
 
     const openQuickUpdate = (order: IOrder) => {
         setSelectedOrder(order);
@@ -108,11 +102,11 @@ export default function OrderList({ initialTab = "all" }: OrderListProps) {
 
         try {
             setUpdating(true);
-            const res = await OrderService.updateStatus(selectedOrder._id, newStatus);
-            if (res.success) {
+            const res: any = await updateOrderStatus({ id: selectedOrder._id, status: newStatus }).unwrap();
+            if (res.success || res.data?.success) {
                 toast.success("Order status updated successfully");
                 setUpdateOpen(false);
-                fetchOrders(); // Refresh list
+                // fetchOrders(); // RTK Query handles refetching via tags
             }
         } catch (error: any) {
             console.error("Failed to update status:", error);

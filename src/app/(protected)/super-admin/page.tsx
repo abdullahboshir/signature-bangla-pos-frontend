@@ -1,27 +1,11 @@
-"use client"
-import React, { useEffect, useState } from 'react';
 import { useAuth } from "@/hooks/useAuth"
-import { superAdminService } from "@/services/super-admin/superadmin.service";
+import { useGetDashboardStatsQuery } from "@/redux/api/adminApi";
 
 export default function SuperAdminDashboard() {
     const { user } = useAuth();
-    const [stats, setStats] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
 
-    // Fetch dashboard stats
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const data = await superAdminService.getDashboardStats();
-                setStats(data);
-            } catch (error) {
-                console.error("Failed to fetch dashboard stats:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchStats();
-    }, []);
+    // RTK Query
+    const { data: stats, isLoading: loading, isError } = useGetDashboardStatsQuery({});
 
     // Use real business units from user profile
     const businessUnits = user?.businessUnits?.map((unit: any) => ({
@@ -39,7 +23,7 @@ export default function SuperAdminDashboard() {
     };
 
     return (
-        <div className="p-6 space-y-8">
+        <div className="space-y-8">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold tracking-tight">Super Admin Overview</h1>
                 <div className="text-sm text-gray-500">

@@ -88,6 +88,20 @@ const adminApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: [tagTypes.admin],
     }),
+
+    // Dashboard & Analytics
+    getDashboardStats: build.query({
+      query: () => ({
+        url: "/super-admin/dashboard/stats",
+        method: "GET",
+      }),
+      transformResponse: (response: any) => response.data || response.data?.data,
+      providesTags: [tagTypes.admin],
+    }),
+    getAnalytics: build.query({
+      // Mocking response for now as per service behavior
+      queryFn: async () => ({ data: { revenue: [], users: [], sales: [] } }),
+    }),
   }),
 });
 
@@ -102,4 +116,6 @@ export const {
   useCreateBusinessUnitMutation,
   useUpdateBusinessUnitMutation,
   useDeleteBusinessUnitMutation,
+  useGetDashboardStatsQuery,
+  useGetAnalyticsQuery,
 } = adminApi;

@@ -13,7 +13,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { axiosInstance } from "@/lib/axios/axiosInstance";
+import { useGetBusinessUnitsQuery, useDeleteBusinessUnitMutation } from "@/redux/api/businessUnitApi";
 import Swal from "sweetalert2";
 import { DataTable } from "@/components/shared/DataTable";
 import { DataPageLayout } from "@/components/shared/DataPageLayout";
@@ -46,44 +46,11 @@ export default function BusinessUnitsPage() {
     const router = useRouter();
     const pathname = usePathname();
     const [searchTerm, setSearchTerm] = useState("");
-    const [businessUnits, setBusinessUnits] = useState<BusinessUnit[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("all");
 
-    const fetchBusinessUnits = async () => {
-        try {
-            setIsLoading(true);
-            const response: any = await axiosInstance.get('/super-admin/business-unit');
-            console.log("Business Units API Response:", response);
-
-            if (response?.success && Array.isArray(response?.data)) {
-                setBusinessUnits(response.data);
-            } else if (Array.isArray(response)) {
-                setBusinessUnits(response);
-            } else if (response?.data?.data && Array.isArray(response.data.data)) {
-                setBusinessUnits(response.data.data);
-            } else {
-                setBusinessUnits([]);
-            }
-        } catch (error) {
-            console.error("Failed to fetch business units", error);
-            Swal.fire({
-                icon: "error",
-                title: "Connection Error",
-                text: "Could not retrieve business units.",
-                toast: true,
-                position: "top-end",
-                showConfirmButton: false,
-                timer: 3000,
-            });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchBusinessUnits();
-    }, []);
+    // RTK Query
+    const { data: businessUnits = [], isLoading } = useGetBusinessUnitsQuery({});
+    const [deleteBusinessUnit] = useDeleteBusinessUnitMutation();
 
     const handleDelete = async (id: string) => {
         const result = await Swal.fire({
@@ -98,7 +65,7 @@ export default function BusinessUnitsPage() {
 
         if (result.isConfirmed) {
             try {
-                const res: any = await axiosInstance.delete(`/super-admin/business-unit/${id}`);
+                const res: any = await deleteBusinessUnit(id).unwrap();
                 if (res?.success) {
                     Swal.fire({
                         title: "Deleted!",
@@ -107,7 +74,7 @@ export default function BusinessUnitsPage() {
                         timer: 2000,
                         showConfirmButton: false
                     });
-                    setBusinessUnits(prev => prev.filter(unit => unit._id !== id));
+                    // Refetch handled by cache invalidation
                 }
             } catch (error) {
                 console.error("Delete failed", error);

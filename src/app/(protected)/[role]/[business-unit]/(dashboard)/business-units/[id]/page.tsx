@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { axiosInstance } from "@/lib/axios/axiosInstance";
+import { useGetBusinessUnitByIdQuery } from "@/redux/api/businessUnitApi";
 import { Loader2 } from "lucide-react";
 import Swal from "sweetalert2";
 
@@ -16,30 +16,14 @@ export default function BusinessUnitDetailsPage() {
     const params = useParams();
     const id = params?.id as string;
 
-    const [unit, setUnit] = useState<any>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const { data: unit, isLoading, error } = useGetBusinessUnitByIdQuery(id);
 
     useEffect(() => {
-        const fetchUnit = async () => {
-            if (!id) return;
-            try {
-                const response: any = await axiosInstance.get(`/super-admin/business-unit/${id}`);
-                if (response?.success && response?.data) {
-                    setUnit(response.data);
-                } else {
-                    console.error("Failed to load unit data", response);
-                    Swal.fire("Error", "Could not load business unit details", "error");
-                }
-            } catch (error) {
-                console.error("Fetch error", error);
-                Swal.fire("Error", "Failed to fetch business unit details", "error");
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchUnit();
-    }, [id]);
+        if (error) {
+            console.error("Fetch error", error);
+            Swal.fire("Error", "Failed to fetch business unit details", "error");
+        }
+    }, [error]);
 
     if (isLoading) {
         return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;

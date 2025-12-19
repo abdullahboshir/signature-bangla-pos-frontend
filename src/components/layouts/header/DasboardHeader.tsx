@@ -30,8 +30,8 @@ export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
   const [isOpenRegisterOpen, setIsOpenRegisterOpen] = useState(false);
 
   const userData: any = {
-    fullName: user?.id || user?.email || "Staff",
-    profileImg: "/avatars/01.png",
+    fullName: user?.name || user?.email || "Staff",
+    profileImg: user?.avatar || "/avatars/01.png",
     designation: user?.roles?.map((role: any) => typeof role === 'string' ? role : role.name).filter(Boolean).join(", ") || "Staff",
     role: user?.roles?.map((role: any) => typeof role === 'string' ? role : role.name).filter(Boolean).join(", ") || "Staff",
     businessUnit: user?.businessUnits?.map((u: any) => u.name) || [],
