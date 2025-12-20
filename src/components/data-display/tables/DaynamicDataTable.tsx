@@ -282,8 +282,7 @@ export function DynamicDataTable<T extends Record<string, any>>({
                     return (
                       <TableHead
                         key={header.id}
-                        className='whitespace-nowrap text-left align-middle font-semibold text-muted-foreground py-3 text-sm'
-                        style={{ height: 'var(--table-row-height, 56px)' }}
+                        className='whitespace-nowrap text-left align-middle font-semibold text-muted-foreground py-3 text-sm h-[var(--table-row-height,56px)]'
                       >
                         {header.isPlaceholder
                           ? null
@@ -304,16 +303,15 @@ export function DynamicDataTable<T extends Record<string, any>>({
                     <TableRow
                       data-state={row.getIsSelected() && "selected"}
                       className={cn(
-                        'border-b last:border-b-0 cursor-pointer',
+                        'border-b last:border-b-0 cursor-pointer h-[var(--table-row-height,56px)]',
                         row.getIsExpanded() && 'bg-muted/50 border-b-0'
                       )}
-                      style={{ height: 'var(--table-row-height, 56px)' }}
                       onClick={() => row.toggleExpanded()}
                     >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell
                           key={cell.id}
-                          className='whitespace-nowrap align-middle py-2'
+                          className='whitespace-nowrap align-middle py-2 h-[var(--table-row-height,56px)]'
                         >
                           {flexRender(
                             cell.column.columnDef.cell,

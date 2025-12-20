@@ -1,4 +1,3 @@
-// app/(protected)/[business-unit]/[role]/(dashboard)/settings/page.tsx
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -6,23 +5,83 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { Settings, User, Bell, Shield, Store, Palette } from "lucide-react"
+import { Settings, User, Shield, Store, Palette, Globe, ShoppingCart } from "lucide-react"
 import { useParams } from "next/navigation"
 import { useState, useEffect } from "react"
 import { useThemeSettings } from "@/lib/providers/ThemeSettingsProvider"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { GeneralSettings } from "@/components/modules/settings/GeneralSettings"
+import { SalesSettings } from "@/components/modules/settings/SalesSettings"
+import { PosSettings } from "@/components/modules/settings/PosSettings"
+import { SystemSettings } from "@/components/modules/settings/SystemSettings"
+import { useGetBusinessUnitSettingsQuery, useUpdateBusinessUnitSettingsMutation } from "@/redux/api/settingsApi"
+import { toast } from "sonner"
+import { MonitorSmartphone } from "lucide-react"
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function SettingsPage() {
   const params = useParams()
   const businessUnit = params["business-unit"] as string
   const role = params.role as string
-  const { theme, isLoading: themeLoading, isSaving, updateTheme } = useThemeSettings()
+  const { theme, isLoading: themeLoading, isSaving, updateTheme, resetTheme, previewTheme } = useThemeSettings()
 
+  // API Hooks
+  const { data: settingsData, isLoading: settingsLoading } = useGetBusinessUnitSettingsQuery(businessUnit);
+  const [updateSettings, { isLoading: updateLoading }] = useUpdateBusinessUnitSettingsMutation();
+
+  const [localSettings, setLocalSettings] = useState<any>(null);
+
+  // Modal State
+  const [modalOpen, setModalOpen] = useState(false)
+  const [modalContent, setModalContent] = useState({ title: "", description: "", isError: false })
+
+
+  useEffect(() => {
+    if (settingsData) {
+      setLocalSettings(JSON.parse(JSON.stringify(settingsData)));
+    }
+  }, [settingsData]);
+
+
+  const handleSettingsChange = (section: string, value: any) => {
+    setLocalSettings((prev: any) => ({
+      ...prev,
+      [section]: value
+    }));
+  }
+
+  const showModal = (title: string, description: string, isError = false) => {
+    setModalContent({ title, description, isError });
+    setModalOpen(true);
+  }
+
+  const saveSettings = async () => {
+    try {
+      await updateSettings({ businessUnitId: businessUnit, body: localSettings }).unwrap();
+      toast.success("Store settings updated successfully");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to update settings");
+    }
+  }
+
+
+  // Theme State
   const [primary, setPrimary] = useState(theme.primary || "")
   const [secondary, setSecondary] = useState(theme.secondary || "")
   const [radius, setRadius] = useState(theme.radius ?? 10)
   const [fontScale, setFontScale] = useState(theme.fontScale ?? 1)
   const [buttonScale, setButtonScale] = useState(theme.buttonScale ?? 1)
-  const [tableRowHeight, setTableRowHeight] = useState(theme.tableRowHeight ?? 56) // State for row height
+  const [tableRowHeight, setTableRowHeight] = useState(theme.tableRowHeight ?? 56)
 
   useEffect(() => {
     if (!themeLoading) {
@@ -35,6 +94,19 @@ export default function SettingsPage() {
     }
   }, [theme, themeLoading])
 
+  // Live Preview Effect
+  const handlePreviewChange = (key: keyof typeof theme, value: any) => {
+    switch (key) {
+      case 'primary': setPrimary(value); break;
+      case 'secondary': setSecondary(value); break;
+      case 'radius': setRadius(value); break;
+      case 'fontScale': setFontScale(value); break;
+      case 'buttonScale': setButtonScale(value); break;
+      case 'tableRowHeight': setTableRowHeight(value); break;
+    }
+    previewTheme({ [key]: value });
+  }
+
   const handleThemeSave = async (overrides?: Partial<typeof theme>) => {
     await updateTheme({
       primary: overrides?.primary ?? primary,
@@ -44,403 +116,320 @@ export default function SettingsPage() {
       buttonScale: overrides?.buttonScale ?? buttonScale,
       tableRowHeight: overrides?.tableRowHeight ?? tableRowHeight,
     })
+    toast.success("Theme settings saved");
   }
 
-  const handleReset = async () => {
-    setPrimary("")
-    setSecondary("")
-    setRadius(10)
-    setFontScale(1)
-    setButtonScale(1)
-    setTableRowHeight(56)
-
-    await handleThemeSave({
-      primary: "",
-      secondary: "",
-      radius: 10,
-      fontScale: 1,
-      buttonScale: 1,
-      tableRowHeight: 56,
-    })
+  // Simplified Loading/Error State
+  if (settingsLoading && !localSettings) {
+    return <div className="p-8 text-center text-muted-foreground">Loading settings...</div>
   }
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your account settings and preferences
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+          <p className="text-muted-foreground">
+            Manage your store configuration and preferences
+          </p>
+        </div>
+        <Button onClick={saveSettings} disabled={updateLoading || !localSettings}>
+          {updateLoading ? "Saving..." : "Save Store Configuration"}
+        </Button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Profile Settings */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center space-x-2">
-              <User className="h-5 w-5" />
-              <CardTitle>Profile Settings</CardTitle>
-            </div>
-            <CardDescription>Update your profile information</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input id="name" placeholder="John Doe" defaultValue="John Doe" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="john@example.com" defaultValue="john@example.com" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" type="tel" placeholder="+880 1234 567890" />
-            </div>
-            <Button className="w-full">Save Changes</Button>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview" className="flex items-center gap-2"><Store className="h-4 w-4" /> Overview</TabsTrigger>
+          <TabsTrigger value="store-setup" className="flex items-center gap-2"><Globe className="h-4 w-4" /> Store Setup</TabsTrigger>
+          <TabsTrigger value="sales" className="flex items-center gap-2"><ShoppingCart className="h-4 w-4" /> Sales & Finance</TabsTrigger>
+          <TabsTrigger value="pos" className="flex items-center gap-2"><MonitorSmartphone className="h-4 w-4" /> POS & Loyalty</TabsTrigger>
+          <TabsTrigger value="admin" className="flex items-center gap-2"><Settings className="h-4 w-4" /> System & Admin</TabsTrigger>
+        </TabsList>
 
-        {/* Business Unit Settings */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Store className="h-5 w-5" />
-              <CardTitle>Business Unit</CardTitle>
-            </div>
-            <CardDescription>Manage business unit settings</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="businessName">Business Name</Label>
-              <Input
-                id="businessName"
-                placeholder="Business Name"
-                defaultValue={businessUnit ? businessUnit.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) : ''}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Input id="address" placeholder="Business Address" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="timezone">Timezone</Label>
-              <Input id="timezone" placeholder="UTC+6" defaultValue="UTC+6" />
-            </div>
-            <Button className="w-full">Update Business Unit</Button>
-          </CardContent>
-        </Card>
-
-        {/* Notification Settings */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Bell className="h-5 w-5" />
-              <CardTitle>Notifications</CardTitle>
-            </div>
-            <CardDescription>Configure your notification preferences</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Email Notifications</Label>
-                <p className="text-sm text-muted-foreground">Receive email updates</p>
+        <TabsContent value="overview" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <Store className="h-5 w-5" />
+                <CardTitle>Business Unit</CardTitle>
               </div>
-              <Button variant="outline" size="sm">Enable</Button>
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Low Stock Alerts</Label>
-                <p className="text-sm text-muted-foreground">Get notified about low stock</p>
-              </div>
-              <Button variant="outline" size="sm">Enable</Button>
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Order Notifications</Label>
-                <p className="text-sm text-muted-foreground">Notify on new orders</p>
-              </div>
-              <Button variant="outline" size="sm">Enable</Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Security Settings */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Shield className="h-5 w-5" />
-              <CardTitle>Security</CardTitle>
-            </div>
-            <CardDescription>Manage your account security</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="currentPassword">Current Password</Label>
-              <Input id="currentPassword" type="password" placeholder="••••••••" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
-              <Input id="newPassword" type="password" placeholder="••••••••" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
-              <Input id="confirmPassword" type="password" placeholder="••••••••" />
-            </div>
-            <Button className="w-full">Update Password</Button>
-          </CardContent>
-        </Card>
-      </div>
-
-
-      {/* System / Theme settings - only super-admin can see */}
-      {role === "super-admin" && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Palette className="h-5 w-5" />
-              <CardTitle>Appearance & Theme</CardTitle>
-            </div>
-            <CardDescription>
-              Configure global colors and typography for your POS dashboard
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
+              <CardDescription>Manage business unit settings</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Color Palette</Label>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { name: "Default", primary: "", secondary: "" },
-                    { name: "Blue", primary: "oklch(0.623 0.214 259.815)", secondary: "oklch(0.96 0.01 260)" },
-                    { name: "Green", primary: "oklch(0.627 0.194 149.214)", secondary: "oklch(0.96 0.01 150)" },
-                    { name: "Red", primary: "oklch(0.637 0.237 25.331)", secondary: "oklch(0.96 0.01 25)" },
-                    { name: "Orange", primary: "oklch(0.705 0.213 47.604)", secondary: "oklch(0.96 0.01 48)" },
-                    { name: "Purple", primary: "oklch(0.558 0.288 302.321)", secondary: "oklch(0.96 0.01 300)" },
-                  ].map((color) => (
-                    <button
-                      key={color.name}
-                      className={`h-8 w-8 rounded-full border-2 ${primary === color.primary ? "border-primary" : "border-transparent"
-                        }`}
-                      style={{ backgroundColor: color.primary || "oklch(0.205 0 0)" }}
-                      onClick={() => {
-                        setPrimary(color.primary)
-                        setSecondary(color.secondary)
-                      }}
-                      title={color.name}
-                    />
-                  ))}
-                </div>
+                <Label htmlFor="businessName">Business Name</Label>
+                <Input
+                  id="businessName"
+                  placeholder="Business Name"
+                  defaultValue={businessUnit ? businessUnit.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) : ''}
+                />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <Input id="address" placeholder="Business Address" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="timezone">Timezone</Label>
+                <Input id="timezone" placeholder="UTC+6" defaultValue="UTC+6" />
+              </div>
+              <Button className="w-full">Update Business Unit</Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-              <div className="grid gap-4 md:grid-cols-2">
+        <TabsContent value="store-setup" className="space-y-4">
+          {localSettings ? (
+            <GeneralSettings data={localSettings} onChange={handleSettingsChange} />
+          ) : (
+            <div>Settings not available</div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="sales" className="space-y-4">
+          {localSettings ? (
+            <SalesSettings data={localSettings} onChange={handleSettingsChange} />
+          ) : (
+            <div>Settings not available</div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="pos" className="space-y-4">
+          {localSettings ? (
+            <PosSettings data={localSettings} onChange={handleSettingsChange} />
+          ) : (
+            <div>Settings not available</div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="admin" className="space-y-4">
+          {localSettings ? (
+            <SystemSettings data={localSettings} onChange={handleSettingsChange} />
+          ) : (
+            <div>Settings not available</div>
+          )}
+
+          {/* Profile Settings */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center space-x-2">
+                  <User className="h-5 w-5" />
+                  <CardTitle>Profile Settings</CardTitle>
+                </div>
+                <CardDescription>Update your profile information</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="primaryColor">Primary color (oklch or CSS color)</Label>
-                  <Input
-                    id="primaryColor"
-                    placeholder="e.g. oklch(0.205 0 0) or #111827"
-                    value={primary}
-                    onChange={(e) => setPrimary(e.target.value)}
-                  />
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input id="name" placeholder="John Doe" defaultValue="John Doe" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="secondaryColor">Secondary color</Label>
-                  <Input
-                    id="secondaryColor"
-                    placeholder="e.g. oklch(0.97 0 0)"
-                    value={secondary}
-                    onChange={(e) => setSecondary(e.target.value)}
-                  />
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" placeholder="john@example.com" defaultValue="john@example.com" />
                 </div>
-              </div>
-            </div>
+                <Button className="w-full">Save Changes</Button>
+              </CardContent>
+            </Card>
 
-            <Separator />
+            {/* Security Settings */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center space-x-2">
+                  <Shield className="h-5 w-5" />
+                  <CardTitle>Security</CardTitle>
+                </div>
+                <CardDescription>Manage your account security</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <Input id="currentPassword" type="password" placeholder="••••••••" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <Input id="newPassword" type="password" placeholder="••••••••" />
+                </div>
+                <Button className="w-full">Update Password</Button>
+              </CardContent>
+            </Card>
+          </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="radius">Corner radius (px)</Label>
-                <div className="flex items-center gap-4">
-                  <Input
-                    id="radius"
-                    type="number"
-                    min={0}
-                    max={24}
-                    value={radius}
-                    onChange={(e) => setRadius(Number(e.target.value) || 0)}
-                    className="w-24"
-                  />
-                  <div className="flex-1">
-                    <input
-                      type="range"
-                      min="0"
-                      max="24"
-                      value={radius}
-                      onChange={(e) => setRadius(Number(e.target.value))}
-                      className="w-full accent-primary"
-                    />
-                  </div>
+          {/* Theme Settings - ENHANCED UI */}
+          {role === "super-admin" && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center space-x-2">
+                  <Palette className="h-5 w-5" />
+                  <CardTitle>Appearance & Theme</CardTitle>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="fontScale">Text size (scale)</Label>
-                <div className="flex items-center gap-4">
-                  <Input
-                    id="fontScale"
-                    type="number"
-                    step={0.05}
-                    min={0.8}
-                    max={1.4}
-                    value={fontScale}
-                    onChange={(e) => setFontScale(Number(e.target.value) || 1)}
-                    className="w-24"
-                  />
-                  <div className="flex-1">
-                    <input
-                      type="range"
-                      min="0.8"
-                      max="1.4"
-                      step="0.05"
-                      value={fontScale}
-                      onChange={(e) => setFontScale(Number(e.target.value))}
-                      className="w-full accent-primary"
-                    />
+                <CardDescription>
+                  Configure global colors and typography for your POS dashboard
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-2">
+                  {/* Primary Color */}
+                  <div className="space-y-2">
+                    <Label>Primary Color</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="color"
+                        value={primary}
+                        onChange={(e) => handlePreviewChange('primary', e.target.value)}
+                        className="h-10 w-10 p-1 cursor-pointer rounded-md border"
+                      />
+                      <Input
+                        type="text"
+                        value={primary}
+                        onChange={(e) => handlePreviewChange('primary', e.target.value)}
+                        placeholder="#000000"
+                        className="font-mono uppercase"
+                      />
+                    </div>
                   </div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="buttonScale">Button Size (scale)</Label>
-                <div className="flex items-center gap-4">
-                  <Input
-                    id="buttonScale"
-                    type="number"
-                    step={0.05}
-                    min={0.8}
-                    max={1.5}
-                    value={buttonScale}
-                    onChange={(e) => setButtonScale(Number(e.target.value) || 1)}
-                    className="w-24"
-                  />
-                  <div className="flex-1">
-                    <input
-                      type="range"
-                      min="0.8"
-                      max="1.5"
-                      step="0.05"
-                      value={buttonScale}
-                      onChange={(e) => setButtonScale(Number(e.target.value))}
-                      className="w-full accent-primary"
-                    />
-                  </div>
-                </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="tableRowHeight">Table Row Height (px)</Label>
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant={tableRowHeight === 40 ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setTableRowHeight(40)}
-                    >
-                      Compact
-                    </Button>
-                    <Button
-                      variant={tableRowHeight === 56 ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setTableRowHeight(56)}
-                    >
-                      Comfortable
-                    </Button>
-                    <Button
-                      variant={tableRowHeight === 72 ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setTableRowHeight(72)}
-                    >
-                      Spacious
-                    </Button>
+                  {/* Secondary Color */}
+                  <div className="space-y-2">
+                    <Label>Secondary Color</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="color"
+                        value={secondary}
+                        onChange={(e) => handlePreviewChange('secondary', e.target.value)}
+                        className="h-10 w-10 p-1 cursor-pointer rounded-md border"
+                      />
+                      <Input
+                        type="text"
+                        value={secondary}
+                        onChange={(e) => handlePreviewChange('secondary', e.target.value)}
+                        placeholder="#000000"
+                        className="font-mono uppercase"
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <Input
-                      id="tableRowHeight"
-                      type="number"
-                      min={30}
-                      max={100}
-                      value={tableRowHeight}
-                      onChange={(e) => setTableRowHeight(Number(e.target.value) || 56)}
-                      className="w-24"
-                    />
-                    <div className="flex-1">
-                      <input
+
+                  {/* Border Radius */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <Label>Border Radius (px)</Label>
+                      <span className="text-xs text-muted-foreground">{radius}px</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
                         type="range"
-                        min="30"
-                        max="100"
+                        min="0"
+                        max="20"
+                        value={radius}
+                        onChange={(e) => handlePreviewChange('radius', Number(e.target.value))}
+                        className="flex-1"
+                      />
+                      <Input
+                        type="number"
+                        value={radius}
+                        onChange={(e) => handlePreviewChange('radius', Number(e.target.value))}
+                        className="w-20"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Font Scale */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <Label>Font Scale</Label>
+                      <span className="text-xs text-muted-foreground">{fontScale}x</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="range"
+                        min="0.5"
+                        max="2"
+                        step="0.05"
+                        value={fontScale}
+                        onChange={(e) => handlePreviewChange('fontScale', Number(e.target.value))}
+                        className="flex-1"
+                      />
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={fontScale}
+                        onChange={(e) => handlePreviewChange('fontScale', Number(e.target.value))}
+                        className="w-20"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Button Scale */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <Label>Button Scale</Label>
+                      <span className="text-xs text-muted-foreground">{buttonScale}x</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="range"
+                        min="0.5"
+                        max="1.5"
+                        step="0.05"
+                        value={buttonScale}
+                        onChange={(e) => handlePreviewChange('buttonScale', Number(e.target.value))}
+                        className="flex-1"
+                      />
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={buttonScale}
+                        onChange={(e) => handlePreviewChange('buttonScale', Number(e.target.value))}
+                        className="w-20"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Table Row Height */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <Label>Table Row Height (px)</Label>
+                      <span className="text-xs text-muted-foreground">{tableRowHeight}px</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="range"
+                        min="10"
+                        max="80"
                         value={tableRowHeight}
-                        onChange={(e) => setTableRowHeight(Number(e.target.value))}
-                        className="w-full accent-primary"
+                        onChange={(e) => handlePreviewChange('tableRowHeight', Number(e.target.value))}
+                        className="flex-1"
+                      />
+                      <Input
+                        type="number"
+                        value={tableRowHeight}
+                        onChange={(e) => handlePreviewChange('tableRowHeight', Number(e.target.value))}
+                        className="w-20"
                       />
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+                <div className="flex justify-end pt-4 gap-4">
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      if (window.confirm("Are you sure you want to reset all theme settings to default?")) {
+                        await resetTheme();
+                        toast.success("Theme reset to defaults");
+                      }
+                    }}
+                    disabled={isSaving}
+                  >
+                    Reset Defaults
+                  </Button>
+                  <Button onClick={() => handleThemeSave()} disabled={isSaving}>Save Theme</Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
 
-            <div className="flex items-center justify-between pt-2">
-              <p className="text-xs text-muted-foreground">
-                Changes apply immediately and are saved with your account settings.
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleReset}
-                  disabled={themeLoading || isSaving}
-                >
-                  Reset Defaults
-                </Button>
-                <Button
-                  onClick={() => handleThemeSave()}
-                  disabled={themeLoading || isSaving}
-                >
-                  {isSaving ? "Saving..." : "Save Theme"}
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Role-specific settings */}
-      {role === "super-admin" && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Settings className="h-5 w-5" />
-              <CardTitle>System Settings</CardTitle>
-            </div>
-            <CardDescription>Advanced system configuration</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Maintenance Mode</Label>
-                <p className="text-sm text-muted-foreground">Enable maintenance mode</p>
-              </div>
-              <Button variant="outline" size="sm">Disabled</Button>
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>API Access</Label>
-                <p className="text-sm text-muted-foreground">Manage API keys</p>
-              </div>
-              <Button variant="outline" size="sm">Manage</Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      </Tabs>
     </div>
   )
 }
-

@@ -95,7 +95,7 @@ export default function EditUnitPage() {
             setIsSaving(true);
             const result = await updateUnit({ id, body: data }).unwrap();
 
-            if (result?.success || result?.data) {
+            if (result) {
                 Swal.fire({
                     icon: 'success',
                     title: 'Updated!',

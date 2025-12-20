@@ -1,5 +1,5 @@
 import { TableConfig as ITableConfig, DataType } from '@/types/data-table';
-import { User, Package, Folder, ShoppingCart, Users, Truck, Layers, FileText, Shield, Key } from 'lucide-react';
+import { User, Package, Folder, ShoppingCart, Users, Truck, Layers, FileText, Shield, Key, Store } from 'lucide-react';
 
 export const TableConfig: Record<DataType, ITableConfig> = {
   user: {
@@ -132,6 +132,25 @@ export const TableConfig: Record<DataType, ITableConfig> = {
     },
   },
 
+  outlet: {
+    dataType: 'outlet',
+    columns: [
+      { id: 'name', header: 'Name', accessorKey: 'name', sortable: true, filter: true },
+      { id: 'code', header: 'Code', accessorKey: 'code', sortable: true, filter: true },
+      { id: 'city', header: 'City', accessorKey: 'city', sortable: true, filter: true },
+      { id: 'phone', header: 'Phone', accessorKey: 'phone', sortable: true },
+      { id: 'status', header: 'Status', accessorKey: 'isActive', type: 'boolean', sortable: true },
+      { id: 'actions', header: 'Actions', accessorKey: 'actions', type: 'actions', width: 100 },
+    ],
+    showToolbar: true,
+    actions: {
+      create: true,
+      edit: true,
+      delete: true,
+      view: true,
+    },
+  },
+
   default: {
     dataType: 'user',
     columns: [
@@ -157,4 +176,5 @@ export const DataTypeIcons: Record<DataType, React.ReactNode> = {
   purchase: <FileText className="h-4 w-4" />,
   role: <Shield className="h-4 w-4" />,
   permission: <Key className="h-4 w-4" />,
+  outlet: <Store className="h-4 w-4" />,
 };

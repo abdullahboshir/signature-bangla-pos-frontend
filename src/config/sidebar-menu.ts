@@ -40,14 +40,14 @@ const MENU_MODULES = {
       { title: "Analytics", path: "business-units/analytics", resource: "analytics" },
     ],
   },
-  STORES: {
-    title: "Stores",
-    path: "stores",
+  OUTLETS: {
+    title: "Outlets",
+    path: "outlets",
     icon: Store,
-    resource: "store",
+    resource: "outlet",
     children: [
-      { title: "All Stores", path: "stores", resource: "store" },
-      { title: "Add Store", path: "stores/new", action: "create" },
+      { title: "All Outlets", path: "outlets", resource: "outlet" },
+      { title: "Add Outlet", path: "outlets/new", action: "create" },
     ]
   },
   USER_MANAGEMENT: {
@@ -241,7 +241,7 @@ export const sidebarMenuConfig = {
     "super-admin": [
       MENU_MODULES.DASHBOARD,
       MENU_MODULES.BUSINESS_UNITS,
-      MENU_MODULES.STORES,
+      MENU_MODULES.OUTLETS,
       MENU_MODULES.USER_MANAGEMENT,
       MENU_MODULES.CATALOG,
       MENU_MODULES.INVENTORY,

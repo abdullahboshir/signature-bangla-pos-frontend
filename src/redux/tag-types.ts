@@ -20,6 +20,8 @@ export enum tagTypes {
   businessUnit = "businessUnit",
   supplier = "supplier",
   purchase = "purchase",
+  settings = "settings",
+  outlet = "outlet",
 }
 
 export const tagTypesList = Object.values(tagTypes);

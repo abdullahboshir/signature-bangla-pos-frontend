@@ -27,6 +27,8 @@ type ThemeSettingsContextType = {
   isLoading: boolean;
   isSaving: boolean;
   updateTheme: (partial: ThemeSettings) => Promise<void>;
+  resetTheme: () => Promise<void>;
+  previewTheme: (partial: ThemeSettings) => void;
 };
 
 const ThemeSettingsContext = createContext<
@@ -57,20 +59,22 @@ function applyThemeToDocument(theme: ThemeSettings) {
     root.style.removeProperty("--secondary");
   }
 
-  if (typeof theme.radius === "number") {
-    root.style.setProperty("--radius", `${theme.radius}px`);
+  if (theme.radius !== undefined && theme.radius !== null) {
+    root.style.setProperty("--radius", `${Number(theme.radius)}px`);
   }
 
-  if (typeof theme.fontScale === "number") {
-    root.style.setProperty("--sb-font-scale", String(theme.fontScale));
+  if (theme.fontScale !== undefined && theme.fontScale !== null) {
+    root.style.setProperty("--sb-font-scale", String(Number(theme.fontScale)));
   }
 
-  if (typeof theme.buttonScale === "number") {
-    root.style.setProperty("--sb-button-scale", String(theme.buttonScale));
+  if (theme.buttonScale !== undefined && theme.buttonScale !== null) {
+    root.style.setProperty("--sb-button-scale", String(Number(theme.buttonScale)));
   }
 
-  if (typeof theme.tableRowHeight === "number") {
-    root.style.setProperty("--table-row-height", `${theme.tableRowHeight}px`);
+  if (theme.tableRowHeight !== undefined && theme.tableRowHeight !== null) {
+    root.style.setProperty("--table-row-height", `${Number(theme.tableRowHeight)}px`);
+  } else {
+    root.style.removeProperty("--table-row-height");
   }
 }
 
@@ -143,6 +147,31 @@ export function ThemeSettingsProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const resetTheme = async () => {
+    setTheme(DEFAULT_THEME);
+    applyThemeToDocument(DEFAULT_THEME);
+
+    // Save to localStorage
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("theme-settings", JSON.stringify(DEFAULT_THEME));
+      } catch (e) {
+        console.error("Failed to save theme to localStorage", e);
+      }
+    }
+
+    try {
+      await updateSettings({ theme: DEFAULT_THEME }).unwrap();
+    } catch (err) {
+      console.error("Failed to reset theme settings", err);
+    }
+  };
+
+  const previewTheme = (partial: ThemeSettings) => {
+    const next = { ...theme, ...partial };
+    applyThemeToDocument(next);
+  };
+
   return (
     <ThemeSettingsContext.Provider
       value={{
@@ -150,6 +179,8 @@ export function ThemeSettingsProvider({ children }: { children: ReactNode }) {
         isLoading: loadingSettings,
         isSaving: saving,
         updateTheme,
+        resetTheme,
+        previewTheme,
       }}
     >
       {children}

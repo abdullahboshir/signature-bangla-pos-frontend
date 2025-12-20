@@ -8,7 +8,8 @@ export type DataType =
   | 'inventory'
   | 'purchase'
   | 'role'
-  | 'permission';
+  | 'permission'
+  | 'outlet';
 
 export interface TableColumn<T = any> {
   id: string;
