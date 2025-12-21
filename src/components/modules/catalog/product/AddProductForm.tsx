@@ -19,6 +19,7 @@ import { ShippingSection } from "./components/ShippingSection";
 import { SeoSection } from "./components/SeoSection";
 import { ComplianceSection } from "./components/ComplianceSection";
 import { BundleSection } from "./components/BundleSection";
+import { AttributeGroupSection } from "./components/AttributeGroupSection";
 
 interface AddProductFormProps {
     initialData?: any;
@@ -33,6 +34,7 @@ export default function AddProductForm({ initialData }: AddProductFormProps) {
         categories,
         brands,
         units,
+        businessUnits,
         level1, setLevel1,
         level2, setLevel2,
         level3, setLevel3,
@@ -43,7 +45,9 @@ export default function AddProductForm({ initialData }: AddProductFormProps) {
         variantFields,
         appendVariant,
         removeVariant,
-        replaceVariant
+        replaceVariant,
+        attributeGroupData,
+        dynamicFields
     } = useProductForm(initialData);
 
 
@@ -78,7 +82,12 @@ export default function AddProductForm({ initialData }: AddProductFormProps) {
                             <TabsTrigger value="pricing">Pricing</TabsTrigger>
                             <TabsTrigger value="details">Details</TabsTrigger>
                             <TabsTrigger value="inventory">Inventory</TabsTrigger>
-                            <TabsTrigger value="attributes">Attributes</TabsTrigger>
+                            <TabsTrigger value="variants">Variants</TabsTrigger>
+                            {dynamicFields.length > 0 && (
+                                <TabsTrigger value="dynamic_attributes">
+                                    {attributeGroupData?.data?.name || "Group Attributes"}
+                                </TabsTrigger>
+                            )}
                             <TabsTrigger value="shipping">Shipping</TabsTrigger>
                             <TabsTrigger value="seo">SEO</TabsTrigger>
                             <TabsTrigger value="compliance">Safety</TabsTrigger>
@@ -95,7 +104,7 @@ export default function AddProductForm({ initialData }: AddProductFormProps) {
                                     level2={level2} setLevel2={setLevel2}
                                     level3={level3} setLevel3={setLevel3}
                                 />
-                                <OrganizationSection form={form} units={units} />
+                                <OrganizationSection form={form} units={units} businessUnits={businessUnits} />
                             </TabsContent>
 
                             <TabsContent value="pricing">
@@ -117,7 +126,7 @@ export default function AddProductForm({ initialData }: AddProductFormProps) {
                                 <InventorySection form={form} />
                             </TabsContent>
 
-                            <TabsContent value="attributes">
+                            <TabsContent value="variants">
                                 <AttributeSection
                                     form={form}
                                     variantFields={variantFields}
@@ -126,6 +135,16 @@ export default function AddProductForm({ initialData }: AddProductFormProps) {
                                     replaceVariant={replaceVariant}
                                 />
                             </TabsContent>
+
+                            {dynamicFields.length > 0 && (
+                                <TabsContent value="dynamic_attributes">
+                                    <AttributeGroupSection
+                                        form={form}
+                                        attributeGroupData={attributeGroupData}
+                                        dynamicFields={dynamicFields}
+                                    />
+                                </TabsContent>
+                            )}
 
                             <TabsContent value="shipping">
                                 <ShippingSection form={form} />

@@ -1,12 +1,11 @@
-"use client";
-
 import { StatCard } from "@/components/shared/StatCard";
 import { filterDataByDate } from "@/lib/dateFilterUtils";
 import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, Plus, DollarSign, ShoppingBag, Clock, CheckCircle, FilePenLine, Search } from "lucide-react";
 import { format } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,8 +57,16 @@ interface OrderListProps {
 export default function OrderList({ initialTab = "all" }: OrderListProps) {
     const router = useRouter();
     const pathname = usePathname();
+    // Auth & Context
+    const { user } = useAuth();
+    const params = useParams();
+    const paramBusinessUnit = params?.["business-unit"] as string;
+    const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
+
+    // Filter by Business Unit
+    const businessUnit = isSuperAdmin ? undefined : paramBusinessUnit;
+
     const [orders, setOrders] = useState<IOrder[]>([]);
-    // const [loading, setLoading] = useState(true); // Replaced by RTK Query loading
 
     // Quick Update State
     const [updateOpen, setUpdateOpen] = useState(false);
@@ -79,7 +86,7 @@ export default function OrderList({ initialTab = "all" }: OrderListProps) {
     const [activeTab, setActiveTab] = useState<string>(initialTab);
 
     // RTK Query
-    const { data: orderData, isLoading: queryLoading } = useGetOrdersQuery({});
+    const { data: orderData, isLoading: queryLoading } = useGetOrdersQuery({ businessUnit });
     const [updateOrderStatus] = useUpdateOrderStatusMutation();
 
     // Derived state from RTK Query data
@@ -89,7 +96,7 @@ export default function OrderList({ initialTab = "all" }: OrderListProps) {
         }
     }, [orderData]);
 
-    const loading = queryLoading; // Map loading state
+    const loading = queryLoading;
 
     const openQuickUpdate = (order: IOrder) => {
         setSelectedOrder(order);

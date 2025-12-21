@@ -1,5 +1,6 @@
 // components/layout/header/UserMenu.tsx
 "use client"
+import Link from "next/link"
 
 import {
   DropdownMenu,
@@ -63,8 +64,8 @@ export function UserMenu({ user }: UserMenuProps) {
 
   const roleStr = Array.isArray(user.role) ? user.role[0] : String(user.role || "");
   const businessUnitStr = Array.isArray(user.businessUnit)
-    ? user.businessUnit.map((unit: string) => unit.replace('-', ' ')).join(', ')
-    : String(user.businessUnit || "").replace('-', ' ');
+    ? user.businessUnit.map((unit: any) => (typeof unit === 'string' ? unit : unit.name).replace('-', ' ')).join(', ')
+    : String((typeof user.businessUnit === 'object' && user.businessUnit !== null ? (user.businessUnit as any).name : user.businessUnit) || "").replace('-', ' ');
 
   const fullNameSafe = typeof user.fullName === 'string' ? user.fullName : "User";
 
@@ -128,9 +129,11 @@ export function UserMenu({ user }: UserMenuProps) {
         </DropdownMenuItem>
 
         {roleStr === "super-admin" && (
-          <DropdownMenuItem className="cursor-pointer">
-            <Shield className="mr-2 h-4 w-4" />
-            <span>Admin Panel</span>
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link href="/super-admin">
+              <Shield className="mr-2 h-4 w-4" />
+              <span>Admin Panel</span>
+            </Link>
           </DropdownMenuItem>
         )}
 

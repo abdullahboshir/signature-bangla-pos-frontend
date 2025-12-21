@@ -6,7 +6,7 @@ import ProtectedLayout from "../layout";
 interface BusinessUnitLayoutProps {
   children: React.ReactNode;
   params: Promise<{
-    roles: string;
+    role: string;
   }>;
 }
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { Edit2, MoreHorizontal, Trash2, DollarSign, Package, CheckCircle, AlertTriangle, Search, Copy, Archive } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,10 @@ export function ProductList() {
     const params = useParams();
     const businessUnit = params["business-unit"] as string;
     const role = params["role"] as string;
+    const { user } = useAuth();
+    const isSuperAdmin = user?.roles?.some((r: any) =>
+        (typeof r === 'string' ? r : r.name) === 'super-admin'
+    );
 
     // Date Filter State
     const [dateFilter, setDateFilter] = useState<string>("all");
@@ -71,7 +76,11 @@ export function ProductList() {
 
     const handleEdit = (id: string, e: React.MouseEvent) => {
         e.stopPropagation(); // Prevent row click
-        router.push(`/${role}/${businessUnit}/catalog/product/edit/${id}`);
+        if (isSuperAdmin) {
+            router.push(`/super-admin/catalog/product/edit/${id}`);
+        } else {
+            router.push(`/${role}/${businessUnit}/catalog/product/edit/${id}`);
+        }
     }
 
     const handleCopyId = (id: string, e: React.MouseEvent) => {
@@ -431,7 +440,13 @@ export function ProductList() {
             title="Products"
             createAction={{
                 label: "Create Product",
-                onClick: () => router.push(`/${role}/${businessUnit}/catalog/product/add`)
+                onClick: () => {
+                    if (isSuperAdmin) {
+                        router.push(`/super-admin/catalog/product/add`);
+                    } else {
+                        router.push(`/${role}/${businessUnit}/catalog/product/add`);
+                    }
+                }
             }}
             stats={
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

@@ -1,0 +1,82 @@
+.next/dev/types/validator.ts(706,31): error TS2344: Type 'typeof import("E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/src/app/(protected)/[role]/layout")' does not satisfy the constraint 'LayoutConfig<"/[role]">'.
+  Types of property 'default' are incompatible.
+    Type '({ children, params, }: BusinessUnitLayoutProps) => Promise<Element>' is not assignable to type 'ComponentType<LayoutProps<"/[role]">> | ((props: LayoutProps<"/[role]">) => void | ReactNode | Promise<void> | Promise<...>)'.
+      Type '({ children, params, }: BusinessUnitLayoutProps) => Promise<Element>' is not assignable to type 'FunctionComponent<LayoutProps<"/[role]">>'.
+        Types of parameters '__0' and 'props' are incompatible.
+          Type 'LayoutProps<"/[role]">' is not assignable to type 'BusinessUnitLayoutProps'.
+            Types of property 'params' are incompatible.
+              Type 'Promise<{ role: string; }>' is not assignable to type 'Promise<{ roles: string; }>'.
+                Property 'roles' is missing in type '{ role: string; }' but required in type '{ roles: string; }'.
+.next/dev/types/validator.ts(715,31): error TS2344: Type 'typeof import("E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/src/app/(protected)/dashboard/[businessUnitId]/layout")' does not satisfy the constraint 'LayoutConfig<"/dashboard/[businessUnitId]">'.
+  Types of property 'default' are incompatible.
+    Type '({ children, params }: BusinessUnitLayoutProps) => Element' is not assignable to type 'ComponentType<LayoutProps<"/dashboard/[businessUnitId]">> | ((props: LayoutProps<"/dashboard/[businessUnitId]">) => void | ReactNode | Promise<...> | Promise<...>)'.
+      Type '({ children, params }: BusinessUnitLayoutProps) => Element' is not assignable to type 'FunctionComponent<LayoutProps<"/dashboard/[businessUnitId]">>'.
+        Types of parameters '__0' and 'props' are incompatible.
+          Type 'LayoutProps<"/dashboard/[businessUnitId]">' is not assignable to type 'BusinessUnitLayoutProps'.
+            Types of property 'params' are incompatible.
+              Property 'businessUnitId' is missing in type 'Promise<{ businessUnitId: string; }>' but required in type '{ businessUnitId: string; }'.
+.next/types/validator.ts(706,31): error TS2344: Type 'typeof import("E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/src/app/(protected)/[role]/layout")' does not satisfy the constraint 'LayoutConfig<"/[role]">'.
+  Types of property 'default' are incompatible.
+    Type '({ children, params, }: BusinessUnitLayoutProps) => Promise<Element>' is not assignable to type 'ComponentType<LayoutProps<"/[role]">> | ((props: LayoutProps<"/[role]">) => void | ReactNode | Promise<void> | Promise<...>)'.
+      Type '({ children, params, }: BusinessUnitLayoutProps) => Promise<Element>' is not assignable to type 'FunctionComponent<LayoutProps<"/[role]">>'.
+        Types of parameters '__0' and 'props' are incompatible.
+          Type 'LayoutProps<"/[role]">' is not assignable to type 'BusinessUnitLayoutProps'.
+            Types of property 'params' are incompatible.
+              Type 'Promise<{ role: string; }>' is not assignable to type 'Promise<{ roles: string; }>'.
+                Property 'roles' is missing in type '{ role: string; }' but required in type '{ roles: string; }'.
+.next/types/validator.ts(715,31): error TS2344: Type 'typeof import("E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/src/app/(protected)/dashboard/[businessUnitId]/layout")' does not satisfy the constraint 'LayoutConfig<"/dashboard/[businessUnitId]">'.
+  Types of property 'default' are incompatible.
+    Type '({ children, params }: BusinessUnitLayoutProps) => Element' is not assignable to type 'ComponentType<LayoutProps<"/dashboard/[businessUnitId]">> | ((props: LayoutProps<"/dashboard/[businessUnitId]">) => void | ReactNode | Promise<...> | Promise<...>)'.
+      Type '({ children, params }: BusinessUnitLayoutProps) => Element' is not assignable to type 'FunctionComponent<LayoutProps<"/dashboard/[businessUnitId]">>'.
+        Types of parameters '__0' and 'props' are incompatible.
+          Type 'LayoutProps<"/dashboard/[businessUnitId]">' is not assignable to type 'BusinessUnitLayoutProps'.
+            Types of property 'params' are incompatible.
+              Property 'businessUnitId' is missing in type 'Promise<{ businessUnitId: string; }>' but required in type '{ businessUnitId: string; }'.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/customers/page.tsx(179,27): error TS2314: Generic type 'FieldConfig<T>' requires 1 type argument(s).
+src/app/(protected)/[role]/[business-unit]/(dashboard)/inventory/page.tsx(78,25): error TS2304: Cannot find name 'api'.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/inventory/page.tsx(81,9): error TS2304: Cannot find name 'fetchInventory'.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/inventory/page.tsx(90,26): error TS2314: Generic type 'FieldConfig<T>' requires 1 type argument(s).
+src/app/(protected)/[role]/[business-unit]/(dashboard)/inventory/page.tsx(164,41): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/inventory/page.tsx(169,41): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/inventory/page.tsx(186,13): error TS2322: Type '{ title: string; value: any; icon: ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>; trend: string; }' is not assignable to type 'IntrinsicAttributes & StatCardProps'.
+  Property 'trend' does not exist on type 'IntrinsicAttributes & StatCardProps'.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/purchases/page.tsx(119,25): error TS2314: Generic type 'FieldConfig<T>' requires 1 type argument(s).
+src/app/(protected)/[role]/[business-unit]/(dashboard)/purchases/page.tsx(124,30): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/purchases/page.tsx(159,18): error TS7031: Binding element 'control' implicitly has an 'any' type.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/purchases/page.tsx(159,27): error TS7031: Binding element 'name' implicitly has an 'any' type.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/purchases/page.tsx(178,34): error TS7006: Parameter 'sup' implicitly has an 'any' type.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/purchases/page.tsx(234,46): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/purchases/page.tsx(255,37): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/staff/page.tsx(170,24): error TS2314: Generic type 'FieldConfig<T>' requires 1 type argument(s).
+src/app/(protected)/[role]/[business-unit]/(dashboard)/suppliers/page.tsx(97,27): error TS2314: Generic type 'FieldConfig<T>' requires 1 type argument(s).
+src/app/(protected)/[role]/[business-unit]/(dashboard)/suppliers/page.tsx(207,48): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/app/(protected)/[role]/[business-unit]/catalog/tax/page.tsx(231,70): error TS2304: Cannot find name 'fetchTaxes'.
+src/app/(protected)/[role]/[business-unit]/catalog/unit/[id]/edit/page.tsx(66,100): error TS2339: Property 'data' does not exist on type 'never'.
+src/app/(protected)/[role]/[business-unit]/catalog/unit/add/page.tsx(60,5): error TS2304: Cannot find name 'useEffect'.
+src/app/(protected)/[role]/[business-unit]/catalog/unit/add/page.tsx(62,100): error TS2339: Property 'data' does not exist on type 'never'.
+src/app/(protected)/super-admin/business-units/new/page.tsx(65,34): error TS2304: Cannot find name 'createBusinessUnit'.
+src/app/(protected)/super-admin/user-management/page.tsx(15,40): error TS2305: Module '"lucide-react"' has no exported member 'ShieldKeys'.
+src/components/data-display/table-cells/ActionCell.tsx(38,7): error TS2322: Type '{ label: string; icon: ReactNode; onClick: (item: T) => void; }[]' is not assignable to type 'CustomAction[]'.
+  Property 'id' is missing in type '{ label: string; icon: ReactNode; onClick: (item: T) => void; }' but required in type 'CustomAction'.
+src/components/data-display/table-cells/DateCell.tsx(76,7): error TS2741: Property 'custom' is missing in type '{ local: number; utc: number; 'asia/dhaka': number; }' but required in type 'Record<TimezoneType, number>'.
+src/components/data-display/tables/TableConfig.tsx(154,3): error TS2353: Object literal may only specify known properties, and 'default' does not exist in type 'Record<DataType, TableConfig>'.
+src/components/data-display/tables/TableFilters.tsx(269,13): error TS2322: Type '{ from?: Date | undefined; to?: Date | undefined; }' is not assignable to type 'DateRange'.
+  Property 'from' is optional in type '{ from?: Date | undefined; to?: Date | undefined; }' but required in type 'DateRange'.
+src/components/modules/catalog/product/ProductForm.tsx(147,9): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string | unique symbol'.
+  Type 'undefined' is not assignable to type 'string | unique symbol'.
+src/components/modules/catalog/product/ProductForm.tsx(329,74): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/components/modules/catalog/product/ProductForm.tsx(353,77): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/components/modules/catalog/product/ProductForm.tsx(379,79): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/components/modules/catalog/product/ProductForm.tsx(397,69): error TS7006: Parameter 'u' implicitly has an 'any' type.
+src/components/modules/catalog/product/ProductForm.tsx(415,70): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/components/modules/catalog/product/ProductForm.tsx(536,84): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/components/modules/catalog/product/ProductForm.tsx(545,69): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/components/modules/catalog/product/ProductForm.tsx(802,115): error TS2304: Cannot find name 'uploadImage'.
+src/components/modules/sales/OrderDetails.tsx(26,30): error TS2307: Cannot find module './OrderService' or its corresponding type declarations.
+src/components/ui/navigation-menu.tsx(2,42): error TS2307: Cannot find module '@radix-ui/react-navigation-menu' or its corresponding type declarations.
+src/lib/data-table/utils.ts(201,15): error TS2322: Type 'string' is not assignable to type 'T[keyof T]'.
+  'string' is assignable to the constraint of type 'T[keyof T]', but 'T[keyof T]' could be instantiated with a different subtype of constraint 'any'.
+src/lib/data-table/utils.ts(205,15): error TS2322: Type 'string' is not assignable to type 'T[keyof T]'.
+  'string' is assignable to the constraint of type 'T[keyof T]', but 'T[keyof T]' could be instantiated with a different subtype of constraint 'any'.
+    Type 'string' is not assignable to type 'T[keyof T]'.
+      'string' is assignable to the constraint of type 'T[keyof T]', but 'T[keyof T]' could be instantiated with a different subtype of constraint 'any'.

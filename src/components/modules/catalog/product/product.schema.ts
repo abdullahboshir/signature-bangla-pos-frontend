@@ -26,18 +26,18 @@ export const productSchema = z.object({
 
   // Attributes
   attributes: z.object({
-    isOrganic: z.boolean().default(false),
-    isElectric: z.boolean().default(false),
-    isFragile: z.boolean().default(false),
-    isPerishable: z.boolean().default(false),
-    isHazardous: z.boolean().default(false),
-    isDigital: z.boolean().default(false),
-    isService: z.boolean().default(false), // e.g. Installation
-    ageRestricted: z.boolean().default(false),
+    isOrganic: z.boolean().default(false).optional(),
+    isElectric: z.boolean().default(false).optional(),
+    isFragile: z.boolean().default(false).optional(),
+    isPerishable: z.boolean().default(false).optional(),
+    isHazardous: z.boolean().default(false).optional(),
+    isDigital: z.boolean().default(false).optional(),
+    isService: z.boolean().default(false).optional(), // e.g. Installation
+    ageRestricted: z.boolean().default(false).optional(),
     minAge: z.number().min(0).optional(),
-    prescriptionRequired: z.boolean().default(false),
+    prescriptionRequired: z.boolean().default(false).optional(),
     prescriptionType: z.enum(["online", "physical"]).optional(), 
-  }).optional(),
+  }).catchall(z.any()).optional(),
 
   // Pricing
   pricing: z.object({

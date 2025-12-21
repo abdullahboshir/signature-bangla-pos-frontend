@@ -39,22 +39,46 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
     }
   }
 
+
   const rawMenuItems = getSidebarMenu(role, businessUnit || "")
+
+
 
   // Filter menu items based on permissions
   const menuItems = useMemo(() => {
     if (!user) return [];
 
-    const isSuperAdmin = user.roles?.some((r: any) =>
-      (typeof r === 'string' && r === 'super-admin') ||
-      (r?.name === 'super-admin') ||
-      (r?.slug === 'super-admin')
-    );
+    const isSuperAdmin =
+      user.isSuperAdmin ||
+      user.roles?.some((r: any) =>
+        (typeof r === 'string' && r === 'super-admin') ||
+        (r?.name === 'super-admin') ||
+        (r?.slug === 'super-admin')
+      ) ||
+      (Array.isArray(user.role) && user.role.some((r: any) => typeof r === 'string' && r.toLowerCase() === 'super-admin')) ||
+      (typeof user.role === 'string' && (user.role as string).toLowerCase() === 'super-admin');
 
     // Flatten permissions from roles
-    const aggregatedPermissions = user.roles && Array.isArray(user.roles)
-      ? user.roles.flatMap((role: any) => role.permissions || [])
-      : (user.permissions || []);
+    // Scoped Permissions Logic
+    const currentUnitSlug = params["business-unit"] || params.businessUnit;
+    const currentUnitId = user.businessUnits?.find((u: any) => u.id === currentUnitSlug)?._id;
+
+    let aggregatedPermissions: any[] = [];
+
+    if (user.permissions && Array.isArray(user.permissions) && user.permissions.length > 0) {
+      // New Scoped RBAC
+      const scopedAssignments = user.permissions.filter((p: any) =>
+        p.scopeType === 'global' ||
+        (p.scopeType === 'business-unit' && p.scopeId === currentUnitId)
+      );
+
+      aggregatedPermissions = scopedAssignments.flatMap((p: any) => p.role?.permissions || []);
+    } else {
+      // Fallback to Legacy Roles
+      aggregatedPermissions = user.roles && Array.isArray(user.roles)
+        ? user.roles.flatMap((role: any) => role.permissions || [])
+        : [];
+    }
 
     // Recursive filter function that returns new array
     const filterItems = (items: any[]): any[] => {

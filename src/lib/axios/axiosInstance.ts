@@ -26,6 +26,19 @@ axiosInstance.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  // Context-Aware Header Injection
+  if (typeof window !== "undefined") {
+    const isAuthRoute = config.url?.includes("/auth/") || config.url?.includes("/login") || config.url?.includes("/register");
+    const businessUnitId = localStorage.getItem("active-business-unit");
+    const outletId = localStorage.getItem("active-outlet-id");
+    
+    // Only inject if NOT an auth route and ID exists
+    if (!isAuthRoute) {
+        if (businessUnitId) config.headers["x-business-unit-id"] = businessUnitId;
+        if (outletId) config.headers["x-outlet-id"] = outletId;
+    }
+  }
   return config;
 });
 

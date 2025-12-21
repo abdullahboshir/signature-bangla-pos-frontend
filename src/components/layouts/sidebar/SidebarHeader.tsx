@@ -51,7 +51,7 @@ export function SidebarHeader({ onMenuClick, className }: HeaderProps) {
             {buName}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Welcome back, {user?.name || "User"}
+            Welcome back, {typeof user?.name === 'string' ? user.name : user?.name?.firstName || "User"}
           </p>
         </div>
 
@@ -102,7 +102,7 @@ export function SidebarHeader({ onMenuClick, className }: HeaderProps) {
 
         {/* User Menu */}
         {user && <UserMenu user={{
-          fullName: user.name || "User",
+          fullName: typeof user.name === 'string' ? user.name : `${user.name?.firstName} ${user.name?.lastName}`,
           profileImg: user.avatar || "/avatars/01.png", // Fallback
           designation: role,
           role: role,

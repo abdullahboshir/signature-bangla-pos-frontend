@@ -19,6 +19,9 @@ import {
     useGetProductQuery,
 } from "@/redux/api/productApi";
 import { useUploadFileMutation } from "@/redux/api/uploadApi";
+import { useAuth } from "@/hooks/useAuth";
+import { useGetBusinessUnitsQuery, useGetBusinessUnitByIdQuery } from "@/redux/api/businessUnitApi";
+import { useGetAttributeGroupByIdQuery } from "@/redux/api/attributeGroupApi";
 
 export const useProductForm = (initialData?: any) => {
     const router = useRouter();
@@ -45,8 +48,34 @@ export const useProductForm = (initialData?: any) => {
     const { data: brands = [], isLoading: isBrandsLoading, isSuccess: isBrandsSuccess } = useGetBrandsQuery({ limit: 1000 });
     const { data: units = [], isLoading: isUnitsLoading, isSuccess: isUnitsSuccess } = useGetUnitsQuery({ limit: 1000 });
 
+    const { user } = useAuth();
+    const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
+
+    const { data: busUnits = [], isLoading: isBusUnitsLoading } = useGetBusinessUnitsQuery(
+        { limit: 100 },
+        { skip: !isSuperAdmin }
+    );
+
     // Wait until ALL required data is successfully fetched
     const isRefDataLoading = !isCatsSuccess || !isSubCatsSuccess || !isChildCatsSuccess || !isBrandsSuccess || !isUnitsSuccess;
+
+    // Fetch Attribute Group Data
+    // We need to resolve the business unit ID first.
+    // If user is super-admin, they might select BU in form. But for now let's assume context BU or selected BU.
+    // However, useProductForm is initialized with 'businessUnit' param.
+    const effectiveBusinessUnitId = businessUnit; // For now use the param-based BU. Dynamic switching might need form watch.
+    
+    const { data: businessUnitDetails } = useGetBusinessUnitByIdQuery(effectiveBusinessUnitId, { 
+        skip: !effectiveBusinessUnitId || effectiveBusinessUnitId === 'global'
+    });
+
+    const attributeGroupId = businessUnitDetails?.attributeGroup?._id || businessUnitDetails?.attributeGroup;
+
+    const { data: attributeGroupData } = useGetAttributeGroupByIdQuery(attributeGroupId, { 
+        skip: !attributeGroupId 
+    });
+
+    const dynamicFields = attributeGroupData?.data?.fields || [];
 
     // We don't need to fetch inside the hook if data is passed, but for safety/refresh we might.
     // However, the edit page already fetches it. Let's rely on initialData primarily.
@@ -425,7 +454,7 @@ export const useProductForm = (initialData?: any) => {
             const payload = {
                 ...data,
                 slug,
-                businessUnit: businessUnit, 
+                businessUnit: isSuperAdmin ? data.businessUnit : businessUnit, // Use form data if super admin
                 tax: data.pricing.tax,
                 delivery: data.shipping.delivery,
                 unit: data.unit, 
@@ -443,6 +472,11 @@ export const useProductForm = (initialData?: any) => {
                     }
                 }
             };
+            
+            // If super admin and global/empty selected, ensure it sends null/undefined or specific value? 
+            // Our backend likely expects null for global.
+            if (payload.businessUnit === 'global') payload.businessUnit = undefined;
+
 
             console.log("Submitting Transformed Payload:", payload);
 
@@ -454,7 +488,11 @@ export const useProductForm = (initialData?: any) => {
                  toast.success("Product created successfully!");
             }
             
-            router.push(`/${role}/${businessUnit}/catalog/product`);
+            if (isSuperAdmin) {
+                 router.push(`/super-admin/catalog/product`);
+            } else {
+                 router.push(`/${role}/${businessUnit}/catalog/product`);
+            }
         } catch (error: any) {
             console.error("Save Product Error:", error);
             toast.error(error?.data?.message || "Failed to save product");
@@ -469,6 +507,7 @@ export const useProductForm = (initialData?: any) => {
         categories,
         brands: mergedBrands,
         units: mergedUnits,
+        businessUnits: busUnits, // Return businessUnits
         level1, setLevel1,
         level2, setLevel2,
         level3, setLevel3,
@@ -480,5 +519,7 @@ export const useProductForm = (initialData?: any) => {
         appendVariant,
         removeVariant,
         replaceVariant,
+        attributeGroupData,
+        dynamicFields,
     };
 };

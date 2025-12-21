@@ -74,6 +74,7 @@ const MENU_MODULES = {
       { title: "Brands", path: "catalog/brand", resource: "brand" },
       { title: "Units", path: "catalog/unit", resource: "unit" },
       { title: "Attributes", path: "catalog/attribute", resource: "attribute" },
+      { title: "Attribute Groups", path: "catalog/attribute-groups", resource: "attributeGroup" },
       { title: "Tax", path: "catalog/tax", resource: "tax" },
     ],
   },
@@ -262,6 +263,7 @@ export const sidebarMenuConfig = {
         ...MENU_MODULES.POS_TERMINAL,
         badge: "Live",
       },
+      MENU_MODULES.OUTLETS,
       {
         ...MENU_MODULES.CATALOG,
         children: [
@@ -398,6 +400,7 @@ export const sidebarMenuConfig = {
            { title: "Brands", path: "catalog/brand", resource: "brand" },
            { title: "Units", path: "catalog/unit", resource: "product" },
            { title: "Attributes", path: "catalog/attribute", resource: "attribute" },
+           { title: "Attribute Groups", path: "catalog/attribute-groups", resource: "attributeGroup" },
            { title: "Tax", path: "catalog/tax", resource: "system" },
         ]
       },

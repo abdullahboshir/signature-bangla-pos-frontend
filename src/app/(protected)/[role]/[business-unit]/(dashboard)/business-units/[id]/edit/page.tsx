@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useGetBusinessUnitByIdQuery, useUpdateBusinessUnitMutation } from "@/redux/api/businessUnitApi";
+import { useGetAllAttributeGroupsQuery } from "@/redux/api/attributeGroupApi";
 import Swal from "sweetalert2";
 import { BUSINESS_UNIT_STATUS, BUSINESS_UNIT_STATUS_OPTIONS, BUSINESS_UNIT_TYPE, BUSINESS_UNIT_TYPE_OPTIONS } from "@/constant/business-unit.constant";
 
@@ -25,6 +26,7 @@ export default function EditBusinessUnitPage() {
     const id = params?.id as string;
     const { data: businessUnit, isLoading: isFetching } = useGetBusinessUnitByIdQuery(id);
     const [updateBusinessUnit, { isLoading: isSaving }] = useUpdateBusinessUnitMutation();
+    const { data: attributeGroups } = useGetAllAttributeGroupsQuery(undefined);
 
     const { register, handleSubmit, control, setValue, reset, watch, formState: { errors } } = useForm({
         defaultValues: {
@@ -35,7 +37,8 @@ export default function EditBusinessUnitPage() {
             city: "",
             country: "",
             status: "",
-            type: ""
+            type: "",
+            attributeGroup: ""
         }
     });
 
@@ -63,6 +66,8 @@ export default function EditBusinessUnitPage() {
             )
                 ? businessUnit.businessUnitType
                 : BUSINESS_UNIT_TYPE.GENERAL,
+
+            attributeGroup: businessUnit.attributeGroup?._id || businessUnit.attributeGroup || "",
         });
     }, [businessUnit, reset]);
 
@@ -81,7 +86,8 @@ export default function EditBusinessUnitPage() {
                 location: { city: data.city, country: data.country },
 
                 status: data.status,
-                businessUnitType: data.type
+                businessUnitType: data.type,
+                attributeGroup: data.attributeGroup || undefined,
             };
 
             const response: any = await updateBusinessUnit({ id, body: payload }).unwrap();
@@ -188,6 +194,31 @@ export default function EditBusinessUnitPage() {
                                     )}
                                 />
 
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="attributeGroup">Product Attribute Template</Label>
+                                <Controller
+                                    name="attributeGroup"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Select
+                                            value={field.value || undefined}
+                                            onValueChange={field.onChange}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select attribute template" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {attributeGroups?.data?.map((group: any) => (
+                                                    <SelectItem key={group._id} value={group._id}>
+                                                        {group.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
                             </div>
 
                             <div className="space-y-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Bell, Search, Menu, Calculator, MonitorPlay } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Clock } from "@/components/shared/Clock";
 import { NetworkStatus } from "@/components/shared/NetworkStatus";
 import { OpenRegisterModal } from "@/components/pos/OpenRegisterModal";
+import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -23,24 +24,52 @@ interface HeaderProps {
 export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
   const params = useParams();
   const router = useRouter();
-  const businessUnit = (params["business-unit"] || params.businessUnit) as string;
+  const businessUnitSlug = (params["business-unit"] || params.businessUnit) as string;
   const role = params.role as string;
-  const { user } = useAuth();
+  const { user, setActiveBusinessUnit } = useAuth(); // Destructure setActiveBusinessUnit
 
   const [isOpenRegisterOpen, setIsOpenRegisterOpen] = useState(false);
 
+  // Fetch all units if Super Admin
+  const isSuperAdmin = user?.roles?.includes('super-admin') || user?.isSuperAdmin;
+  const { data: allBusinessUnits } = useGetBusinessUnitsQuery(undefined, {
+    skip: !isSuperAdmin
+  });
+
+  // Combine or select appropriate source of units
+  const availableUnits = isSuperAdmin
+    ? (allBusinessUnits || [])
+    : (user?.businessUnits || []);
+
+  // Sync active business unit from URL to Context (for API headers)
+  useEffect(() => {
+    if (businessUnitSlug) {
+      // Find unit in available list
+      // Note: API might return unit.id as slug or unit.slug. 
+      // User.businessUnits has .id (slug).
+      // Check both .id and .slug properties just in case.
+      const unit = availableUnits.find((u: any) => u.id === businessUnitSlug || u.slug === businessUnitSlug);
+
+      if (unit && unit._id) {
+        setActiveBusinessUnit(unit._id);
+      }
+    } else {
+      setActiveBusinessUnit(null);
+    }
+  }, [businessUnitSlug, availableUnits, setActiveBusinessUnit]);
+
   const userData: any = {
-    fullName: user?.name || user?.email || "Staff",
-    profileImg: user?.avatar || "/avatars/01.png",
-    designation: user?.roles?.map((role: any) => typeof role === 'string' ? role : role.name).filter(Boolean).join(", ") || "Staff",
+    fullName: typeof user?.name === 'string' ? user.name : (user?.name?.firstName ? `${user.name.firstName} ${user.name.lastName}` : (user?.fullName || "Staff")),
+    profileImg: user?.profileImg || user?.avatar || "/avatars/01.png",
+    designation: user?.designation || (user?.roles?.map((role: any) => typeof role === 'string' ? role : role.name).filter(Boolean).join(", ") || "Staff"),
     role: user?.roles?.map((role: any) => typeof role === 'string' ? role : role.name).filter(Boolean).join(", ") || "Staff",
     businessUnit: user?.businessUnits?.map((u: any) => u.name) || [],
   };
 
-  const businessUnitName = businessUnit ? businessUnit.replace("-", " ") : "Dashboard";
+  const businessUnitName = businessUnitSlug ? businessUnitSlug.replace("-", " ") : "Dashboard";
 
   const handleNewSale = () => {
-    router.push(`/${role}/${businessUnit}/sales/create`);
+    router.push(`/${role}/${businessUnitSlug}/sales/create`);
   };
 
   return (
@@ -66,9 +95,9 @@ export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
             </Button>
 
             <BusinessUnitSwitcher
-              currentBusinessUnit={businessUnit}
+              currentBusinessUnit={businessUnitSlug}
               currentRole={role}
-              availableUnits={user?.businessUnits || []}
+              availableUnits={availableUnits}
             />
           </div>
 

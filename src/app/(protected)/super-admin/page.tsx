@@ -1,3 +1,5 @@
+"use client";
+
 import { useAuth } from "@/hooks/useAuth"
 import { useGetDashboardStatsQuery } from "@/redux/api/adminApi";
 
@@ -27,7 +29,7 @@ export default function SuperAdminDashboard() {
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold tracking-tight">Super Admin Overview</h1>
                 <div className="text-sm text-gray-500">
-                    Welcome back, {user?.name}
+                    Welcome back, {typeof user?.name === 'string' ? user.name : user?.name?.firstName}
                 </div>
             </div>
 

@@ -4,6 +4,8 @@ import {
     createContext,
     useContext,
     ReactNode,
+    useState,
+    useEffect
 } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -24,6 +26,8 @@ interface AuthContextType {
     isLoading: boolean;
     error: string | null;
     isAuthenticated: boolean;
+    activeBusinessUnit: string | null;
+    setActiveBusinessUnit: (id: string | null) => void;
     login: (formData: any) => Promise<LoginResponse>;
     logout: () => void;
     refreshSession: () => Promise<boolean>;
@@ -48,6 +52,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const [loginMutation] = useLoginMutation();
     const [logoutMutation] = useLogoutMutation();
+
+    const [activeBusinessUnit, setActiveBusinessUnitState] = useState<string | null>(null);
+
+    // Initialize from localStorage on mount
+    useEffect(() => {
+        const stored = localStorage.getItem('active-business-unit');
+        if (stored) {
+            setActiveBusinessUnitState(stored);
+        }
+    }, []);
+
+    const setActiveBusinessUnit = (id: string | null) => {
+        if (id) {
+            localStorage.setItem('active-business-unit', id);
+        } else {
+            localStorage.removeItem('active-business-unit');
+        }
+        setActiveBusinessUnitState(id);
+    };
 
     const login = async (formData: any): Promise<LoginResponse> => {
         try {
@@ -98,6 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         clearAuthCookies();
+        localStorage.removeItem('active-business-unit'); // Clear context
         // Force hard reload to clear all states and prevent protected layout loops
         window.location.href = "/auth/login";
         // router.push("/auth/login");
@@ -121,6 +145,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 isLoading: isUserLoading,
                 error: isError ? "Authentication error" : null,
                 isAuthenticated: !!user,
+                activeBusinessUnit,
+                setActiveBusinessUnit,
                 login,
                 logout,
                 refreshSession,

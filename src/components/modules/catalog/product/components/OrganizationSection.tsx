@@ -9,14 +9,48 @@ import { ProductFormValues } from "../product.schema";
 interface OrganizationSectionProps {
     form: UseFormReturn<ProductFormValues>;
     units: any[];
+    businessUnits?: any[]; // Optional, mostly for Super Admin
 }
 
-export const OrganizationSection = ({ form, units }: OrganizationSectionProps) => {
+export const OrganizationSection = ({ form, units, businessUnits }: OrganizationSectionProps) => {
     return (
         <Card>
             <CardHeader><CardTitle>Organization & Status</CardTitle></CardHeader>
             <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
+                    {/* Super Admin / Business Unit Selection */}
+                    {businessUnits && (
+                        <FormField
+                            control={form.control}
+                            name="businessUnit"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Business Unit</FormLabel>
+                                    <Select
+                                        key={field.value || "global"}
+                                        onValueChange={field.onChange}
+                                        value={field.value || ""}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select Business Unit (Optional)" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="global">Global (No Business Unit)</SelectItem>
+                                            {businessUnits.map((bu: any) => (
+                                                <SelectItem key={bu._id || bu.id} value={bu._id || bu.id}>
+                                                    {bu.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    )}
+
                     <FormField
                         control={form.control}
                         name="unit"

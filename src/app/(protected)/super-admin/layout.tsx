@@ -1,11 +1,14 @@
-"use client";
-
 import { AppLayout } from "@/components/layouts/AppLayout";
+import { SuperAdminGuard } from "@/components/auth/SuperAdminGuard";
 
 export default function SuperAdminLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    return <AppLayout>{children}</AppLayout>;
+    return (
+        <SuperAdminGuard>
+            <AppLayout>{children}</AppLayout>
+        </SuperAdminGuard>
+    );
 }

@@ -7,15 +7,9 @@ import { authKey } from "@/constant/authKey";
 // -----------------------------
 // Interfaces
 // -----------------------------
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  roles: any[];
-  businessUnits: any[];
-  avatar?: string;
-  permissions?: string[];
-}
+import { User } from "@/types/user";
+
+export type { User }; 
 
 export interface LoginResponse {
   success: boolean;
@@ -60,18 +54,25 @@ export const clearAuthSession = () => {
 export const getRedirectPath = (token: string, user?: User): string => {
     try {
         const decoded = jwtDecode(token) as any;
-        const role = decoded?.role;
+        // Handle role as array or string
+        const roles = Array.isArray(decoded?.role) ? decoded.role : [decoded?.role];
 
-        if (role === "customer") return "/";
-        if (role === "super-admin") return "/super-admin";
+        if (roles.includes("customer")) return "/";
+        if (roles.includes("super-admin")) return "/super-admin";
 
         const firstBusinessUnit = user?.businessUnits?.[0];
         if (firstBusinessUnit) {
             const buSlug = firstBusinessUnit.slug || firstBusinessUnit.id || "default";
-            return `/${role}/${buSlug}`;
+            // Determine primary role for this business unit?
+            // For now, use the first role in the list as fallback, or specific logic
+            // Ideally we find the role for this BU.
+            // But decoded token might not have per-bu role info nicely structure for easy pick without user permissions.
+            // Just pick first available role for now.
+            const primaryRole = roles[0] || 'staff';
+            return `/${primaryRole}/${buSlug}`;
         }
         
-        return "/super-admin";
+        return "/super-admin"; // Fallback
     } catch (error) {
         return "/";
     }

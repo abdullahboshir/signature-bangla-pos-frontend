@@ -44,7 +44,7 @@ export default function OutletListPage() {
 
     // RTK Query
     // Assuming backend supports filtering by businessUnit via query params
-    const { data: outletsResult, isLoading, refetch } = useGetAllOutletsQuery({ businessUnitId: businessUnit });
+    const { data: outletsResult, isLoading, refetch } = useGetAllOutletsQuery({ businessUnit: businessUnit });
     const [deleteOutlet] = useDeleteOutletMutation();
 
     // Handle data structure (support array or object with data/result property)

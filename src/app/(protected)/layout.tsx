@@ -38,11 +38,11 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
 
   // Map user data to the format expected by UserMenu
   const userData = {
-    fullName: user.name || "User",
+    fullName: typeof user.name === 'string' ? user.name : `${user.name?.firstName || ''} ${user.name?.lastName || ''}`,
     profileImg: user.avatar,
     designation: "Staff", // Placeholder as it's not in the User interface
     role: user.roles?.[0] || "staff",
-    businessUnit: user.businessUnits?.map((bu: any) => bu.name || bu.slug || bu) || []
+    businessUnit: user.businessUnits?.map((bu: any) => typeof bu === 'string' ? bu : (bu.name || bu.slug || bu)) || []
   };
 
   return (

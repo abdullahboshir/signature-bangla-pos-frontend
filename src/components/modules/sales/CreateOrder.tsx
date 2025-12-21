@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Minus, Plus, Search, ShoppingCart, Trash2, X, CheckCircle, Printer } from "lucide-react";
@@ -35,6 +37,8 @@ import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit";
 import { useGetProductsQuery } from "@/redux/api/productApi";
 import { useGetAllUsersQuery } from "@/redux/api/userApi";
 import { useCreateOrderMutation } from "@/redux/api/orderApi";
+import { useAuth } from "@/hooks/useAuth";
+import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
 
 // Types for POS
 interface Product {
@@ -50,7 +54,7 @@ interface Product {
         inventory: {
             stock: number;
         }
-    }; // simplified structure based on knowing backend
+    };
     details: {
         images: string[];
     };
@@ -65,17 +69,36 @@ interface CartItem {
 
 export default function CreateOrder() {
     const router = useRouter();
+    const { user } = useAuth();
+    const { currentBusinessUnit: paramBusinessUnitObj } = useCurrentBusinessUnit();
+    const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
+
+    // SA Business Unit Selection
+    const [selectedBusinessUnitId, setSelectedBusinessUnitId] = useState<string>("");
+    const { data: businessUnits = [] } = useGetBusinessUnitsQuery({ limit: 100 }, { skip: !isSuperAdmin });
+
+    // Determine effective Business Unit ID
+    // If SA, use selected. If not, use param/context logic.
+    const businessUnitId = isSuperAdmin ? selectedBusinessUnitId : (paramBusinessUnitObj?._id || paramBusinessUnitObj?.id);
+
     const [searchQuery, setSearchQuery] = useState("");
     const [cart, setCart] = useState<CartItem[]>([]);
 
     // API Hooks
-    // Fetch products with search query
+    // Fetch products filtered by Business Unit?
+    // Usually POS/Order creation is per outlet/BU.
+    // If SA selects a BU, we should ideally filter products by that BU.
+    // "useGetProductsQuery" supports businessUnit param in our previous refactor of ProductList.
+    // Let's pass it here too.
     const { data: rawProducts = [], isLoading: isLoadingProducts } = useGetProductsQuery({
         search: searchQuery,
-        limit: 20
+        limit: 20,
+        businessUnit: businessUnitId // Filter products by selected/current BU
+    }, {
+        skip: isSuperAdmin && !businessUnitId // Skip if SA hasn't selected BU yet? Or show all? better skip or show global
     });
 
-    // Normalize products data structure if needed
+    // Normalize products data structure
     const products: Product[] = useMemo(() => {
         if (Array.isArray(rawProducts)) return rawProducts;
         if (rawProducts?.results && Array.isArray(rawProducts.results)) return rawProducts.results;
@@ -85,10 +108,9 @@ export default function CreateOrder() {
     // Fetch all users for customer selection
     const { data: rawUsers = [] } = useGetAllUsersQuery({});
 
-    // Filter customers from all users
+    // Filter customers
     const customers = useMemo(() => {
         let allUsers: any[] = [];
-        // Normalize user response
         if (Array.isArray(rawUsers)) {
             allUsers = rawUsers;
         } else if (rawUsers?.data && Array.isArray(rawUsers.data)) {
@@ -152,14 +174,12 @@ export default function CreateOrder() {
 
     const calculateTotals = () => {
         const subTotal = cart.reduce((acc, item) => acc + item.total, 0);
-        const tax = 0; // standard tax logic can be added
+        const tax = 0;
         const totalAmount = subTotal + tax;
         return { subTotal, tax, totalAmount };
     };
 
-    const { currentBusinessUnit } = useCurrentBusinessUnit();
-
-    const [orderSuccess, setOrderSuccess] = useState<any>(null); // State for success modal
+    const [orderSuccess, setOrderSuccess] = useState<any>(null);
 
     const handleCheckout = async () => {
         if (cart.length === 0) {
@@ -172,16 +192,13 @@ export default function CreateOrder() {
             return;
         }
 
-        const totals = calculateTotals();
-        const payment = parseFloat(paidAmount || "0");
-
-        // Basic validation for business unit simulation
-        const businessUnitId = currentBusinessUnit?._id || currentBusinessUnit?.id;
-
         if (!businessUnitId) {
-            toast.error("No business unit selected");
+            toast.error("No business unit selected/detected");
             return;
         }
+
+        const totals = calculateTotals();
+        const payment = parseFloat(paidAmount || "0");
 
         const payload: CreateOrderPayload = {
             items: cart.map(item => ({
@@ -202,33 +219,28 @@ export default function CreateOrder() {
             const res = await createOrder(payload).unwrap();
             if (res.success) {
                 toast.success("Order created successfully");
-                setOrderSuccess(res.data); // Open Success Modal with order data
+                setOrderSuccess(res.data);
             }
         } catch (error: any) {
             console.error("Checkout Error Full Object:", error);
-            const resData = error.data || error; // RTK Query error structure
+            const resData = error.data || error;
             console.log("Error Response Data:", resData);
 
             let errorMessage = "Checkout failed";
 
             if (resData) {
-                // Priority 1: errorSources (structured errors from Zod, Mongoose, AppError)
                 if (resData.errorSources && Array.isArray(resData.errorSources) && resData.errorSources.length > 0) {
-                    // Join multiple error messages if needed, or just take the first one
                     errorMessage = resData.errorSources.map((e: any) => e.message).join('. ');
                 }
-                // Priority 2: message (if it's not the generic "Something went wrong")
                 else if (resData.message && resData.message !== "Something went wrong!" && resData.message !== "Validation Error") {
                     errorMessage = resData.message;
                 }
-                // Priority 3: Fallback to any other error properties
                 else if (typeof resData.error === 'string') {
                     errorMessage = resData.error;
                 }
                 else if (typeof resData.error === 'object' && resData.error?.message) {
                     errorMessage = resData.error.message;
                 }
-                // Priority 4: Final fallback to "message" even if generic, if nothing else exists
                 else if (resData.message) {
                     errorMessage = resData.message;
                 }
@@ -250,16 +262,28 @@ export default function CreateOrder() {
 
     const { totalAmount } = calculateTotals();
 
-    // Debounce search input
-    useEffect(() => {
-        // Optional: Implement debounce here if search causes too many requests
-        // RTK Query has keepUnusedDataFor defaults which helps.
-    }, [searchQuery]);
-
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-100px)]">
-            {/* ... (existing Product Section) */}
             <div className="md:col-span-2 flex flex-col gap-4">
+                {/* Super Admin Business Unit Selection */}
+                {isSuperAdmin && (
+                    <Card className="p-4 border-dashed border-2 bg-muted/20">
+                        <div className="flex items-center gap-4">
+                            <label className="text-sm font-medium whitespace-nowrap">Select Store Context:</label>
+                            <Select value={selectedBusinessUnitId} onValueChange={setSelectedBusinessUnitId}>
+                                <SelectTrigger className="w-[300px]">
+                                    <SelectValue placeholder="Select Business Unit" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {businessUnits.map((bu: any) => (
+                                        <SelectItem key={bu._id} value={bu._id}>{bu.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </Card>
+                )}
+
                 <Card className="flex-1 flex flex-col overflow-hidden">
                     <CardHeader className="py-4">
                         <div className="relative">
@@ -273,7 +297,12 @@ export default function CreateOrder() {
                         </div>
                     </CardHeader>
                     <CardContent className="flex-1 overflow-auto p-4">
-                        {isLoadingProducts ? (
+                        {(isSuperAdmin && !selectedBusinessUnitId) ? (
+                            <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
+                                <ShoppingCart className="h-10 w-10 mb-2 opacity-20" />
+                                <p>Please select a business unit to start selling.</p>
+                            </div>
+                        ) : isLoadingProducts ? (
                             <div className="flex justify-center items-center h-40">Loading products...</div>
                         ) : (
                             <div className="rounded-md border">
@@ -358,7 +387,6 @@ export default function CreateOrder() {
             {/* Cart Section */}
             <div className="flex flex-col gap-4 h-full">
                 <Card className="flex-1 flex flex-col h-full border-primary/20 shadow-lg">
-                    {/* ... (existing Cart Header & ScrollArea) */}
                     <CardHeader className="bg-primary/5 py-4 border-b">
                         <CardTitle className="flex items-center gap-2 text-lg">
                             <ShoppingCart className="h-5 w-5" /> Current Order
@@ -404,7 +432,6 @@ export default function CreateOrder() {
                     </ScrollArea>
 
                     <div className="p-4 bg-muted/20 border-t space-y-4">
-                        {/* ... (existing Total & Inputs) */}
                         <div className="space-y-2">
                             <div className="flex justify-between font-bold text-lg">
                                 <span>Total</span>
@@ -492,7 +519,7 @@ export default function CreateOrder() {
                         </div>
                     </div>
                     <DialogFooter className="flex-col sm:flex-row gap-2">
-                        <Button variant="outline" className="flex-1" onClick={() => router.push('../')}>
+                        <Button variant="outline" className="flex-1" onClick={() => router.back()}>
                             Go to List
                         </Button>
                         <Button variant="secondary" className="flex-1" onClick={() => toast.info("Printing not implemented yet")}>

@@ -42,30 +42,7 @@ import { format } from "date-fns";
 import { Calendar as CalendarIcon, UploadCloud } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 
-export interface FieldConfig<T> {
-    name: Path<T>;
-    label: string;
-    type: "text" | "number" | "email" | "password" | "textarea" | "select" | "multi-select" | "date" | "file" | "custom";
-    placeholder?: string;
-    required?: boolean;
-    options?: { label: string; value: string }[];
-    defaultValue?: any;
-    disabled?: boolean;
-    accept?: string; // For file inputs
-    render?: (props: { control: any; name: string }) => React.ReactNode;
-}
-
-interface AutoFormModalProps<T extends FieldValues> {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    title: string;
-    description?: string;
-    fields: FieldConfig<T>[];
-    onSubmit: (data: T) => Promise<void>;
-    isLoading?: boolean;
-    defaultValues?: Partial<T>;
-    submitLabel?: string;
-}
+import { AutoFormModalProps } from "@/types/auto-form";
 
 export function AutoFormModal<T extends FieldValues>({
     open,
@@ -268,10 +245,10 @@ export function AutoFormModal<T extends FieldValues>({
                                                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                                     <UploadCloud className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" />
                                                     <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                                                        <span className="font-semibold">{value instanceof File ? value.name : "Click to upload"}</span>
+                                                        <span className="font-semibold">{(value as any) instanceof File ? (value as any).name : "Click to upload"}</span>
                                                     </p>
                                                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                        {value instanceof File ? (
+                                                        {(value as any) instanceof File ? (
                                                             <span className="text-green-500">File selected</span>
                                                         ) : (
                                                             field.placeholder || "SVG, PNG, JPG or GIF"

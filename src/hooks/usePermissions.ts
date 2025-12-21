@@ -23,20 +23,26 @@ export function usePermissions() {
     };
   }
   
-  const hasPermission = (permission: string) => {
-    return user?.permissions?.includes(permission) || false
+  const hasPermission = (permissionCode: string) => {
+    if (!user?.permissions) return false;
+    
+    // Check if any role has this permission
+    return user.permissions.some((assignment: any) => {
+        // assignment.role.permissions could be string[] or object[]
+        const rolePerms = assignment.role?.permissions || [];
+        return rolePerms.some((p: any) => {
+             const pCode = typeof p === 'string' ? p : p.name; // or p.code depending on model
+             return pCode === permissionCode;
+        });
+    });
   }
   
   const hasAnyPermission = (permissions: string[]) => {
-    return permissions.some(permission => 
-      user?.permissions?.includes(permission)
-    )
+    return permissions.some(permission => hasPermission(permission));
   }
   
   const hasAllPermissions = (permissions: string[]) => {
-    return permissions.every(permission => 
-      user?.permissions?.includes(permission)
-    )
+    return permissions.every(permission => hasPermission(permission));
   }
   
 console.log("usePermissions →", {

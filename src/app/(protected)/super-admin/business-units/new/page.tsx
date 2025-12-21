@@ -11,10 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Swal from "sweetalert2";
 import { useCreateBusinessUnitMutation } from "@/redux/api/businessUnitApi";
+import { useGetAllAttributeGroupsQuery } from "@/redux/api/attributeGroupApi";
 
 export default function SuperAdminAddBusinessUnitPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+
+    const [createBusinessUnit] = useCreateBusinessUnitMutation();
 
     // Form state
     const [name, setName] = useState("");
@@ -24,6 +27,10 @@ export default function SuperAdminAddBusinessUnitPage() {
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
     const [description, setDescription] = useState("");
+    const [attributeGroup, setAttributeGroup] = useState("");
+
+    // Fetch attribute groups
+    const { data: attributeGroups } = useGetAllAttributeGroupsQuery(undefined);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -55,6 +62,7 @@ export default function SuperAdminAddBusinessUnitPage() {
                 primaryCategory: "675000000000000000000001",
                 categories: ["675000000000000000000001"], // Required array
                 businessUnitType: type,
+                attributeGroup: attributeGroup || undefined,
                 seo: {
                     metaTitle: name || "Business Unit",
                     metaDescription: description || `Business unit for ${name}`
@@ -160,6 +168,22 @@ export default function SuperAdminAddBusinessUnitPage() {
                                     </Select>
                                 </div>
                             </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="attributeGroup">Product Attribute Template</Label>
+                                <Select value={attributeGroup} onValueChange={setAttributeGroup}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select attribute template" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {attributeGroups?.data?.map((group: any) => (
+                                            <SelectItem key={group._id} value={group._id}>{group.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+
 
                             <div className="grid gap-2">
                                 <Label htmlFor="address">Address</Label>

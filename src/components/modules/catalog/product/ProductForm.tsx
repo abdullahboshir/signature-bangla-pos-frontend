@@ -19,6 +19,8 @@ import {
     useUpdateProductMutation,
 } from "@/redux/api/productApi";
 import { useUploadFileMutation } from "@/redux/api/uploadApi";
+import { useGetBusinessUnitByIdQuery } from "@/redux/api/businessUnitApi";
+import { useGetAttributeGroupByIdQuery } from "@/redux/api/attributeGroupApi";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -43,6 +45,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 
 import { defaultProductValues, productSchema, ProductFormValues } from "./product.schema";
 import { VariantGenerator } from "./components/VariantGenerator";
@@ -60,10 +63,23 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     const role = params["role"] as string;
 
     // RTK Query Hooks
+    // RTK Query Hooks
     const { data: categories = [] } = useGetCategoriesQuery({});
     const { data: brands = [] } = useGetBrandsQuery({});
     const { data: units = [] } = useGetUnitsQuery({});
     const { data: taxes = [] } = useGetTaxesQuery({});
+
+    // Fetch Business Unit to get Attribute Group
+    // Assuming 'businessUnit' from params is the ID or Slug. If slug, we might need a different query or logic.
+    // Based on previous context, 'business-unit' param seems to be the ID or Slug.
+    // Let's assume ID for now as per other code, or check if we need to resolve it.
+    // Actually in `ProductForm` params['business-unit'] is used.
+    const { data: businessUnitData } = useGetBusinessUnitByIdQuery(businessUnit, { skip: !businessUnit });
+    const attributeGroupId = businessUnitData?.attributeGroup?._id || businessUnitData?.attributeGroup;
+
+    // Fetch Attribute Group Details
+    const { data: attributeGroupData } = useGetAttributeGroupByIdQuery(attributeGroupId, { skip: !attributeGroupId });
+    const dynamicFields = attributeGroupData?.data?.fields || [];
 
     // Mutations
     const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
@@ -294,6 +310,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                         <TabsTrigger value="variants">Variants</TabsTrigger>
                         <TabsTrigger value="shipping">Shipping</TabsTrigger>
                         <TabsTrigger value="seo">SEO</TabsTrigger>
+                        {dynamicFields.length > 0 && <TabsTrigger value="attributes">{attributeGroupData?.data?.name || "Attributes"}</TabsTrigger>}
                     </TabsList>
 
                     <TabsContent value="basic">
@@ -728,6 +745,69 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                     </div>
                                     <FormMessage>{form.formState.errors.details?.images?.message}</FormMessage>
                                 </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="attributes">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>{attributeGroupData?.data?.name || "Product Attributes"}</CardTitle>
+                                <CardDescription>
+                                    {attributeGroupData?.data?.description || "Specific details for this product type."}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {dynamicFields.map((field: any) => (
+                                    <FormField
+                                        key={field.key}
+                                        control={form.control}
+                                        name={`attributes.${field.key}`}
+                                        render={({ field: formField }) => (
+                                            <FormItem>
+                                                <FormLabel>{field.label} {field.required && <span className="text-destructive">*</span>}</FormLabel>
+                                                <FormControl>
+                                                    {field.type === 'textarea' ? (
+                                                        <Textarea placeholder={field.placeholder} {...formField} />
+                                                    ) : field.type === 'select' ? (
+                                                        <Select onValueChange={formField.onChange} defaultValue={formField.value}>
+                                                            <FormControl>
+                                                                <SelectTrigger>
+                                                                    <SelectValue placeholder={field.placeholder || "Select option"} />
+                                                                </SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent>
+                                                                {field.options?.map((opt: string) => (
+                                                                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    ) : field.type === 'boolean' ? (
+                                                        <div className="flex items-center space-x-2">
+                                                            <Switch
+                                                                checked={formField.value}
+                                                                onCheckedChange={formField.onChange}
+                                                            />
+                                                            <span>{formField.value ? "Yes" : "No"}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <Input
+                                                            type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
+                                                            placeholder={field.placeholder}
+                                                            {...formField}
+                                                        />
+                                                    )}
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                ))}
+                                {dynamicFields.length === 0 && (
+                                    <div className="text-center py-8 text-muted-foreground">
+                                        No dynamic attributes defined for this Business Unit.
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     </TabsContent>

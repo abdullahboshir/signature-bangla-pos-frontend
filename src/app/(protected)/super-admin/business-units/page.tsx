@@ -104,9 +104,14 @@ export default function BusinessUnitsPage() {
                         </Badge>
                       </td>
                       <td className="p-4 align-middle text-right">
-                        <Button variant="ghost" size="sm" asChild>
-                          <a href={`/dashboard/${unit._id}`}>Dashboard</a>
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="sm" onClick={() => router.push(`/super-admin/${unit.slug || unit._id}/business-units/${unit._id}/edit`)}>
+                            Edit
+                          </Button>
+                          <Button variant="ghost" size="sm" asChild>
+                            <a href={`/super-admin/${unit._id}/overview`}>Dashboard</a>
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))
