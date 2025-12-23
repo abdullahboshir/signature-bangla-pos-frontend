@@ -11,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VariantGenerator } from "./VariantGenerator";
 import { ProductFormValues } from "../product.schema";
 import { useUploadFileMutation } from "@/redux/api/uploadApi";
+import { getImageUrl } from "@/lib/utils";
+import { ImagePreview } from "./ImagePreview";
 
 interface AttributeSectionProps {
     form: UseFormReturn<ProductFormValues>;
@@ -109,22 +111,17 @@ export const AttributeSection = ({ form, variantFields, appendVariant, removeVar
                                                         <div className="space-y-2">
                                                             <div className="flex flex-wrap gap-2">
                                                                 {(field.value || []).map((img: string, imgIdx: number) => (
-                                                                    <div key={imgIdx} className="relative w-12 h-12 border rounded overflow-hidden group">
-                                                                        <img src={img} alt="Var" className="w-full h-full object-cover" />
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="destructive"
-                                                                            size="icon"
-                                                                            className="absolute top-0 right-0 h-4 w-4 opacity-0 group-hover:opacity-100 p-0 rounded-none"
-                                                                            onClick={() => {
-                                                                                const newImages = [...(field.value || [])];
-                                                                                newImages.splice(imgIdx, 1);
-                                                                                field.onChange(newImages);
-                                                                            }}
-                                                                        >
-                                                                            <X className="h-3 w-3" />
-                                                                        </Button>
-                                                                    </div>
+                                                                    <ImagePreview
+                                                                        key={imgIdx}
+                                                                        src={img}
+                                                                        alt="Var"
+                                                                        variant="compact"
+                                                                        onRemove={() => {
+                                                                            const newImages = [...(field.value || [])];
+                                                                            newImages.splice(imgIdx, 1);
+                                                                            field.onChange(newImages);
+                                                                        }}
+                                                                    />
                                                                 ))}
                                                                 <label className="flex items-center justify-center w-12 h-12 border border-dashed rounded cursor-pointer hover:bg-muted/50">
                                                                     <Upload className="h-4 w-4 text-muted-foreground" />
@@ -144,7 +141,12 @@ export const AttributeSection = ({ form, variantFields, appendVariant, removeVar
                                                                                         const formData = new FormData();
                                                                                         formData.append('image', files[i]);
                                                                                         const res = await uploadFile(formData).unwrap();
-                                                                                        const url = res?.url || res?.data?.url;
+                                                                                        // uploadApi transforms response to return the url string directly or response.data.url
+                                                                                        // So 'res' should be the URL string if success
+                                                                                        const url = typeof res === 'string' ? res : (res?.url || res?.data?.url);
+
+                                                                                        console.log("Variant Upload Response:", { res, url });
+
                                                                                         if (url) {
                                                                                             newUrls.push(url);
                                                                                         }

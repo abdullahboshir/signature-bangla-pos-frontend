@@ -10,9 +10,10 @@ interface OrganizationSectionProps {
     form: UseFormReturn<ProductFormValues>;
     units: any[];
     businessUnits?: any[]; // Optional, mostly for Super Admin
+    isLocked?: boolean;
 }
 
-export const OrganizationSection = ({ form, units, businessUnits }: OrganizationSectionProps) => {
+export const OrganizationSection = ({ form, units, businessUnits, isLocked }: OrganizationSectionProps) => {
     return (
         <Card>
             <CardHeader><CardTitle>Organization & Status</CardTitle></CardHeader>
@@ -30,6 +31,7 @@ export const OrganizationSection = ({ form, units, businessUnits }: Organization
                                         key={field.value || "global"}
                                         onValueChange={field.onChange}
                                         value={field.value || ""}
+                                        disabled={isLocked} // Disable if locked by context
                                     >
                                         <FormControl>
                                             <SelectTrigger>

@@ -1,12 +1,16 @@
 
+import { useState, useEffect } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { Loader2, Trash2, Upload } from "lucide-react";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProductFormValues } from "../product.schema";
+import { getImageUrl } from "@/lib/utils";
+import { ImagePreview } from "./ImagePreview";
 
 interface DetailsSectionProps {
     form: UseFormReturn<ProductFormValues>;
@@ -41,7 +45,11 @@ export const DetailsSection = ({ form, isUploading, handleImageUpload, removeIma
                         <FormItem>
                             <FormLabel>Full Description</FormLabel>
                             <FormControl>
-                                <Textarea className="min-h-[200px]" placeholder="Detailed product description..." {...field} />
+                                <RichTextEditor
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    placeholder="Detailed product description..."
+                                />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -107,17 +115,12 @@ export const DetailsSection = ({ form, isUploading, handleImageUpload, removeIma
                             {form.watch("details.images")?.length > 0 && (
                                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-4">
                                     {form.watch("details.images").map((img: string, idx: number) => (
-                                        <div key={idx} className="relative group aspect-square bg-muted rounded-lg overflow-hidden border">
-                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img src={img} alt={`Product ${idx}`} className="w-full h-full object-cover" />
-                                            <button
-                                                type="button"
-                                                onClick={() => removeImage(idx)}
-                                                className="absolute top-1 right-1 bg-destructive/80 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
-                                        </div>
+                                        <ImagePreview
+                                            key={idx}
+                                            src={img}
+                                            alt={`Product ${idx}`}
+                                            onRemove={() => removeImage(idx)}
+                                        />
                                     ))}
                                 </div>
                             )}

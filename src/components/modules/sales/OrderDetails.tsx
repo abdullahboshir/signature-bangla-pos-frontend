@@ -23,7 +23,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { OrderService } from "./OrderService";
+import { useGetOrderQuery, useUpdateOrderStatusMutation } from "@/redux/api/orderApi";
 import { IOrder } from "./order.types";
 
 const ORDER_STATUSES = [
@@ -40,47 +40,29 @@ export default function OrderDetails() {
     const router = useRouter();
     const params = useParams();
     const [order, setOrder] = useState<IOrder | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [updating, setUpdating] = useState(false);
+    const { data: orderData, isLoading: loading } = useGetOrderQuery(params.id as string, {
+        skip: !params.id
+    });
+
+    const [updateStatus, { isLoading: updating }] = useUpdateOrderStatusMutation();
 
     useEffect(() => {
-        if (params.id) {
-            fetchOrder(params.id as string);
+        if (orderData) {
+            setOrder(orderData);
         }
-    }, [params.id]);
-
-    const fetchOrder = async (id: string) => {
-        try {
-            setLoading(true);
-            const res = await OrderService.getOrderById(id);
-            if (res.success) {
-                setOrder(res.data);
-            } else {
-                toast.error("Order not found");
-                router.push("../");
-            }
-        } catch (error: any) {
-            console.error("Failed to fetch order:", error);
-            toast.error("Failed to load order details");
-        } finally {
-            setLoading(false);
-        }
-    };
+    }, [orderData]);
 
     const handleStatusChange = async (newStatus: string) => {
         if (!order) return;
         try {
-            setUpdating(true);
-            const res = await OrderService.updateStatus(order._id, newStatus);
-            if (res.success) {
-                toast.success(`Order updated to ${newStatus}`);
-                setOrder(prev => prev ? { ...prev, status: newStatus as any } : null);
-            }
+            await updateStatus({ id: order._id, status: newStatus }).unwrap();
+            toast.success(`Order updated to ${newStatus}`);
+            // Optimistic update not strictly needed if tag invalidation works, 
+            // but setting local state or relying on re-fetch is good.
+            // Since we setOrder in useEffect on data change, it should update automatically.
         } catch (error: any) {
             console.error("Failed to update status:", error);
             toast.error("Failed to update status");
-        } finally {
-            setUpdating(false);
         }
     };
 

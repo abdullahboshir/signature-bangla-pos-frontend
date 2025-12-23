@@ -18,6 +18,7 @@ import {
   Headphones,
   DollarSign,
   Warehouse,
+  Globe,
 } from "lucide-react"
 
 // 📦 Reusable Menu Modules (DRY Principle)
@@ -85,6 +86,7 @@ const MENU_MODULES = {
     resource: "inventory",
     children: [
       { title: "Stock Levels", path: "inventory" },
+      { title: "Purchases", path: "inventory/purchase", resource: "purchase" },
       { title: "Adjustments", path: "inventory/adjustments", action: "update" },
       { title: "Stock Ledger", path: "inventory/ledger" },
       { title: "Warehouses", path: "inventory/warehouses", resource: "warehouse" },
@@ -94,7 +96,7 @@ const MENU_MODULES = {
   },
   PURCHASES: {
     title: "Purchases",
-    path: "purchases",
+    path: "inventory/purchase",
     icon: ShoppingCart,
     resource: "purchase",
     children: [
@@ -207,6 +209,17 @@ const MENU_MODULES = {
     path: "staff",
     icon: Users,
     resource: "user"
+  },
+  STOREFRONT: {
+    title: "Online Store",
+    path: "online-store",
+    icon: Globe,
+    resource: "storefront",
+    children: [
+      { title: "Store Builder", path: "online-store/ui-builder", resource: "storefront" },
+      { title: "Pages", path: "online-store/pages", resource: "storefront" },
+      { title: "Settings", path: "online-store/settings", resource: "storefront" },
+    ]
   }
 };
 
@@ -246,7 +259,6 @@ export const sidebarMenuConfig = {
       MENU_MODULES.USER_MANAGEMENT,
       MENU_MODULES.CATALOG,
       MENU_MODULES.INVENTORY,
-      MENU_MODULES.PURCHASES,
       MENU_MODULES.SALES,
       MENU_MODULES.MARKETING,
       MENU_MODULES.CUSTOMERS,
@@ -278,16 +290,17 @@ export const sidebarMenuConfig = {
           { title: "Tax", path: "catalog/tax", resource: "tax" },
         ],
       },
+      MENU_MODULES.STOREFRONT, // Added
       {
         ...MENU_MODULES.INVENTORY,
         children: [
             { title: "Stock Levels", path: "inventory" },
+            { title: "Purchases", path: "inventory/purchase", resource: "purchase" },
             { title: "Adjustments", path: "inventory/adjustments", action: "update" },
             { title: "Stock Ledger", path: "inventory/ledger" },
             { title: "Warehouses", path: "inventory/warehouses", resource: "warehouse" },
         ]
       },
-      MENU_MODULES.PURCHASES,
       {
         ...MENU_MODULES.SALES, 
         title: "Sales", // Override title to just "Sales" if preferred
@@ -416,6 +429,7 @@ export const sidebarMenuConfig = {
           { title: "Delivery", path: "sales/delivery", resource: "delivery" },
         ]
       },
+      MENU_MODULES.STOREFRONT, // Added
       {
         ...MENU_MODULES.INVENTORY,
         icon: Package, // Revert icon to Package for dynamic

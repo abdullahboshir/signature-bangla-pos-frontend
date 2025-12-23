@@ -12,6 +12,7 @@ export const productSchema = z.object({
   sku: z.string().min(1, "SKU is required").or(z.literal("")).optional(), // Allow empty string or valid SKU
   barcode: z.string().optional(),
   
+  outlet: z.string().optional(),
   businessUnit: z.string().optional(),
   categories: z.array(z.string()).min(1, "At least one category is required"),
   primaryCategory: z.string().min(1, "Primary category is required"),
@@ -76,7 +77,7 @@ export const productSchema = z.object({
   details: z.object({
     description: z.string().min(1, "Description is required"),
     shortDescription: z.string().min(1, "Short description is required"),
-    images: z.array(z.string().url("Invalid URL")).min(1, "At least one image is required"),
+    images: z.array(z.string()).min(1, "At least one image is required"),
     origin: z.string().min(1, "Origin is required"),
     manufacturer: z.string().optional(),
     model: z.string().optional(),

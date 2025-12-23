@@ -54,6 +54,15 @@ export const businessUnitApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: [tagTypes.businessUnit],
     }),
+    getBusinessUnitDashboardStats: build.query({
+      query: ({ businessUnitId, outletId }: { businessUnitId: string; outletId?: string }) => ({
+        url: `/super-admin/business-unit/${businessUnitId}/dashboard`,
+        method: "GET",
+        params: { outletId },
+      }),
+      providesTags: (result, error, arg) => [{ type: tagTypes.businessUnit, id: arg.businessUnitId }],
+      transformResponse: (response: any) => response.data,
+    }),
   }),
 });
 
@@ -63,4 +72,5 @@ export const {
   useCreateBusinessUnitMutation,
   useUpdateBusinessUnitMutation,
   useDeleteBusinessUnitMutation,
+  useGetBusinessUnitDashboardStatsQuery,
 } = businessUnitApi;

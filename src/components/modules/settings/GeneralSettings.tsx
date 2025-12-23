@@ -22,7 +22,7 @@ export function GeneralSettings({ data, onChange }: { data: any, onChange: (key:
             <Card>
                 <CardHeader>
                     <CardTitle>Display Settings</CardTitle>
-                    <CardDescription>Control how products are displayed in your store/POS</CardDescription>
+                    <CardDescription>Control how products are displayed in your Outlet/POS</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -53,6 +53,48 @@ export function GeneralSettings({ data, onChange }: { data: any, onChange: (key:
                             onChange={(e) => updateDisplay('productsPerPage', parseInt(e.target.value))}
                         />
                     </div>
+                    <div className="grid gap-2">
+                        <Label>Default Sort Order</Label>
+                        <Select
+                            value={data.display?.defaultSort || 'newest'}
+                            onValueChange={(val) => updateDisplay('defaultSort', val)}
+                        >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="newest">Newest Arrivals</SelectItem>
+                                <SelectItem value="price_asc">Price: Low to High</SelectItem>
+                                <SelectItem value="price_desc">Price: High to Low</SelectItem>
+                                <SelectItem value="name_asc">Name: A to Z</SelectItem>
+                                <SelectItem value="rating">Average Rating</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-4 pt-4 border-t">
+                        <h4 className="text-sm font-medium">Storefront Features</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex items-center justify-between">
+                                <Label>Enable Product Reviews</Label>
+                                <Switch checked={data.display?.showProductReviews} onCheckedChange={(c) => updateDisplay('showProductReviews', c)} />
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <Label>Show Related Products</Label>
+                                <Switch checked={data.display?.showRelatedProducts} onCheckedChange={(c) => updateDisplay('showRelatedProducts', c)} />
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <Label>Enable Quick View</Label>
+                                <Switch checked={data.display?.enableQuickView} onCheckedChange={(c) => updateDisplay('enableQuickView', c)} />
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <Label>Enable Wishlist</Label>
+                                <Switch checked={data.display?.enableWishlist} onCheckedChange={(c) => updateDisplay('enableWishlist', c)} />
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <Label>Enable Compare</Label>
+                                <Switch checked={data.display?.enableCompare} onCheckedChange={(c) => updateDisplay('enableCompare', c)} />
+                            </div>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -78,14 +120,30 @@ export function GeneralSettings({ data, onChange }: { data: any, onChange: (key:
                             </SelectContent>
                         </Select>
                     </div>
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex items-center justify-between">
                             <Label>Generate Sitemap</Label>
+                            <Switch
+                                checked={data.seo?.sitemap?.enabled}
+                                onCheckedChange={(c) => onChange('seo', { ...data.seo, sitemap: { ...data.seo?.sitemap, enabled: c } })}
+                            />
                         </div>
-                        <Switch
-                            checked={data.seo?.sitemap?.enabled}
-                            onCheckedChange={(c) => onChange('seo', { ...data.seo, sitemap: { ...data.seo?.sitemap, enabled: c } })}
-                        />
+                        <div className="flex items-center justify-between">
+                            <Label>Canonical URLs</Label>
+                            <Switch checked={data.seo?.canonicalUrls} onCheckedChange={(c) => updateSeo('canonicalUrls', c)} />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <Label>Structured Data (JSON-LD)</Label>
+                            <Switch checked={data.seo?.structuredData} onCheckedChange={(c) => updateSeo('structuredData', c)} />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <Label>Open Graph (Facebook)</Label>
+                            <Switch checked={data.seo?.openGraph} onCheckedChange={(c) => updateSeo('openGraph', c)} />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <Label>Twitter Card</Label>
+                            <Switch checked={data.seo?.twitterCard} onCheckedChange={(c) => updateSeo('twitterCard', c)} />
+                        </div>
                     </div>
                 </CardContent>
             </Card>

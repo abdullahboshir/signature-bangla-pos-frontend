@@ -28,15 +28,37 @@ export function SalesSettings({ data, onChange }: { data: any, onChange: (key: s
                     <CardTitle>Checkout Settings</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex items-center justify-between">
                             <Label>Enable Guest Checkout</Label>
+                            <Switch
+                                checked={data.checkout?.guestCheckout}
+                                onCheckedChange={(c) => updateCheckout('guestCheckout', c)}
+                            />
                         </div>
-                        <Switch
-                            checked={data.checkout?.guestCheckout}
-                            onCheckedChange={(c) => updateCheckout('guestCheckout', c)}
-                        />
+                        <div className="flex items-center justify-between">
+                            <Label>Require Account Creation</Label>
+                            <Switch
+                                checked={data.checkout?.requireAccount}
+                                onCheckedChange={(c) => updateCheckout('requireAccount', c)}
+                            />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <Label>Enable Coupons</Label>
+                            <Switch
+                                checked={data.checkout?.enableCoupons}
+                                onCheckedChange={(c) => updateCheckout('enableCoupons', c)}
+                            />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <Label>Enable Gift Cards</Label>
+                            <Switch
+                                checked={data.checkout?.enableGiftCards}
+                                onCheckedChange={(c) => updateCheckout('enableGiftCards', c)}
+                            />
+                        </div>
                     </div>
+
                     <div className="grid gap-2">
                         <Label>Minimum Order Amount</Label>
                         <Input
@@ -45,6 +67,7 @@ export function SalesSettings({ data, onChange }: { data: any, onChange: (key: s
                             onChange={(e) => updateCheckout('minimumOrderAmount', parseFloat(e.target.value))}
                         />
                     </div>
+                    {/* Placeholder for Terms and Privacy Policy Text Areas if needed */}
                 </CardContent>
             </Card>
 
@@ -54,22 +77,32 @@ export function SalesSettings({ data, onChange }: { data: any, onChange: (key: s
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label>Enable Tax Calculation</Label>
-                        </div>
+                        <Label>Enable Tax Calculation</Label>
                         <Switch
                             checked={data.tax?.enabled}
                             onCheckedChange={(c) => updateTax('enabled', c)}
                         />
                     </div>
                     <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label>Prices Include Tax</Label>
-                        </div>
+                        <Label>Prices Include Tax</Label>
                         <Switch
                             checked={data.tax?.pricesIncludeTax}
                             onCheckedChange={(c) => updateTax('pricesIncludeTax', c)}
                         />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label>Tax Calculation Based On</Label>
+                        <Select
+                            value={data.tax?.taxBasedOn || 'shipping'}
+                            onValueChange={(val) => updateTax('taxBasedOn', val)}
+                        >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="shipping">Customer Shipping Address</SelectItem>
+                                <SelectItem value="billing">Customer Billing Address</SelectItem>
+                                <SelectItem value="businessUnit">Business Unit Address</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                 </CardContent>
             </Card>
@@ -80,22 +113,42 @@ export function SalesSettings({ data, onChange }: { data: any, onChange: (key: s
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label>Enable Shipping</Label>
-                        </div>
+                        <Label>Enable Shipping</Label>
                         <Switch
                             checked={data.shipping?.enabled}
                             onCheckedChange={(c) => updateShipping('enabled', c)}
                         />
                     </div>
-                    <div className="grid gap-2">
-                        <Label>Default Shipping Rate</Label>
-                        <Input
-                            type="number"
-                            value={data.shipping?.defaultRate || 0}
-                            onChange={(e) => updateShipping('defaultRate', parseFloat(e.target.value))}
-                        />
-                    </div>
+
+                    {data.shipping?.enabled && (
+                        <>
+                            <div className="flex items-center justify-between">
+                                <Label>Enable Free Shipping</Label>
+                                <Switch
+                                    checked={data.shipping?.freeShippingEnabled}
+                                    onCheckedChange={(c) => updateShipping('freeShippingEnabled', c)}
+                                />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label>Default Shipping Rate</Label>
+                                    <Input
+                                        type="number"
+                                        value={data.shipping?.defaultRate || 0}
+                                        onChange={(e) => updateShipping('defaultRate', parseFloat(e.target.value))}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>Handling Fee</Label>
+                                    <Input
+                                        type="number"
+                                        value={data.shipping?.handlingFee || 0}
+                                        onChange={(e) => updateShipping('handlingFee', parseFloat(e.target.value))}
+                                    />
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </CardContent>
             </Card>
             <Card>

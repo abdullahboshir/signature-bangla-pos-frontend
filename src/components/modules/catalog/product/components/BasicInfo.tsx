@@ -25,8 +25,14 @@ export const BasicInfo = ({ form, categories, brands, setLevel1, setLevel2, setL
     const watchedL2 = form.watch("subCategory");
     const watchedL3 = form.watch("childCategory");
 
-    const selectedL1 = categories.find(c => (c._id || c.id) === watchedL1);
-    const selectedL2 = (selectedL1?.children || []).find((c: any) => (c._id || c.id) === watchedL2);
+    const getSafeId = (item: any) => {
+        if (!item) return "";
+        if (typeof item === 'string') return item.trim();
+        return String(item._id || item.id || "").trim();
+    };
+
+    const selectedL1 = categories.find(c => getSafeId(c) === getSafeId(watchedL1));
+    const selectedL2 = (selectedL1?.children || []).find((c: any) => getSafeId(c) === getSafeId(watchedL2));
 
     console.log("DEBUG: BasicInfo Render ->", {
         catsLen: categories?.length,
@@ -124,7 +130,13 @@ export const BasicInfo = ({ form, categories, brands, setLevel1, setLevel2, setL
                         name="subCategory"
                         render={({ field }) => {
                             // Find selected Level 1 to get Level 2 options
-                            const selectedL1 = categories.find(c => (c._id || c.id) === watchedL1);
+                            const getSafeId = (item: any) => {
+                                if (!item) return "";
+                                if (typeof item === 'string') return item.trim();
+                                return String(item._id || item.id || "").trim();
+                            };
+
+                            const selectedL1 = categories.find(c => getSafeId(c) === getSafeId(watchedL1));
                             const l2Ops = selectedL1?.children || [];
 
                             return (
@@ -159,11 +171,17 @@ export const BasicInfo = ({ form, categories, brands, setLevel1, setLevel2, setL
                         control={form.control}
                         name="childCategory"
                         render={({ field }) => {
+                            const getSafeId = (item: any) => {
+                                if (!item) return "";
+                                if (typeof item === 'string') return item.trim();
+                                return String(item._id || item.id || "").trim();
+                            };
+
                             // Find selected Level 1 and Level 2 to get Level 3 options
-                            const selectedL1 = categories.find(c => (c._id || c.id) === watchedL1);
+                            const selectedL1 = categories.find(c => getSafeId(c) === getSafeId(watchedL1));
                             const l2Ops = selectedL1?.children || [];
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            const selectedL2 = l2Ops.find((c: any) => (c._id || c.id) === watchedL2);
+                            const selectedL2 = l2Ops.find((c: any) => getSafeId(c) === getSafeId(watchedL2));
                             const l3Ops = selectedL2?.children || [];
 
                             return (

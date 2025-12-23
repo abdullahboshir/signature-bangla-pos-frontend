@@ -10,7 +10,11 @@ import { QuickActionsWidget } from "./widgets/QuickActionsWidget"
 import { useParams } from "next/navigation"
 import { TrendingUp, DollarSign, ShoppingCart, Users, Package, TrendingDown } from "lucide-react"
 
-export function DashboardGrid() {
+interface DashboardGridProps {
+  outletId?: string;
+}
+
+export function DashboardGrid({ outletId }: DashboardGridProps) {
   const params = useParams()
   const role = params.role as string
 

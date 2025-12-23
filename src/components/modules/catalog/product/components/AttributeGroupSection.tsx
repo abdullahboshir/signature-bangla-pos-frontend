@@ -12,9 +12,19 @@ interface AttributeGroupSectionProps {
     form: UseFormReturn<ProductFormValues>;
     attributeGroupData: any;
     dynamicFields: any[];
+    availableAttributeGroups?: any[]; // Array of strings or objects
+    selectedAttributeGroupId?: string;
+    setSelectedAttributeGroupId?: (id: string) => void;
 }
 
-export const AttributeGroupSection = ({ form, attributeGroupData, dynamicFields }: AttributeGroupSectionProps) => {
+export const AttributeGroupSection = ({
+    form,
+    attributeGroupData,
+    dynamicFields,
+    availableAttributeGroups = [],
+    selectedAttributeGroupId,
+    setSelectedAttributeGroupId
+}: AttributeGroupSectionProps) => {
     return (
         <Card>
             <CardHeader>
@@ -24,6 +34,31 @@ export const AttributeGroupSection = ({ form, attributeGroupData, dynamicFields 
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+                {/* Template Selection Dropdown */}
+                {availableAttributeGroups.length > 1 && setSelectedAttributeGroupId && (
+                    <div className="space-y-2 pb-4 border-b">
+                        <FormLabel>Select Attribute Template</FormLabel>
+                        <Select
+                            value={selectedAttributeGroupId}
+                            onValueChange={setSelectedAttributeGroupId}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select template" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {availableAttributeGroups.map((group: any) => {
+                                    const id = typeof group === 'object' ? group._id : group;
+                                    const name = typeof group === 'object' ? group.name : `Template ${id.substr(-4)}`;
+                                    return (
+                                        <SelectItem key={id} value={id}>
+                                            {name}
+                                        </SelectItem>
+                                    );
+                                })}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
                 {dynamicFields.map((field: any) => (
                     <FormField
                         key={field.key}

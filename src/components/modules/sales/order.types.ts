@@ -77,4 +77,5 @@ export interface CreateOrderPayload {
     totalAmount: number;
     paidAmount: number;
     paymentMethod: PaymentMethod;
+    outlet: string;
 }

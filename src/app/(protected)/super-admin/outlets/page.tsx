@@ -133,7 +133,7 @@ export default function GlobalOutletListPage() {
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight">All Outlets</h2>
                     <p className="text-muted-foreground">
-                        Manage physical store locations across all Business Units.
+                        Manage physical Outlet locations across all Business Units.
                     </p>
                 </div>
                 <div className="flex items-center space-x-2">

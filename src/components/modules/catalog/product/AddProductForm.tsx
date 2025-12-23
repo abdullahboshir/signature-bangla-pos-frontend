@@ -47,8 +47,16 @@ export default function AddProductForm({ initialData }: AddProductFormProps) {
         removeVariant,
         replaceVariant,
         attributeGroupData,
-        dynamicFields
+        dynamicFields,
+        availableAttributeGroups,
+        selectedAttributeGroupId,
+        setSelectedAttributeGroupId,
+        features,
+        isContextLocked,
+        handlePriceChange
     } = useProductForm(initialData);
+
+
 
 
     if (isRefDataLoading) {
@@ -77,21 +85,24 @@ export default function AddProductForm({ initialData }: AddProductFormProps) {
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                     <Tabs defaultValue="basic" className="w-full">
-                        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-9 h-auto">
+                        <TabsList className="flex flex-wrap justify-center w-full h-auto gap-2">
                             <TabsTrigger value="basic">Basic</TabsTrigger>
                             <TabsTrigger value="pricing">Pricing</TabsTrigger>
                             <TabsTrigger value="details">Details</TabsTrigger>
-                            <TabsTrigger value="inventory">Inventory</TabsTrigger>
-                            <TabsTrigger value="variants">Variants</TabsTrigger>
-                            {dynamicFields.length > 0 && (
+
+                            {features?.hasInventory && <TabsTrigger value="inventory">Inventory</TabsTrigger>}
+                            {features?.hasVariants && <TabsTrigger value="variants">Variants</TabsTrigger>}
+
+                            {features?.hasAttributeGroups && availableAttributeGroups?.length > 0 && (
                                 <TabsTrigger value="dynamic_attributes">
                                     {attributeGroupData?.data?.name || "Group Attributes"}
                                 </TabsTrigger>
                             )}
-                            <TabsTrigger value="shipping">Shipping</TabsTrigger>
-                            <TabsTrigger value="seo">SEO</TabsTrigger>
-                            <TabsTrigger value="compliance">Safety</TabsTrigger>
-                            <TabsTrigger value="bundles">Bundles</TabsTrigger>
+
+                            {features?.hasShipping && <TabsTrigger value="shipping">Shipping</TabsTrigger>}
+                            {features?.hasSeo && <TabsTrigger value="seo">SEO</TabsTrigger>}
+                            {features?.hasCompliance && <TabsTrigger value="compliance">Safety</TabsTrigger>}
+                            {features?.hasBundles && <TabsTrigger value="bundles">Bundles</TabsTrigger>}
                         </TabsList>
 
                         <div className="mt-4">
@@ -104,11 +115,16 @@ export default function AddProductForm({ initialData }: AddProductFormProps) {
                                     level2={level2} setLevel2={setLevel2}
                                     level3={level3} setLevel3={setLevel3}
                                 />
-                                <OrganizationSection form={form} units={units} businessUnits={businessUnits} />
+                                <OrganizationSection
+                                    form={form}
+                                    units={units}
+                                    businessUnits={businessUnits}
+                                    isLocked={isContextLocked}
+                                />
                             </TabsContent>
 
                             <TabsContent value="pricing">
-                                <PricingSection form={form} />
+                                <PricingSection form={form} handlePriceChange={handlePriceChange} />
                             </TabsContent>
 
                             <TabsContent value="details" className="space-y-4">
@@ -119,48 +135,64 @@ export default function AddProductForm({ initialData }: AddProductFormProps) {
                                     removeImage={removeImage}
                                     appendImage={appendImage}
                                 />
-                                <WarrantySection form={form} />
+
+                                {features?.hasWarranty && <WarrantySection form={form} />}
                             </TabsContent>
 
-                            <TabsContent value="inventory">
-                                <InventorySection form={form} />
-                            </TabsContent>
+                            {features?.hasInventory && (
+                                <TabsContent value="inventory">
+                                    <InventorySection form={form} />
+                                </TabsContent>
+                            )}
 
-                            <TabsContent value="variants">
-                                <AttributeSection
-                                    form={form}
-                                    variantFields={variantFields}
-                                    appendVariant={appendVariant}
-                                    removeVariant={removeVariant}
-                                    replaceVariant={replaceVariant}
-                                />
-                            </TabsContent>
+                            {features?.hasVariants && (
+                                <TabsContent value="variants">
+                                    <AttributeSection
+                                        form={form}
+                                        variantFields={variantFields}
+                                        appendVariant={appendVariant}
+                                        removeVariant={removeVariant}
+                                        replaceVariant={replaceVariant}
+                                    />
+                                </TabsContent>
+                            )}
 
-                            {dynamicFields.length > 0 && (
+                            {features?.hasAttributeGroups && availableAttributeGroups?.length > 0 && (
                                 <TabsContent value="dynamic_attributes">
                                     <AttributeGroupSection
                                         form={form}
                                         attributeGroupData={attributeGroupData}
                                         dynamicFields={dynamicFields}
+                                        availableAttributeGroups={availableAttributeGroups}
+                                        selectedAttributeGroupId={selectedAttributeGroupId}
+                                        setSelectedAttributeGroupId={setSelectedAttributeGroupId}
                                     />
                                 </TabsContent>
                             )}
 
-                            <TabsContent value="shipping">
-                                <ShippingSection form={form} />
-                            </TabsContent>
+                            {features?.hasShipping && (
+                                <TabsContent value="shipping">
+                                    <ShippingSection form={form} />
+                                </TabsContent>
+                            )}
 
-                            <TabsContent value="seo">
-                                <SeoSection form={form} />
-                            </TabsContent>
+                            {features?.hasSeo && (
+                                <TabsContent value="seo">
+                                    <SeoSection form={form} />
+                                </TabsContent>
+                            )}
 
-                            <TabsContent value="compliance">
-                                <ComplianceSection form={form} />
-                            </TabsContent>
+                            {features?.hasCompliance && (
+                                <TabsContent value="compliance">
+                                    <ComplianceSection form={form} />
+                                </TabsContent>
+                            )}
 
-                            <TabsContent value="bundles">
-                                <BundleSection form={form} />
-                            </TabsContent>
+                            {features?.hasBundles && (
+                                <TabsContent value="bundles">
+                                    <BundleSection form={form} />
+                                </TabsContent>
+                            )}
                         </div>
                     </Tabs>
                 </form>

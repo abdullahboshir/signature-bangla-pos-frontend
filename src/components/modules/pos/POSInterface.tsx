@@ -32,6 +32,8 @@ import { useCreateOrderMutation } from "@/redux/api/orderApi";
 import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
 import { useGetAllOutletsQuery } from "@/redux/api/outletApi";
 import { CreateOrderPayload } from "@/components/modules/sales/order.types";
+import { ReceiptTemplate } from "./ReceiptTemplate";
+import { useGetBusinessUnitSettingsQuery } from "@/redux/api/settingsApi";
 
 // Reusing types is fine, or define locally if simple
 interface Product {
@@ -76,11 +78,24 @@ export default function POSInterface() {
     const [selectedBusinessUnitId, setSelectedBusinessUnitId] = useState<string>("");
     const { data: businessUnits = [] } = useGetBusinessUnitsQuery({ limit: 100 }, { skip: !isSuperAdmin });
 
-    const businessUnitId = isSuperAdmin ? selectedBusinessUnitId : (paramBusinessUnitObj?._id || paramBusinessUnitObj?.id);
+    // EFFECTIVE BU ID: Prioritize URL Context (paramBusinessUnitObj) over Manual Selection
+    // If paramBusinessUnitObj exists, we are in a SCOPED route -> lock to that BU.
+    // If not, we are in GLOBAL route -> allow manual selection.
+    const contextBusinessUnitId = paramBusinessUnitObj?._id || paramBusinessUnitObj?.id;
+    const businessUnitId = contextBusinessUnitId || selectedBusinessUnitId;
 
     // Outlet Selection
     const [selectedOutletId, setSelectedOutletId] = useState<string>("");
     const { data: outlets = [] } = useGetAllOutletsQuery({ businessUnit: businessUnitId }, { skip: !businessUnitId });
+
+    // Fetch Settings for Receipt
+    const { data: settingsData } = useGetBusinessUnitSettingsQuery(businessUnitId, {
+        skip: !businessUnitId
+    });
+
+    const handlePrintReceipt = () => {
+        window.print();
+    };
 
     // Auto-select single outlet
     useEffect(() => {
@@ -276,13 +291,25 @@ export default function POSInterface() {
 
     return (
         <div className="h-[calc(100vh-100px)] flex gap-4">
+            {/* Hidden Receipt Template for Printing */}
+            {orderSuccess && settingsData && (
+                <ReceiptTemplate
+                    data={orderSuccess}
+                    settings={settingsData}
+                />
+            )}
+
             {/* Product Section */}
             <div className="flex-1 flex flex-col gap-4 min-w-0">
                 {/* Filters */}
                 <Card className="p-3 bg-muted/20 border-dashed">
                     <div className="flex items-center gap-2">
                         {isSuperAdmin && (
-                            <Select value={selectedBusinessUnitId} onValueChange={setSelectedBusinessUnitId}>
+                            <Select
+                                value={businessUnitId}
+                                onValueChange={setSelectedBusinessUnitId}
+                                disabled={!!contextBusinessUnitId}
+                            >
                                 <SelectTrigger className="w-[200px]">
                                     <SelectValue placeholder="Select Business Unit" />
                                 </SelectTrigger>
@@ -359,6 +386,7 @@ export default function POSInterface() {
 
                                             <div className="space-y-1">
                                                 <div className="font-medium text-sm truncate" title={product.name}>{product.name}</div>
+                                                <div className="text-[10px] text-muted-foreground truncate">SKU: {product.sku || 'N/A'}</div>
                                                 <div className="flex items-center justify-between text-sm">
                                                     <span className="font-bold text-primary">
                                                         {product.pricing.salePrice || product.pricing.basePrice}
@@ -498,6 +526,9 @@ export default function POSInterface() {
                     </DialogHeader>
                     {/* ... (Reuse success content) */}
                     <div className="flex gap-2 justify-end">
+                        <Button variant="outline" onClick={handlePrintReceipt} className="flex gap-2">
+                            <Printer className="h-4 w-4" /> Print Receipt
+                        </Button>
                         <Button onClick={handleNewSale}>New Sale</Button>
                     </div>
                 </DialogContent>

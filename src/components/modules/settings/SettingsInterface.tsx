@@ -13,6 +13,8 @@ import { GeneralSettings } from "@/components/modules/settings/GeneralSettings"
 import { SalesSettings } from "@/components/modules/settings/SalesSettings"
 import { PosSettings } from "@/components/modules/settings/PosSettings"
 import { SystemSettings } from "@/components/modules/settings/SystemSettings"
+import { InventorySettings } from "@/components/modules/settings/InventorySettings"
+import { GlobalDataRetentionSettings } from "./GlobalDataRetentionSettings"
 import { useGetBusinessUnitSettingsQuery, useUpdateBusinessUnitSettingsMutation } from "@/redux/api/settingsApi"
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/useAuth"
@@ -30,18 +32,23 @@ export function SettingsInterface() {
     // Ideally SA should select a BU or manage "Default/Global" settings.
     // User complained about "Theme", which works globally usually.
 
-    const businessUnit = paramBusinessUnit;
+    // IMPORANT UX FIX: If no param business unit, try to default to the users first business unit
+    const defaultBusinessUnitId = user?.businessUnits?.[0]?._id || user?.businessUnits?.[0]?.id;
+    const businessUnit = paramBusinessUnit || defaultBusinessUnitId;
 
     const { theme, isLoading: themeLoading, isSaving, updateTheme, resetTheme, previewTheme } = useThemeSettings()
 
     // API Hooks
     // If businessUnit is undefined, this query might compile global settings or skip.
-    const { data: settingsData, isLoading: settingsLoading } = useGetBusinessUnitSettingsQuery(businessUnit, { skip: !businessUnit && !isSuperAdmin });
+    const { data: settingsData, isLoading: settingsLoading } = useGetBusinessUnitSettingsQuery(businessUnit, { skip: !businessUnit });
     // Note: if SA and no BU, do we get Global settings? Assuming yes or skipping for now.
 
     const [updateSettings, { isLoading: updateLoading }] = useUpdateBusinessUnitSettingsMutation();
 
     const [localSettings, setLocalSettings] = useState<any>(null);
+
+    // Debug logging
+    console.log("SettingsInterface Debug:", { businessUnit, settingsLoading, localSettings, params });
 
     useEffect(() => {
         if (settingsData) {
@@ -64,7 +71,7 @@ export function SettingsInterface() {
             // Assuming update settings endpoint handles global if ID is missing or special.
 
             await updateSettings({ businessUnitId: businessUnit, body: localSettings }).unwrap();
-            toast.success("Store settings updated successfully");
+            toast.success("Outlet settings updated successfully");
         } catch (error) {
             console.error(error);
             toast.error("Failed to update settings");
@@ -123,24 +130,30 @@ export function SettingsInterface() {
 
     return (
         <div className="container mx-auto py-6 space-y-6">
+            {isSuperAdmin && (
+                <div className="bg-slate-100 p-2 rounded text-xs mb-2">
+                    DEBUG: BU={String(businessUnit)}, Loading={String(settingsLoading)}, LocalSettings={localSettings ? 'Present' : 'Null'}
+                </div>
+            )}
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
                     <p className="text-muted-foreground">
-                        Manage your store configuration and preferences
+                        Manage your Outlet configuration and preferences
                     </p>
                 </div>
                 <Button onClick={saveSettings} disabled={updateLoading || !localSettings}>
-                    {updateLoading ? "Saving..." : "Save Store Configuration"}
+                    {updateLoading ? "Saving..." : "Save Outlet Configuration"}
                 </Button>
             </div>
 
             <Tabs defaultValue="overview" className="space-y-4">
                 <TabsList>
                     <TabsTrigger value="overview" className="flex items-center gap-2"><Store className="h-4 w-4" /> Overview</TabsTrigger>
-                    <TabsTrigger value="store-setup" className="flex items-center gap-2"><Globe className="h-4 w-4" /> Store Setup</TabsTrigger>
+                    <TabsTrigger value="outlet-setup" className="flex items-center gap-2"><Globe className="h-4 w-4" /> Outlet Setup</TabsTrigger>
                     <TabsTrigger value="sales" className="flex items-center gap-2"><ShoppingCart className="h-4 w-4" /> Sales & Finance</TabsTrigger>
                     <TabsTrigger value="pos" className="flex items-center gap-2"><MonitorSmartphone className="h-4 w-4" /> POS & Loyalty</TabsTrigger>
+                    <TabsTrigger value="inventory" className="flex items-center gap-2"><Settings className="h-4 w-4" /> Inventory</TabsTrigger>
                     <TabsTrigger value="admin" className="flex items-center gap-2"><Settings className="h-4 w-4" /> System & Admin</TabsTrigger>
                 </TabsList>
 
@@ -159,7 +172,7 @@ export function SettingsInterface() {
                                 <Input
                                     id="businessName"
                                     placeholder="Business Name"
-                                    defaultValue={businessUnit ? businessUnit.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Global Config'}
+                                    defaultValue={businessUnit ? businessUnit.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) : 'Global Config'}
                                 />
                             </div>
                             <div className="space-y-2">
@@ -175,11 +188,11 @@ export function SettingsInterface() {
                     </Card>
                 </TabsContent>
 
-                <TabsContent value="store-setup" className="space-y-4">
+                <TabsContent value="outlet-setup" className="space-y-4">
                     {localSettings ? (
                         <GeneralSettings data={localSettings} onChange={handleSettingsChange} />
                     ) : (
-                        <div>Select a Business Unit to configure Store Settings</div>
+                        <div>Select a Business Unit to configure Outlet Settings</div>
                     )}
                 </TabsContent>
 
@@ -199,12 +212,28 @@ export function SettingsInterface() {
                     )}
                 </TabsContent>
 
+                <TabsContent value="inventory" className="space-y-4">
+                    {localSettings ? (
+                        <InventorySettings data={localSettings} onChange={handleSettingsChange} />
+                    ) : (
+                        <div>Select a Business Unit to configure Inventory Settings</div>
+                    )}
+                </TabsContent>
+
                 <TabsContent value="admin" className="space-y-4">
                     {localSettings ? (
                         <SystemSettings data={localSettings} onChange={handleSettingsChange} />
                     ) : (
                         <div className="p-4 border rounded mb-4 text-muted-foreground">System settings loaded from global context.</div>
                     )}
+
+                    {/* Global Data Retention - Only for Super Admin */}
+                    {isSuperAdmin && (
+                        <div className="mt-6">
+                            <GlobalDataRetentionSettings />
+                        </div>
+                    )}
+
 
                     {/* Profile Settings */}
                     <div className="grid gap-6 md:grid-cols-2">

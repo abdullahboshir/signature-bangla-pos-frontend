@@ -24,8 +24,18 @@ interface HeaderProps {
 export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
   const params = useParams();
   const router = useRouter();
+  // Using usePathname for robust role detection
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+
   const businessUnitSlug = (params["business-unit"] || params.businessUnit) as string;
-  const role = params.role as string;
+  let role = params.role as string;
+
+  // Robust Role Derivation (similar to Sidebar)
+  if (!role) {
+    if (pathname.startsWith('/super-admin')) {
+      role = 'super-admin';
+    }
+  }
   const { user, setActiveBusinessUnit } = useAuth(); // Destructure setActiveBusinessUnit
 
   const [isOpenRegisterOpen, setIsOpenRegisterOpen] = useState(false);
@@ -69,7 +79,15 @@ export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
   const businessUnitName = businessUnitSlug ? businessUnitSlug.replace("-", " ") : "Dashboard";
 
   const handleNewSale = () => {
-    router.push(`/${role}/${businessUnitSlug}/sales/create`);
+    // If we have a scoped business unit, use it.
+    if (businessUnitSlug) {
+      router.push(`/${role}/${businessUnitSlug}/sales/create`);
+    } else {
+      // If Global Super Admin context, route to global sales create
+      // Assuming /super-admin/sales/create is a valid route
+      const targetRole = role || 'super-admin'; // Fallback
+      router.push(`/${targetRole}/sales/create`);
+    }
   };
 
   return (

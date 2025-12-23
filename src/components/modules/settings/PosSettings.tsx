@@ -111,6 +111,55 @@ export function PosSettings({ data, onChange }: { data: any, onChange: (key: str
                     )}
                 </CardContent>
             </Card>
-        </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Receipt Customization</CardTitle>
+                    <CardDescription>Customize the look and feel of printed receipts</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <Label>Show Store Logo</Label>
+                        </div>
+                        <Switch
+                            checked={data.pos?.showLogo}
+                            onCheckedChange={(c) => updatePos('showLogo', c)}
+                        />
+                    </div>
+                    {data.pos?.showLogo && (
+                        <div className="grid gap-2">
+                            <Label>Logo Position</Label>
+                            <Select
+                                value={data.pos?.logoPosition || 'top'}
+                                onValueChange={(val) => updatePos('logoPosition', val)}
+                            >
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="top">Top (Header)</SelectItem>
+                                    <SelectItem value="bottom">Bottom (Footer)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+                    <div className="grid gap-2">
+                        <Label>Receipt Header Text</Label>
+                        <Input
+                            value={data.pos?.receiptHeader || ''}
+                            onChange={(e) => updatePos('receiptHeader', e.target.value)}
+                            placeholder="e.g. Welcome to Signature Bangla"
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label>Receipt Footer Text</Label>
+                        <Input
+                            value={data.pos?.receiptFooter || ''}
+                            onChange={(e) => updatePos('receiptFooter', e.target.value)}
+                            placeholder="e.g. Thank you for shopping with us!"
+                        />
+                    </div>
+                </CardContent>
+            </Card>
+        </div >
     )
 }

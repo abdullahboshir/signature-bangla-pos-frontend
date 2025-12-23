@@ -39,6 +39,7 @@ import { useGetAllUsersQuery } from "@/redux/api/userApi";
 import { useCreateOrderMutation } from "@/redux/api/orderApi";
 import { useAuth } from "@/hooks/useAuth";
 import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
+import { useGetAllOutletsQuery } from "@/redux/api/outletApi";
 
 // Types for POS
 interface Product {
@@ -78,8 +79,24 @@ export default function CreateOrder() {
     const { data: businessUnits = [] } = useGetBusinessUnitsQuery({ limit: 100 }, { skip: !isSuperAdmin });
 
     // Determine effective Business Unit ID
-    // If SA, use selected. If not, use param/context logic.
-    const businessUnitId = isSuperAdmin ? selectedBusinessUnitId : (paramBusinessUnitObj?._id || paramBusinessUnitObj?.id);
+    // If paramBusinessUnitObj exists (Scoped Context), use it.
+    // Otherwise allow Manual Selection (Global Context).
+    // Determine effective Business Unit ID
+    // If paramBusinessUnitObj exists (Scoped Context), use it.
+    // Otherwise allow Manual Selection (Global Context).
+    const contextBusinessUnitId = paramBusinessUnitObj?._id || paramBusinessUnitObj?.id;
+    const businessUnitId = contextBusinessUnitId || selectedBusinessUnitId;
+
+    // Outlet Selection
+    const [selectedOutletId, setSelectedOutletId] = useState<string>("");
+    const { data: outlets = [] } = useGetAllOutletsQuery({ businessUnit: businessUnitId }, { skip: !businessUnitId });
+
+    // Auto-select single outlet
+    useEffect(() => {
+        if (outlets.length === 1 && !selectedOutletId) {
+            setSelectedOutletId(outlets[0]._id);
+        }
+    }, [outlets, selectedOutletId]);
 
     const [searchQuery, setSearchQuery] = useState("");
     const [cart, setCart] = useState<CartItem[]>([]);
@@ -93,9 +110,11 @@ export default function CreateOrder() {
     const { data: rawProducts = [], isLoading: isLoadingProducts } = useGetProductsQuery({
         search: searchQuery,
         limit: 20,
-        businessUnit: businessUnitId // Filter products by selected/current BU
+        businessUnit: businessUnitId // Explicitly use the effective BU ID (scoped or selected)
     }, {
-        skip: isSuperAdmin && !businessUnitId // Skip if SA hasn't selected BU yet? Or show all? better skip or show global
+        // Only skip if IS Super Admin AND NO BU selected (Global context without selection)
+        // If in Scoped context, businessUnitId will be set, so it won't skip.
+        skip: isSuperAdmin && !businessUnitId
     });
 
     // Normalize products data structure
@@ -197,6 +216,11 @@ export default function CreateOrder() {
             return;
         }
 
+        if (!selectedOutletId) {
+            toast.error("Please select an outlet"); // Ensure outlet is selected
+            return;
+        }
+
         const totals = calculateTotals();
         const payment = parseFloat(paidAmount || "0");
 
@@ -212,7 +236,8 @@ export default function CreateOrder() {
             totalAmount: totals.totalAmount,
             paidAmount: payment,
             paymentMethod: paymentMethod as any,
-            customer: selectedCustomerId
+            customer: selectedCustomerId,
+            outlet: "" // Todo: Add Outlet Selection to CreateOrder or infer from context
         };
 
         try {
@@ -265,18 +290,69 @@ export default function CreateOrder() {
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-100px)]">
             <div className="md:col-span-2 flex flex-col gap-4">
-                {/* Super Admin Business Unit Selection */}
                 {isSuperAdmin && (
                     <Card className="p-4 border-dashed border-2 bg-muted/20">
                         <div className="flex items-center gap-4">
                             <label className="text-sm font-medium whitespace-nowrap">Select Store Context:</label>
-                            <Select value={selectedBusinessUnitId} onValueChange={setSelectedBusinessUnitId}>
+                            <Select
+                                value={businessUnitId}
+                                onValueChange={setSelectedBusinessUnitId}
+                                disabled={!!contextBusinessUnitId}
+                            >
                                 <SelectTrigger className="w-[300px]">
                                     <SelectValue placeholder="Select Business Unit" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {businessUnits.map((bu: any) => (
                                         <SelectItem key={bu._id} value={bu._id}>{bu.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex items-center gap-4 mt-2">
+                            <label className="text-sm font-medium whitespace-nowrap">Select Outlet Context:</label>
+                            <Select
+                                value={selectedOutletId}
+                                onValueChange={setSelectedOutletId}
+                                disabled={!businessUnitId}
+                            >
+                                <SelectTrigger className="w-[300px]">
+                                    <SelectValue placeholder="Select Outlet" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {outlets.map((outlet: any) => (
+                                        <SelectItem key={outlet._id} value={outlet._id}>{outlet.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </Card>
+                )}
+
+                {/* For non-super admins (scoped), we still might need to select outlet if they have multiple? 
+                    Usually standard users are assigned to specific outlets or just one BU. 
+                    If they are in a BU context, show outlet selector if not already shown above (isSuperAdmin check handles global SA).
+                    But wait, isSuperAdmin check wraps the entire card. Scoped users won't see this.
+                    We should probably expose Outlet selector for Scoped users too if they have multiple options, 
+                    or if we want to enforce selection. 
+                    For now, let's keep it simple: Add a separate Outlet selector card for everyone if not set? 
+                    Or just piggyback on the SA card? 
+                    The safer bet is to always show Outlet selector if businessUnitId is present but outlet isn't auto-selected.
+                */}
+                {!isSuperAdmin && businessUnitId && (
+                    <Card className="p-4 border-dashed border-2 bg-muted/20">
+                        <div className="flex items-center gap-4">
+                            <label className="text-sm font-medium whitespace-nowrap">Select Outlet:</label>
+                            <Select
+                                value={selectedOutletId}
+                                onValueChange={setSelectedOutletId}
+                            >
+                                <SelectTrigger className="w-[300px]">
+                                    <SelectValue placeholder="Select Outlet" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {outlets.map((outlet: any) => (
+                                        <SelectItem key={outlet._id} value={outlet._id}>{outlet.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>

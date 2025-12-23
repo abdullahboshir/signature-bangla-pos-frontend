@@ -30,18 +30,27 @@ export const useProductForm = (initialData?: any) => {
     const businessUnit = params["business-unit"] as string;
     // productId is now derived from initialData if available, or params
     const productId = (initialData?._id || params["id"]) as string;
+    
+    // Fetch Attribute Group Data
+    // We need to resolve the business unit ID first.
+    // If user is super-admin, they might select BU in form. But for now let's assume context BU or selected BU.
+    // However, useProductForm is initialized with 'businessUnit' param.
+    const effectiveBusinessUnitId = businessUnit; 
 
     // RTK Query Hooks
     // RTK Query Hooks - Sequential Loading as per user request
-    const { data: cats = [], isLoading: isCatsLoading, isSuccess: isCatsSuccess } = useGetCategoriesQuery({ limit: 1000 });
+    const { data: cats = [], isLoading: isCatsLoading, isSuccess: isCatsSuccess } = useGetCategoriesQuery({ 
+        limit: 5000,
+        ...(effectiveBusinessUnitId && effectiveBusinessUnitId !== 'global' ? { businessUnit: effectiveBusinessUnitId } : {})
+    });
     
     const { data: subCats = [], isLoading: isSubCatsLoading, isSuccess: isSubCatsSuccess } = useGetSubCategoriesQuery(
-        { limit: 1000 }, 
+        { limit: 5000 }, 
         { skip: !isCatsSuccess }
     );
     
     const { data: childCats = [], isLoading: isChildCatsLoading, isSuccess: isChildCatsSuccess } = useGetChildCategoriesQuery(
-        { limit: 1000 }, 
+        { limit: 5000 }, 
         { skip: !isSubCatsSuccess }
     );
 
@@ -63,17 +72,75 @@ export const useProductForm = (initialData?: any) => {
     // We need to resolve the business unit ID first.
     // If user is super-admin, they might select BU in form. But for now let's assume context BU or selected BU.
     // However, useProductForm is initialized with 'businessUnit' param.
-    const effectiveBusinessUnitId = businessUnit; // For now use the param-based BU. Dynamic switching might need form watch.
     
+    // Optimized: Fetch Business Unit details
     const { data: businessUnitDetails } = useGetBusinessUnitByIdQuery(effectiveBusinessUnitId, { 
         skip: !effectiveBusinessUnitId || effectiveBusinessUnitId === 'global'
     });
 
-    const attributeGroupId = businessUnitDetails?.attributeGroup?._id || businessUnitDetails?.attributeGroup;
+    const features = businessUnitDetails?.features || {
+        hasInventory: true,
+        hasVariants: true,
+        hasAttributeGroups: true,
+        hasShipping: true,
+        hasSeo: true,
+        hasCompliance: true,
+        hasBundles: true,
+        hasWarranty: true
+    };
 
-    const { data: attributeGroupData } = useGetAttributeGroupByIdQuery(attributeGroupId, { 
-        skip: !attributeGroupId 
+    const availableAttributeGroups = useMemo(() => {
+        if (!businessUnitDetails) return [];
+        const groups: any[] = [];
+        
+        // 1. Handle array of groups (New Standard)
+        if (businessUnitDetails.attributeGroups && Array.isArray(businessUnitDetails.attributeGroups)) {
+            groups.push(...businessUnitDetails.attributeGroups);
+        }
+        
+        // 2. Handle legacy single group
+        if (businessUnitDetails.attributeGroup) {
+             const legacy = businessUnitDetails.attributeGroup;
+             const id = typeof legacy === 'object' ? legacy._id : legacy;
+             // Avoid duplicates
+             if (!groups.find(g => (typeof g === 'object' ? g._id : g) === id)) {
+                 groups.push(legacy);
+             }
+        }
+        return groups;
+    }, [businessUnitDetails]);
+
+    const [selectedAttributeGroupId, setSelectedAttributeGroupId] = useState<string>("");
+
+    // Auto-select first group
+    useEffect(() => {
+        if (!selectedAttributeGroupId && availableAttributeGroups.length > 0) {
+            const first = availableAttributeGroups[0];
+            setSelectedAttributeGroupId(typeof first === 'object' ? first._id : first);
+        }
+    }, [availableAttributeGroups, selectedAttributeGroupId]);
+
+    // OPTIMIZATION: Check if the selected group is already fully loaded in availableAttributeGroups
+    // This prevents a redundant API call if the Business Unit already populated the data.
+    const preLoadedGroup = useMemo(() => {
+        if (!selectedAttributeGroupId) return null;
+        const found = availableAttributeGroups.find(g => 
+            (typeof g === 'object' ? g._id : g) === selectedAttributeGroupId
+        );
+        // Only return if it's an object AND has fields (meaning it was populated)
+        if (found && typeof found === 'object' && Array.isArray(found.fields)) {
+            return found;
+        }
+        return null;
+    }, [availableAttributeGroups, selectedAttributeGroupId]);
+
+    // Skip query if we have preLoadedGroup
+    const { data: fetchedAttributeGroupData } = useGetAttributeGroupByIdQuery(selectedAttributeGroupId, { 
+        skip: !selectedAttributeGroupId || !!preLoadedGroup
     });
+
+    // Merge: Use pre-loaded data structure ({ data: ... }) to match API response format, or use fetched data
+    const attributeGroupData = preLoadedGroup ? { data: preLoadedGroup } : fetchedAttributeGroupData;
 
     const dynamicFields = attributeGroupData?.data?.fields || [];
 
@@ -94,7 +161,10 @@ export const useProductForm = (initialData?: any) => {
     // Initialize Form
     const form = useForm<ProductFormValues>({
         resolver: zodResolver(productSchema) as any,
-        defaultValues: defaultProductValues,
+        defaultValues: {
+            ...defaultProductValues,
+            businessUnit: businessUnit || "", // Pre-fill businessUnit from params if available
+        },
         mode: "onChange",
     });
 
@@ -102,6 +172,10 @@ export const useProductForm = (initialData?: any) => {
         control: form.control,
         name: "variants",
     });
+
+    // ... (rest of logic) ...
+
+
 
     // MERGE Initial Data into Lists (Robustness for Edit Mode)
     // This ensures that even if the referenced item is not in the fetched list (limit/pagination), it is still available.
@@ -134,42 +208,49 @@ export const useProductForm = (initialData?: any) => {
         
         console.log("DEBUG: Building Tree - Layered Approach");
 
+        const getSafeId = (item: any) => {
+            if (!item) return "";
+            if (typeof item === 'string') return item.trim();
+            return String(item._id || item.id || "").trim();
+        };
+
         // 1. Initialize Roots Map
         const rootMap = new Map();
         cats.forEach((c: any) => {
-            const id = String(c._id || c.id);
+            const id = getSafeId(c);
             rootMap.set(id, { ...c, children: [] });
         });
 
         // 2. Process SubCategories
         const subMap = new Map();
         subCats.forEach((s: any) => {
-            const sId = String(s._id || s.id);
+            const sId = getSafeId(s);
             const subNode = { ...s, children: [] };
             subMap.set(sId, subNode);
 
             // Link to Root
-            // SubCategory model has 'category'
-            const parentId = s.category ? String(s.category._id || s.category.id || s.category) : "";
+            const parentId = getSafeId(s.category);
             if (parentId && rootMap.has(parentId)) {
                 rootMap.get(parentId).children.push(subNode);
-            } else {
-               // console.warn("Orphan SubCategory (Parent not in Roots):", s.name);
             }
         });
 
         // 3. Process ChildCategories
+        console.log(`DEBUG: Processing ${childCats.length} ChildCategories. SubCats Count: ${subCats.length}`);
+        if (childCats.length > 0) console.log("DEBUG: Sample ChildCat:", childCats[0]);
+        if (subCats.length > 0) console.log("DEBUG: Sample SubCat:", subCats[0]);
+
         childCats.forEach((ch: any) => {
-            const chId = String(ch._id || ch.id);
             const childNode = { ...ch, children: [] }; // Children of Child is empty
 
             // Link to SubCategory
-            // ChildCategory model has 'subCategory'
-            const parentId = ch.subCategory ? String(ch.subCategory._id || ch.subCategory.id || ch.subCategory) : "";
+            const parentId = getSafeId(ch.subCategory);
             if (parentId && subMap.has(parentId)) {
                 subMap.get(parentId).children.push(childNode);
             } else {
-               // console.warn("Orphan ChildCategory (Parent not in Subs):", ch.name);
+                 if (childCats.length < 50) {
+                     console.warn(`DEBUG: Orphan ChildCategory: '${ch.name}' ParentID: '${parentId}' foundInSubMap: ${subMap.has(parentId)}`);
+                 }
             }
         });
 
@@ -178,7 +259,7 @@ export const useProductForm = (initialData?: any) => {
             // Helper to inject correct layer
             const inject = (item: any, type: 'root' | 'sub' | 'child') => {
                  if (!item || typeof item !== 'object') return;
-                 const id = String(item._id || item.id);
+                 const id = getSafeId(item);
                  
                  if (type === 'root') {
                      if (!rootMap.has(id)) {
@@ -190,7 +271,7 @@ export const useProductForm = (initialData?: any) => {
                          const subNode = { ...item, children: [] };
                          subMap.set(id, subNode);
                          // Try to link to parent if exists
-                         const pId = item.category ? String(item.category._id || item.category.id || item.category) : "";
+                         const pId = getSafeId(item.category);
                          if (pId && rootMap.has(pId)) {
                              rootMap.get(pId).children.push(subNode);
                          }
@@ -198,11 +279,11 @@ export const useProductForm = (initialData?: any) => {
                  }
                  else if (type === 'child') {
                       // We don't track childMap, just link to sub
-                      const pId = item.subCategory ? String(item.subCategory._id || item.subCategory.id || item.subCategory) : "";
+                      const pId = getSafeId(item.subCategory);
                       if (pId && subMap.has(pId)) {
                           // Check if already added
                            const parent = subMap.get(pId);
-                           if (!parent.children.find((x: any) => String(x._id || x.id) === id)) {
+                           if (!parent.children.find((x: any) => getSafeId(x) === id)) {
                                parent.children.push({ ...item, children: [] });
                            }
                       }
@@ -389,25 +470,68 @@ export const useProductForm = (initialData?: any) => {
     }, [initialData, form, replaceVariant, isRefDataLoading]); 
 
     // Price Calculation Logic
-    const watchedCostPrice = form.watch("pricing.costPrice");
-    const watchedProfitMargin = form.watch("pricing.profitMargin");
-    const watchedProfitType = form.watch("pricing.profitMarginType");
+    const handlePriceChange = (type: 'cost' | 'selling' | 'margin', value: string) => {
+        // Convert to number or undefined for calculation, but keeping flexible
+        const numValue = value === "" ? 0 : parseFloat(value);
+        
+        // Update the trigger field immediately (allow empty string for UI)
+        // We cast to any because our Schema is strict number, but RHF allows temporary deviation OR we should use setValueAs? 
+        // Better: We update the field with number (0) if empty? 
+        // The user wants to see empty. 
+        // Let's set it to valid number for now to satisfy TS, but we might encounter the "0" issue again if we don't fix Input.
+        // Actually, let's just use the `number` value here and let the UI handle the `NaN/String` aspect via the handler call.
+        
+        // Wait, the Input `onChange` passes a string or number.
+        // Let's accept `string` from Input (e.target.value) to handle empty properly.
+        
+        const currentCost = type === 'cost' ? numValue : (parseFloat(String(form.getValues("pricing.costPrice"))) || 0);
+        const currentMargin = type === 'margin' ? numValue : (parseFloat(String(form.getValues("pricing.profitMargin"))) || 0);
+        const currentSelling = type === 'selling' ? numValue : (parseFloat(String(form.getValues("pricing.basePrice"))) || 0);
+        const marginType = form.getValues("pricing.profitMarginType") || "percentage";
 
-    useEffect(() => {
-        const cost = parseFloat(String(watchedCostPrice)) || 0;
-        const margin = parseFloat(String(watchedProfitMargin)) || 0;
-        let base = 0;
-
-        if (watchedProfitType === 'percentage') {
-            base = cost + (cost * (margin / 100));
-        } else {
-            base = cost + margin;
+        if (type === 'cost') {
+             // form.setValue("pricing.costPrice", numValue); // Don't update self
+             
+             // Update Selling based on Cost + Margin only if Margin is set
+             // User Request: "selling price calculate hobe profit margin deyar por"
+             // This prevents the 1:1 mirroring when Margin is 0.
+             if (currentMargin > 0) {
+                 let newSelling = 0;
+                 if (marginType === 'percentage') {
+                     newSelling = numValue * (1 + (currentMargin / 100));
+                 } else {
+                     newSelling = numValue + currentMargin;
+                 }
+                 form.setValue("pricing.basePrice", parseFloat(newSelling.toFixed(2)));
+             }
+        } 
+        else if (type === 'margin') {
+            // form.setValue("pricing.profitMargin", numValue); // Don't update self
+            
+            // Update Selling based on Cost + Margin
+             let newSelling = 0;
+             if (marginType === 'percentage') {
+                 newSelling = currentCost * (1 + (numValue / 100));
+             } else {
+                 newSelling = currentCost + numValue;
+             }
+             form.setValue("pricing.basePrice", parseFloat(newSelling.toFixed(2)));
+        } 
+        else if (type === 'selling') {
+            // form.setValue("pricing.basePrice", numValue); // Don't update self
+            
+            // Update Margin based on (Selling - Cost)
+            if (currentCost > 0) {
+                let newMargin = 0;
+                if (marginType === 'percentage') {
+                    newMargin = ((numValue - currentCost) / currentCost) * 100;
+                } else {
+                    newMargin = numValue - currentCost;
+                }
+                form.setValue("pricing.profitMargin", parseFloat(newMargin.toFixed(2)));
+            }
         }
-
-        const roundedBase = Math.round(base * 100) / 100;
-        // Keep syncing basePrice
-        form.setValue("pricing.basePrice", roundedBase);
-    }, [watchedCostPrice, watchedProfitMargin, watchedProfitType, form]);
+    };
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
@@ -451,7 +575,7 @@ export const useProductForm = (initialData?: any) => {
             // Transform Payload
             const slug = data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
             
-            const payload = {
+            const payload: any = {
                 ...data,
                 slug,
                 businessUnit: isSuperAdmin ? data.businessUnit : businessUnit, // Use form data if super admin
@@ -474,9 +598,16 @@ export const useProductForm = (initialData?: any) => {
             };
             
             // If super admin and global/empty selected, ensure it sends null/undefined or specific value? 
-            // Our backend likely expects null for global.
             if (payload.businessUnit === 'global') payload.businessUnit = undefined;
 
+            // Cleanup payload: Remove empty strings for optional ObjectId fields
+            // This prevents "Invalid ObjectId" errors if backend sanitation fails or Zod validation handles strict strings.
+            const optionalObjectIds = ['childCategory', 'subCategory', 'primaryCategory', 'unit', 'outlet'];
+            optionalObjectIds.forEach(field => {
+                if (payload[field] === "") {
+                    delete payload[field];
+                }
+            });
 
             console.log("Submitting Transformed Payload:", payload);
 
@@ -494,8 +625,13 @@ export const useProductForm = (initialData?: any) => {
                  router.push(`/${role}/${businessUnit}/catalog/product`);
             }
         } catch (error: any) {
-            console.error("Save Product Error:", error);
-            toast.error(error?.data?.message || "Failed to save product");
+            console.error("Save Product Error Details:", JSON.stringify(error, null, 2));
+            console.error("Save Product Error Raw:", error);
+            if (error?.status === 400 && error?.data?.message) {
+                 toast.error(`Validation Error: ${error.data.message}`);
+            } else {
+                 toast.error(error?.data?.message || "Failed to save product");
+            }
         }
     };
 
@@ -521,5 +657,12 @@ export const useProductForm = (initialData?: any) => {
         replaceVariant,
         attributeGroupData,
         dynamicFields,
+        availableAttributeGroups,
+        selectedAttributeGroupId,
+
+        setSelectedAttributeGroupId,
+        features,
+        handlePriceChange,
+        isContextLocked: !!businessUnit, // Expose lock status
     };
 };

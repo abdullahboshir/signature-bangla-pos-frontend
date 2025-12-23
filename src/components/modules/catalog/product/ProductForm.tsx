@@ -12,13 +12,13 @@ import { useGetCategoriesQuery } from "@/redux/api/categoryApi";
 import { useGetSubCategoriesQuery, useGetSubCategoriesByParentQuery } from "@/redux/api/subCategoryApi";
 import { useGetChildCategoriesQuery, useGetChildCategoriesByParentQuery } from "@/redux/api/childCategoryApi";
 import { useGetBrandsQuery } from "@/redux/api/brandApi";
+import { useUploadFileMutation } from "@/redux/api/uploadApi";
 import { useGetUnitsQuery } from "@/redux/api/unitApi";
 import { useGetTaxesQuery } from "@/redux/api/taxApi";
 import {
     useCreateProductMutation,
     useUpdateProductMutation,
 } from "@/redux/api/productApi";
-import { useUploadFileMutation } from "@/redux/api/uploadApi";
 import { useGetBusinessUnitByIdQuery } from "@/redux/api/businessUnitApi";
 import { useGetAttributeGroupByIdQuery } from "@/redux/api/attributeGroupApi";
 
@@ -150,7 +150,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
 
     // Cascading Effects
     const selectedPrimary = form.watch("primaryCategory");
-    const selectedSub = form.watch("subCategory");
+    const selectedSub = form.watch("subCategory") as string;
 
     // Fetch Sub/Child based on selection
     // Note: We use 'skip' to prevent fetching when no parent is selected.
@@ -238,17 +238,18 @@ export default function ProductForm({ initialData }: ProductFormProps) {
         try {
             // Remove warranty from payload if it's default/invalid to preserve backend reference or avoid error
             const payload: any = { ...data, businessUnit };
+            // Cleanup payload: Remove empty strings for optional ObjectId fields
+            if (!payload.childCategory || payload.childCategory === "") delete payload.childCategory;
+            if (!payload.subCategory || payload.subCategory === "") delete payload.subCategory;
+            if (!payload.unit || payload.unit === "") delete payload.unit;
+            if (!payload.primaryCategory || payload.primaryCategory === "") delete payload.primaryCategory;
+            // primaryCategory is likely required, but good to be safe if schema allows optional. 
+            // In backend validation it says primaryCategory is optional in 'productBodySchema' (line 175).
+
+            // Handle arrays of ObjectIds if they contain empty strings? (Less likely for Select multiple)
+
             if (!payload.warranty?.hasWarranty) {
                 delete payload.warranty;
-            } else {
-                // Or if it IS set but we want to ensure we don't send a partial object if backend strictly wants an ID?
-                // Actually the error was "expected object, received string". This means we SENT a string (ID) but schema validation (Zod?) or Backend expected object?
-                // Wait, backend model has Ref. Backend Update acts on `Partial<IProductDocument>`.
-                // If we send an object for a Ref field in Mongoose update, it might fail if not careful?
-                // The USER said "Invalid input: expected object, received string". This error likely comes from ZodResolver on Frontend BEFORE submit, OR from Backend validation?
-                // If it's "Invalid input: expected object, received string", and the type is "invalid_type", it's likely Zod.
-                // So fixing the form values (which we just did) should fix the submission payload too.
-                // But let's be safe and clean the payload.
             }
 
             // Just ensuring we don't send the ID string back if it somehow persisted.
@@ -343,7 +344,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                                 }} value={field.value}>
                                                     <FormControl><SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger></FormControl>
                                                     <SelectContent>
-                                                        {categories.map((c) => (
+                                                        {categories.map((c: any) => (
                                                             <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
                                                         ))}
                                                     </SelectContent>
@@ -367,7 +368,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                                 }} value={field.value} disabled={!subCategories.length}>
                                                     <FormControl><SelectTrigger><SelectValue placeholder="Select Sub-Category" /></SelectTrigger></FormControl>
                                                     <SelectContent>
-                                                        {subCategories.map((c) => (
+                                                        {subCategories.map((c: any) => (
                                                             <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
                                                         ))}
                                                     </SelectContent>
@@ -393,7 +394,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                                 }} value={field.value} disabled={!childCategories.length}>
                                                     <FormControl><SelectTrigger><SelectValue placeholder="Select Child-Category" /></SelectTrigger></FormControl>
                                                     <SelectContent>
-                                                        {childCategories.map((c) => (
+                                                        {childCategories.map((c: any) => (
                                                             <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
                                                         ))}
                                                     </SelectContent>
@@ -411,7 +412,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                                 <Select onValueChange={field.onChange} value={field.value}>
                                                     <FormControl><SelectTrigger><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl>
                                                     <SelectContent>
-                                                        {units.map((u) => (
+                                                        {units.map((u: any) => (
                                                             <SelectItem key={u._id} value={u._id}>{u.name} ({u.symbol})</SelectItem>
                                                         ))}
                                                     </SelectContent>
@@ -429,7 +430,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                                 <Select onValueChange={(val) => field.onChange([val])} value={field.value?.[0] || ""}>
                                                     <FormControl><SelectTrigger><SelectValue placeholder="Select Brand" /></SelectTrigger></FormControl>
                                                     <SelectContent>
-                                                        {brands.map((b) => (
+                                                        {brands.map((b: any) => (
                                                             <SelectItem key={b._id} value={b._id}>{b.name}</SelectItem>
                                                         ))}
                                                     </SelectContent>
@@ -550,7 +551,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                                 <Select onValueChange={(val) => {
                                                     field.onChange(val);
                                                     // Auto-set rate based on selection
-                                                    const selectedTax = taxes.find(t => t._id === val || t.name === val); // Assuming val is ID or Name depending on what we store
+                                                    const selectedTax = taxes.find((t: any) => t._id === val || t.name === val); // Assuming val is ID or Name depending on what we store
                                                     // Typically store ID. Let's assume ID.
                                                     if (selectedTax) {
                                                         form.setValue("pricing.tax.taxRate", selectedTax.rate);
@@ -559,7 +560,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                                     <FormControl><SelectTrigger><SelectValue placeholder="Select Tax" /></SelectTrigger></FormControl>
                                                     <SelectContent>
                                                         <SelectItem value="standard">Standard (No Tax)</SelectItem>
-                                                        {taxes.map((t) => (
+                                                        {taxes.map((t: any) => (
                                                             <SelectItem key={t._id} value={t._id}>{t.name} ({t.rate}%)</SelectItem>
                                                         ))}
                                                     </SelectContent>
@@ -598,15 +599,33 @@ export default function ProductForm({ initialData }: ProductFormProps) {
 
                     <TabsContent value="inventory">
                         <Card>
-                            <CardHeader><CardTitle>Inventory</CardTitle></CardHeader>
+                            <CardHeader>
+                                <CardTitle>Inventory Management</CardTitle>
+                                <CardDescription>
+                                    Stock management is handled via the <b>Purchase / GRN</b> module to ensure accurate accounting and history.
+                                    Direct stock editing is disabled.
+                                </CardDescription>
+                            </CardHeader>
                             <CardContent className="space-y-4">
+                                <div className="p-4 bg-muted/50 rounded-md border text-sm text-muted-foreground mb-4">
+                                    <p>To add stock, please create a new <b>Purchase Order</b>.</p>
+                                </div>
                                 <FormField
                                     control={form.control}
                                     name="inventory.inventory.stock"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Stock Quantity</FormLabel>
-                                            <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl>
+                                            <FormLabel>Current Global Stock</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="number"
+                                                    {...field}
+                                                    readOnly
+                                                    className="bg-muted cursor-not-allowed"
+                                                    title="Go to Purchase Module to add stock"
+                                                />
+                                            </FormControl>
+                                            <FormDescription>Total stock across all outlets.</FormDescription>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -878,10 +897,13 @@ export default function ProductForm({ initialData }: ProductFormProps) {
 
                                                                                             for (let i = 0; i < files.length; i++) {
                                                                                                 const formData = new FormData();
-                                                                                                formData.append('image', files[i]);
                                                                                                 const res = await uploadImage(formData).unwrap();
-
-                                                                                                if (res.success) {
+                                                                                                // uploadApi transforms response to return url string or data object
+                                                                                                if (typeof res === 'string') {
+                                                                                                    newUrls.push(res);
+                                                                                                } else if (res?.url) {
+                                                                                                    newUrls.push(res.url);
+                                                                                                } else if (res?.success && res?.data?.url) {
                                                                                                     newUrls.push(res.data.url);
                                                                                                 }
                                                                                             }

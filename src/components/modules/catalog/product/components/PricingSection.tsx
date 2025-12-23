@@ -10,9 +10,10 @@ import { ProductFormValues } from "../product.schema";
 
 interface PricingSectionProps {
     form: UseFormReturn<ProductFormValues>;
+    handlePriceChange: (type: 'cost' | 'selling' | 'margin', value: string) => void;
 }
 
-export const PricingSection = ({ form }: PricingSectionProps) => {
+export const PricingSection = ({ form, handlePriceChange }: PricingSectionProps) => {
     return (
         <Card>
             <CardHeader><CardTitle>Pricing & Tax</CardTitle></CardHeader>
@@ -25,7 +26,15 @@ export const PricingSection = ({ form }: PricingSectionProps) => {
                             <FormItem>
                                 <FormLabel>Cost Price</FormLabel>
                                 <FormControl>
-                                    <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
+                                    <Input
+                                        type="number"
+                                        {...field}
+                                        value={field.value === 0 ? '' : field.value}
+                                        onChange={e => {
+                                            field.onChange(e.target.value === '' ? '' : parseFloat(e.target.value));
+                                            handlePriceChange('cost', e.target.value);
+                                        }}
+                                    />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -37,7 +46,11 @@ export const PricingSection = ({ form }: PricingSectionProps) => {
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Profit Type</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={(val) => {
+                                    field.onChange(val);
+                                    const currentMargin = form.getValues("pricing.profitMargin");
+                                    handlePriceChange('margin', String(currentMargin));
+                                }} defaultValue={field.value}>
                                     <FormControl>
                                         <SelectTrigger>
                                             <SelectValue />
@@ -59,7 +72,15 @@ export const PricingSection = ({ form }: PricingSectionProps) => {
                             <FormItem>
                                 <FormLabel>Profit Margin</FormLabel>
                                 <FormControl>
-                                    <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
+                                    <Input
+                                        type="number"
+                                        {...field}
+                                        value={field.value === 0 ? '' : field.value}
+                                        onChange={e => {
+                                            field.onChange(e.target.value === '' ? '' : parseFloat(e.target.value));
+                                            handlePriceChange('margin', e.target.value);
+                                        }}
+                                    />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -72,7 +93,15 @@ export const PricingSection = ({ form }: PricingSectionProps) => {
                             <FormItem>
                                 <FormLabel>Selling Price</FormLabel>
                                 <FormControl>
-                                    <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
+                                    <Input
+                                        type="number"
+                                        {...field}
+                                        value={field.value === 0 ? '' : field.value}
+                                        onChange={e => {
+                                            field.onChange(e.target.value === '' ? '' : parseFloat(e.target.value));
+                                            handlePriceChange('selling', e.target.value);
+                                        }}
+                                    />
                                 </FormControl>
                                 <FormDescription className="text-xs">Auto-calculated</FormDescription>
                                 <FormMessage />
@@ -133,7 +162,12 @@ export const PricingSection = ({ form }: PricingSectionProps) => {
                             <FormItem>
                                 <FormLabel>Tax Rate (%)</FormLabel>
                                 <FormControl>
-                                    <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
+                                    <Input
+                                        type="number"
+                                        {...field}
+                                        onChange={e => field.onChange(e.target.value === '' ? '' : parseFloat(e.target.value))}
+
+                                    />
                                 </FormControl>
                             </FormItem>
                         )}

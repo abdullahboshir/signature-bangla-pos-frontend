@@ -177,7 +177,7 @@ export default function OutletListPage() {
     return (
         <DataPageLayout
             title="Outlets"
-            description="Manage your physical store locations."
+            description="Manage your physical Outlet locations."
             createAction={{
                 label: "Add Outlet",
                 onClick: () => router.push(`${pathname}/new`)

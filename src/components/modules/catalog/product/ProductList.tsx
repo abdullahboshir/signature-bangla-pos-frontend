@@ -26,6 +26,8 @@ import { StatCard } from "@/components/shared/StatCard";
 import { DataTable } from "@/components/shared/DataTable";
 import { DataPageLayout } from "@/components/shared/DataPageLayout";
 import { filterDataByDate } from "@/lib/dateFilterUtils";
+import { getImageUrl } from "@/lib/utils";
+
 
 import {
     useGetProductsQuery,
@@ -146,9 +148,13 @@ export function ProductList() {
                     <div className="h-10 w-10 rounded-md overflow-hidden bg-muted">
                         {images?.[0] ? (
                             <img
-                                src={images[0]}
+                                src={getImageUrl(images[0])}
                                 alt={row.original.name}
                                 className="h-full w-full object-cover"
+                                onError={(e) => {
+                                    e.currentTarget.src = "/placeholder-image.png";
+                                    e.currentTarget.onerror = null;
+                                }}
                             />
                         ) : (
                             <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
@@ -330,7 +336,15 @@ export function ProductList() {
                             <div className="flex gap-2 overflow-x-auto pb-2">
                                 {product.details.images.map((img: string, idx: number) => (
                                     <div key={idx} className="h-24 w-24 flex-shrink-0 rounded-md overflow-hidden border bg-muted">
-                                        <img src={img} alt={`Img ${idx}`} className="w-full h-full object-cover" />
+                                        <img
+                                            src={getImageUrl(img)}
+                                            alt={`Img ${idx}`}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                e.currentTarget.src = "/placeholder-image.png";
+                                                e.currentTarget.onerror = null;
+                                            }}
+                                        />
                                     </div>
                                 ))}
                             </div>
@@ -338,7 +352,10 @@ export function ProductList() {
                     )}
                     <div>
                         <span className="text-sm font-semibold text-muted-foreground">Description</span>
-                        <p className="text-sm mt-1 whitespace-pre-wrap">{product.details?.description || "No description provided."}</p>
+                        <div
+                            className="text-sm mt-1 prose prose-sm max-w-none text-muted-foreground"
+                            dangerouslySetInnerHTML={{ __html: product.details?.description || "No description provided." }}
+                        />
                     </div>
                 </div>
 
@@ -402,7 +419,15 @@ export function ProductList() {
                                                 {/* Variant Image */}
                                                 {(v.images?.[0] || v.image) && (
                                                     <div className="h-8 w-8 rounded border overflow-hidden bg-background flex-shrink-0">
-                                                        <img src={v.images?.[0] || v.image} alt={v.name} className="h-full w-full object-cover" />
+                                                        <img
+                                                            src={getImageUrl(v.images?.[0] || v.image)}
+                                                            alt={v.name}
+                                                            className="h-full w-full object-cover"
+                                                            onError={(e) => {
+                                                                e.currentTarget.src = "/placeholder-image.png";
+                                                                e.currentTarget.onerror = null;
+                                                            }}
+                                                        />
                                                     </div>
                                                 )}
                                                 <div className="font-medium text-foreground">{v.name || `Variant ${idx + 1}`}</div>

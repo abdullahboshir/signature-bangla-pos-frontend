@@ -1,8 +1,19 @@
 "use client"
 
+import { useState } from "react"
+import { useParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
 import { DollarSign, ShoppingCart, TrendingUp, Users } from "lucide-react"
+import { useGetAllOutletsQuery } from "@/redux/api/outletApi"
+import { useGetBusinessUnitByIdQuery, useGetBusinessUnitDashboardStatsQuery } from "@/redux/api/businessUnitApi"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
 const data = [
     { name: "Jan", total: 1200 },
@@ -14,13 +25,70 @@ const data = [
 ]
 
 export default function OverviewPage() {
+    const params = useParams()
+    const businessUnitParam = params["business-unit"] as string
+    const [selectedOutletId, setSelectedOutletId] = useState<string>("all")
+
+    // 1. Fetch Business Unit Details to get ID (if param is slug)
+    // Assuming we have an API to get BU by slug/ID. 
+    // `useGetBusinessUnitByIdQuery` in `businessUnitApi` hits `/super-admin/business-unit/${id}`.
+    // If backend supports slug lookup at that endpoint, this works.
+    // Let's assume it does (checked controller, it handles idOrSlug).
+    const { data: buData } = useGetBusinessUnitByIdQuery(businessUnitParam)
+
+    // Extract real ID. The API returns { data: { ... } } or nested structure as seen in `businessUnitApi.ts`
+    const businessUnitId = buData?._id || buData?.id;
+
+    // 2. Fetch Outlets using the resolved ID
+    const { data: outletData, isLoading: outletsLoading } = useGetAllOutletsQuery({
+        businessUnit: businessUnitId,
+        limit: 100,
+    }, {
+        skip: !businessUnitId // Skip until ID is resolved
+    })
+
+    const outlets = Array.isArray(outletData) ? outletData : (outletData?.data?.result || outletData?.result || [])
+
+    const { data: stats, isLoading: statsLoading } = useGetBusinessUnitDashboardStatsQuery({
+        businessUnitId: businessUnitId,
+        outletId: selectedOutletId === 'all' ? undefined : selectedOutletId
+    }, {
+        skip: !businessUnitId
+    })
+
+    const formatCurrency = (amount: number = 0) => {
+        return new Intl.NumberFormat('en-BD', { style: 'currency', currency: 'BDT' }).format(amount)
+    }
+
     return (
         <div className="space-y-6 container mx-auto py-6">
-            <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tight">Business Overview</h1>
-                <p className="text-muted-foreground">
-                    High-level insights across all business units.
-                </p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                    <h1 className="text-3xl font-bold tracking-tight">Business Overview</h1>
+                    <p className="text-muted-foreground">
+                        High-level insights across all business units.
+                    </p>
+                </div>
+
+                <div className="w-[200px]">
+                    <Select
+                        value={selectedOutletId}
+                        onValueChange={setSelectedOutletId}
+                        disabled={outletsLoading || statsLoading}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Filter by Outlet" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Outlets</SelectItem>
+                            {outlets.map((outlet: any) => (
+                                <SelectItem key={outlet._id} value={outlet._id}>
+                                    {outlet.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -30,7 +98,7 @@ export default function OverviewPage() {
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">$45,231.89</div>
+                        <div className="text-2xl font-bold">{statsLoading ? "..." : formatCurrency(stats?.revenue)}</div>
                         <p className="text-xs text-muted-foreground">+20.1% from last month</p>
                     </CardContent>
                 </Card>
@@ -40,7 +108,7 @@ export default function OverviewPage() {
                         <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">+2350</div>
+                        <div className="text-2xl font-bold">{statsLoading ? "..." : (stats?.activeSales || 0)}</div>
                         <p className="text-xs text-muted-foreground">+180.1% from last month</p>
                     </CardContent>
                 </Card>
@@ -50,7 +118,7 @@ export default function OverviewPage() {
                         <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">+12,234</div>
+                        <div className="text-2xl font-bold">{statsLoading ? "..." : (stats?.activeUsers || 0)}</div>
                         <p className="text-xs text-muted-foreground">+19% from last month</p>
                     </CardContent>
                 </Card>
@@ -60,7 +128,7 @@ export default function OverviewPage() {
                         <TrendingUp className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">+573</div>
+                        <div className="text-2xl font-bold">{statsLoading ? "..." : (stats?.growth || 0)}%</div>
                         <p className="text-xs text-muted-foreground">+201 since last hour</p>
                     </CardContent>
                 </Card>

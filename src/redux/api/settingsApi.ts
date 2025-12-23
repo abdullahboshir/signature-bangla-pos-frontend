@@ -22,10 +22,30 @@ export const settingsApi = baseApi.injectEndpoints({
         { type: tagTypes.settings, id: arg.businessUnitId },
       ],
     }),
+
+    getSystemSettings: build.query({
+      query: () => ({
+        url: `/system-settings`,
+        method: "GET",
+      }),
+      providesTags: [tagTypes.settings],
+      transformResponse: (response: any) => response.data,
+    }),
+
+    updateSystemSettings: build.mutation({
+      query: (data) => ({
+        url: `/system-settings`,
+        method: "PATCH",
+        data: data,
+      }),
+      invalidatesTags: [tagTypes.settings],
+    }),
   }),
 });
 
 export const {
   useGetBusinessUnitSettingsQuery,
   useUpdateBusinessUnitSettingsMutation,
+  useGetSystemSettingsQuery,
+  useUpdateSystemSettingsMutation,
 } = settingsApi;

@@ -124,14 +124,23 @@ export function SystemSettings({ data, onChange }: { data: any, onChange: (key: 
                         />
                     </div>
                     {data.maintenance?.enableMaintenanceMode && (
-                        <div className="grid gap-2">
-                            <Label>Maintenance Message</Label>
-                            <Input
-                                value={data.maintenance?.maintenanceMessage || ''}
-                                onChange={(e) => updateMaintenance('maintenanceMessage', e.target.value)}
-                                placeholder="We are undergoing maintenance..."
-                            />
-                        </div>
+                        <>
+                            <div className="flex items-center justify-between">
+                                <Label>Allow Admin Access</Label>
+                                <Switch
+                                    checked={data.maintenance?.allowAdmins}
+                                    onCheckedChange={(c) => updateMaintenance('allowAdmins', c)}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label>Maintenance Message</Label>
+                                <Input
+                                    value={data.maintenance?.maintenanceMessage || ''}
+                                    onChange={(e) => updateMaintenance('maintenanceMessage', e.target.value)}
+                                    placeholder="We are undergoing maintenance..."
+                                />
+                            </div>
+                        </>
                     )}
                 </CardContent>
             </Card>

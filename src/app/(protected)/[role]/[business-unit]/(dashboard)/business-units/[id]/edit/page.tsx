@@ -3,7 +3,22 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Loader2, ChevronsUpDown, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList
+} from "@/components/ui/command";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,7 +53,18 @@ export default function EditBusinessUnitPage() {
             country: "",
             status: "",
             type: "",
-            attributeGroup: ""
+            type: "",
+            attributeGroups: [] as string[],
+            features: {
+                hasInventory: true,
+                hasVariants: true,
+                hasAttributeGroups: true,
+                hasShipping: true,
+                hasSeo: true,
+                hasCompliance: true,
+                hasBundles: true,
+                hasWarranty: true
+            }
         }
     });
 
@@ -47,6 +73,15 @@ export default function EditBusinessUnitPage() {
     useEffect(() => {
         if (!businessUnit) return;
 
+        // Parse attribute groups - can be array of objects or strings
+        let initialGroups = [];
+        if (businessUnit.attributeGroups && Array.isArray(businessUnit.attributeGroups)) {
+            initialGroups = businessUnit.attributeGroups.map((g: any) => typeof g === 'object' ? g._id : g);
+        } else if (businessUnit.attributeGroup) {
+            // Fallback for legacy single group
+            initialGroups = [typeof businessUnit.attributeGroup === 'object' ? businessUnit.attributeGroup._id : businessUnit.attributeGroup];
+        }
+
         reset({
             name: businessUnit.branding?.name ?? businessUnit.name ?? "",
             description: businessUnit.branding?.description ?? "",
@@ -54,20 +89,19 @@ export default function EditBusinessUnitPage() {
             phone: businessUnit.contact?.phone ?? "",
             city: businessUnit.location?.city ?? "",
             country: businessUnit.location?.country ?? "",
-
-            status: BUSINESS_UNIT_STATUS_OPTIONS.some(
-                (s) => s.value === businessUnit.status
-            )
-                ? businessUnit.status
-                : BUSINESS_UNIT_STATUS.DRAFT,
-
-            type: BUSINESS_UNIT_TYPE_OPTIONS.some(
-                (t) => t.value === businessUnit.businessUnitType
-            )
-                ? businessUnit.businessUnitType
-                : BUSINESS_UNIT_TYPE.GENERAL,
-
-            attributeGroup: businessUnit.attributeGroup?._id || businessUnit.attributeGroup || "",
+            status: businessUnit.status,
+            type: businessUnit.businessUnitType,
+            attributeGroups: initialGroups,
+            features: {
+                hasInventory: businessUnit.features?.hasInventory ?? true,
+                hasVariants: businessUnit.features?.hasVariants ?? true,
+                hasAttributeGroups: businessUnit.features?.hasAttributeGroups ?? true,
+                hasShipping: businessUnit.features?.hasShipping ?? true,
+                hasSeo: businessUnit.features?.hasSeo ?? true,
+                hasCompliance: businessUnit.features?.hasCompliance ?? true,
+                hasBundles: businessUnit.features?.hasBundles ?? true,
+                hasWarranty: businessUnit.features?.hasWarranty ?? true,
+            }
         });
     }, [businessUnit, reset]);
 
@@ -87,7 +121,10 @@ export default function EditBusinessUnitPage() {
 
                 status: data.status,
                 businessUnitType: data.type,
-                attributeGroup: data.attributeGroup || undefined,
+                status: data.status,
+                businessUnitType: data.type,
+                attributeGroups: data.attributeGroups,
+                features: data.features
             };
 
             const response: any = await updateBusinessUnit({ id, body: payload }).unwrap();
@@ -197,28 +234,183 @@ export default function EditBusinessUnitPage() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="attributeGroup">Product Attribute Template</Label>
+                                <Label htmlFor="attributeGroups">Product Attribute Templates</Label>
                                 <Controller
-                                    name="attributeGroup"
+                                    name="attributeGroups"
                                     control={control}
                                     render={({ field }) => (
-                                        <Select
-                                            value={field.value || undefined}
-                                            onValueChange={field.onChange}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select attribute template" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {attributeGroups?.data?.map((group: any) => (
-                                                    <SelectItem key={group._id} value={group._id}>
-                                                        {group.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    role="combobox"
+                                                    className="w-full justify-between h-auto min-h-[40px]"
+                                                >
+                                                    {field.value?.length > 0
+                                                        ? `${field.value.length} selected`
+                                                        : "Select attribute templates"}
+                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-full p-0">
+                                                <Command>
+                                                    <CommandInput placeholder="Search templates..." />
+                                                    <CommandList>
+                                                        <CommandEmpty>No template found.</CommandEmpty>
+                                                        <CommandGroup>
+                                                            {attributeGroups?.data?.map((group: any) => (
+                                                                <CommandItem
+                                                                    key={group._id}
+                                                                    value={group.name}
+                                                                    onSelect={() => {
+                                                                        const current = field.value || [];
+                                                                        const isSelected = current.includes(group._id);
+                                                                        if (isSelected) {
+                                                                            field.onChange(current.filter((id: string) => id !== group._id));
+                                                                        } else {
+                                                                            field.onChange([...current, group._id]);
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <Check
+                                                                        className={cn(
+                                                                            "mr-2 h-4 w-4",
+                                                                            field.value?.includes(group._id)
+                                                                                ? "opacity-100"
+                                                                                : "opacity-0"
+                                                                        )}
+                                                                    />
+                                                                    {group.name}
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </CommandList>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
                                     )}
                                 />
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                    {(watch("attributeGroups") || []).map((id: string) => {
+                                        const group = attributeGroups?.data?.find((g: any) => g._id === id);
+                                        return group ? (
+                                            <span key={id} className="bg-secondary text-secondary-foreground text-xs px-2 py-1 rounded-md">
+                                                {group.name}
+                                            </span>
+                                        ) : null;
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Feature Configuration Section */}
+                            <div className="col-span-2 mt-6">
+                                <h3 className="text-lg font-medium mb-4">Module Configuration</h3>
+                                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                    <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                        <div className="space-y-0.5">
+                                            <Label>Inventory Management</Label>
+                                            <p className="text-sm text-muted-foreground">Track stock levels</p>
+                                        </div>
+                                        <Controller
+                                            name="features.hasInventory"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                            )}
+                                        />
+                                    </div>
+                                    <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                        <div className="space-y-0.5">
+                                            <Label>Product Variants</Label>
+                                            <p className="text-sm text-muted-foreground">Size, Color, etc.</p>
+                                        </div>
+                                        <Controller
+                                            name="features.hasVariants"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                            )}
+                                        />
+                                    </div>
+                                    <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                        <div className="space-y-0.5">
+                                            <Label>Dynamic Attributes</Label>
+                                            <p className="text-sm text-muted-foreground">Custom fields from groups</p>
+                                        </div>
+                                        <Controller
+                                            name="features.hasAttributeGroups"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                            )}
+                                        />
+                                    </div>
+                                    <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                        <div className="space-y-0.5">
+                                            <Label>Shipping</Label>
+                                            <p className="text-sm text-muted-foreground">Dimensions & Weight</p>
+                                        </div>
+                                        <Controller
+                                            name="features.hasShipping"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                            )}
+                                        />
+                                    </div>
+                                    <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                        <div className="space-y-0.5">
+                                            <Label>SEO Settings</Label>
+                                            <p className="text-sm text-muted-foreground">Meta tags & keywords</p>
+                                        </div>
+                                        <Controller
+                                            name="features.hasSeo"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                            )}
+                                        />
+                                    </div>
+                                    <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                        <div className="space-y-0.5">
+                                            <Label>Compliance Info</Label>
+                                            <p className="text-sm text-muted-foreground">Safety & Warnings</p>
+                                        </div>
+                                        <Controller
+                                            name="features.hasCompliance"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                            )}
+                                        />
+                                    </div>
+                                    <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                        <div className="space-y-0.5">
+                                            <Label>Product Bundles</Label>
+                                            <p className="text-sm text-muted-foreground">Combo offers</p>
+                                        </div>
+                                        <Controller
+                                            name="features.hasBundles"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                            )}
+                                        />
+                                    </div>
+                                    <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                        <div className="space-y-0.5">
+                                            <Label>Warranty Info</Label>
+                                            <p className="text-sm text-muted-foreground">Warranty terms</p>
+                                        </div>
+                                        <Controller
+                                            name="features.hasWarranty"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                            )}
+                                        />
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="space-y-2">
