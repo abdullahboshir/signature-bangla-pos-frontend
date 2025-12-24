@@ -37,9 +37,10 @@ const authApi = baseApi.injectEndpoints({
             }),
         }),
         getMe: build.query({
-            query: () => ({
+            query: (params) => ({
                 url: '/auth/me',
-                method: 'GET'
+                method: 'GET',
+                params
             }),
             providesTags: [tagTypes.auth],
             transformResponse: (response: any) => response.data || response.data?.data

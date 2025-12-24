@@ -122,8 +122,28 @@ export function CreatePurchaseForm() {
 
     const businessUnitId = selectedBUSlug || "";
 
-    const { data: suppliersData } = useGetSuppliersQuery({ businessUnit: businessUnitId }, { skip: !businessUnitId });
-    const suppliers = suppliersData?.data || [];
+    // Fetch ALL suppliers to ensure we get Global (empty businessUnits) + Scoped ones.
+    // Client-side filtering handles the visibility logic.
+    const { data: allSuppliers = [] } = useGetSuppliersQuery({});
+
+    // Filter suppliers logic:
+    // 1. If Global Route (isGlobal): Show ALL suppliers (User requirement).
+    // 2. If Scoped Route: Show ONLY suppliers assigned to this BU.
+    const suppliers = allSuppliers.filter((s: any) => {
+        if (isGlobal) return true; // Show all in Super Admin / Global view
+
+        // Scoped filtering: Strict adherence.
+        // Must match the current BusinessUnitId.
+        if (!businessUnitId) return false;
+
+        if (!s.businessUnits || s.businessUnits.length === 0) return false; // Hide orphaned/global-unassigned in scoped view
+
+        return s.businessUnits.some((bu: any) => {
+            const id = typeof bu === 'object' ? bu._id : bu;
+            return id === businessUnitId;
+        });
+    });
+
     const { data: outlets = [] } = useGetAllOutletsQuery({ businessUnit: businessUnitId }, { skip: !businessUnitId });
 
     // Product Search

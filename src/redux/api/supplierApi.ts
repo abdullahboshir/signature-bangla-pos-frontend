@@ -18,6 +18,7 @@ export const supplierApi = baseApi.injectEndpoints({
         params: arg,
       }),
       providesTags: [tagTypes.supplier],
+      transformResponse: (response: any) => response.data,
     }),
     getSupplier: build.query({
       query: (id) => ({
@@ -25,6 +26,7 @@ export const supplierApi = baseApi.injectEndpoints({
         method: "GET",
       }),
       providesTags: [tagTypes.supplier],
+      transformResponse: (response: any) => response.data,
     }),
     updateSupplier: build.mutation({
       query: (data) => ({

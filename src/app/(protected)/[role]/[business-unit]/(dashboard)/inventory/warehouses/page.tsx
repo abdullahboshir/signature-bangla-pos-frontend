@@ -1,23 +1,45 @@
 "use client";
 
+import { useGetAllOutletsQuery } from "@/redux/api/outletApi";
+import { DataTable } from "@/components/shared/DataTable";
 import { DataPageLayout } from "@/components/shared/DataPageLayout";
-import { Warehouse } from "lucide-react";
+import { ColumnDef } from "@tanstack/react-table";
+import { Badge } from "@/components/ui/badge";
 
-export default function WarehousesPage() {
+export default function WarehousePage() {
+    // Reuse outlet API to list warehouses/outlets
+    const { data: outlets = [], isLoading } = useGetAllOutletsQuery({});
+
+    const columns: ColumnDef<any>[] = [
+        {
+            accessorKey: "name",
+            header: "Name",
+        },
+        {
+            accessorKey: "address",
+            header: "Address",
+        },
+        {
+            accessorKey: "phone",
+            header: "Phone",
+        },
+        {
+            accessorKey: "isActive",
+            header: "Status",
+            cell: ({ row }) => (
+                <Badge variant={row.original.isActive ? "default" : "secondary"}>
+                    {row.original.isActive ? "Active" : "Inactive"}
+                </Badge>
+            )
+        }
+    ];
+
     return (
         <DataPageLayout
-            title="Warehouses"
-            description="Manage warehouse locations and storage."
+            title="Warehouses & Outlets"
+            description="Manage your inventory locations."
         >
-            <div className="flex flex-col items-center justify-center p-12 text-center border rounded-lg border-dashed min-h-[400px]">
-                <div className="rounded-full bg-muted p-4 mb-4">
-                    <Warehouse className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold">Under Construction</h3>
-                <p className="text-sm text-muted-foreground max-w-sm mt-2">
-                    This module is currently being developed.
-                </p>
-            </div>
+            <DataTable columns={columns} data={outlets} isLoading={isLoading} />
         </DataPageLayout>
     );
 }

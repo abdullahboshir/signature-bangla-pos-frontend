@@ -177,13 +177,12 @@ export function OutletForm({ preSelectedSlug }: OutletFormProps) {
                                     />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="code">Outlet Code</Label>
+                                    <Label htmlFor="code">Outlet Code (Optional)</Label>
                                     <Input
                                         id="code"
                                         value={code}
                                         onChange={(e) => setCode(e.target.value)}
-                                        placeholder="e.g. DHM-01"
-                                        required
+                                        placeholder="e.g. DHM-01 (Auto-generated if empty)"
                                     />
                                 </div>
                             </div>

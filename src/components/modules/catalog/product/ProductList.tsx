@@ -18,6 +18,12 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -242,14 +248,40 @@ export function ProductList() {
                 const stock = product.inventory?.inventory?.stock || 0;
                 const lowStock = product.inventory?.inventory?.lowStockThreshold || 0;
                 const isLow = stock <= lowStock;
+                const outletStock = product.inventory?.outletStock || [];
 
                 return (
-                    <div className="flex items-center">
-                        {stock}
-                        {isLow && (
-                            <Badge variant="destructive" className="ml-2 text-[10px] px-1 py-0 h-4">Low</Badge>
-                        )}
-                    </div>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="flex items-center cursor-help">
+                                    {stock}
+                                    {isLow && (
+                                        <Badge variant="destructive" className="ml-2 text-[10px] px-1 py-0 h-4">Low</Badge>
+                                    )}
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <div className="text-xs space-y-1">
+                                    <div className="font-semibold border-b pb-1 mb-1">Stock Breakdown</div>
+                                    <div className="flex justify-between gap-4">
+                                        <span>Global:</span>
+                                        <span>{stock}</span>
+                                    </div>
+                                    {outletStock.length > 0 ? (
+                                        outletStock.map((os: any, idx: number) => (
+                                            <div key={idx} className="flex justify-between gap-4">
+                                                <span className="text-muted-foreground">{os.outlet?.name || "Unknown Outlet"}:</span>
+                                                <span>{os.stock}</span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-muted-foreground italic">No outlet details</div>
+                                    )}
+                                </div>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 )
             }
         },

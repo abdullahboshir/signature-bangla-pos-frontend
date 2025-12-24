@@ -21,89 +21,54 @@ import {
 import { DataTable } from "@/components/shared/DataTable";
 import { DataPageLayout } from "@/components/shared/DataPageLayout";
 import { StatCard } from "@/components/shared/StatCard";
-import { AutoFormModal } from "@/components/shared/AutoFormModal";
+// import { AutoFormModal } from "@/components/shared/AutoFormModal"; // Re-enable if we want quick edit
 
-import { useGetProductsQuery, useUpdateProductMutation } from "@/redux/api/productApi";
+import { useGetStockLevelsQuery } from "@/redux/api/inventoryApi"; // CHANGED
 import { useAuth } from "@/hooks/useAuth";
 
 export const InventoryList = () => {
     const params = useParams();
-    const paramBusinessUnit = params["business-unit"] as string;
+    // const paramBusinessUnit = params["business-unit"] as string;
     const { user } = useAuth();
-    const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
-
-    // For SA, if params empty, no filter (Global). For BU user, filtered by param.
-    // However, existing "productApi" likely expects "businessUnit" in query to filter.
-    const businessUnit = isSuperAdmin ? undefined : paramBusinessUnit;
+    // const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
 
     const [searchTerm, setSearchTerm] = useState("");
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedItem, setSelectedItem] = useState<any>(null);
+    // const [isModalOpen, setIsModalOpen] = useState(false);
+    // const [selectedItem, setSelectedItem] = useState<any>(null);
 
-    const { data: products = [], isLoading: loading, refetch } = useGetProductsQuery({ businessUnit });
-    const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
+    // Fetch Stock Levels
+    const { data, isLoading: loading, refetch } = useGetStockLevelsQuery({});
+    const inventoryItems = data?.data || [];
 
-    const handleEditStock = (item: any) => {
-        setSelectedItem({
-            id: item._id || item.id,
-            stock: item.inventory?.stock || 0,
-            lowStockThreshold: item.inventory?.lowStockThreshold || 10
-        });
-        setIsModalOpen(true);
-    };
+    // const handleEditStock = (item: any) => {
+    //     // Logic to open adjustment modal?
+    //     // For now, let's keep it read-only or redirect to adjustment page
+    //     toast.info("Please use the 'Adjustments' page to modify stock.");
+    // };
 
-    const handleSubmit = async (values: any) => {
-        try {
-            // Construct payload structured as partial update
-            // Backend endpoint likely expects body to have fields to update.
-            // If we send { inventory: { ... } }, ensure backend merges or replaces.
-            // Based on previous code logic, we construct:
-            const payload = {
-                inventory: {
-                    stock: Number(values.stock),
-                    lowStockThreshold: Number(values.lowStockThreshold)
-                }
-            };
-
-            // Using RTK Mutation
-            await updateProduct({ id: selectedItem.id, body: payload }).unwrap();
-
-            toast.success("Inventory updated successfully");
-            setIsModalOpen(false);
-            setSelectedItem(null);
-        } catch (error: any) {
-            console.error("Update failed", error);
-            toast.error(error?.data?.message || "Failed to update inventory");
-        }
-    };
-
-    // Columns
+    // Columns matching ProductInventory structure
     const columns: ColumnDef<any>[] = [
         {
-            accessorKey: "name",
+            accessorKey: "product.name",
             header: "Product Name",
             cell: ({ row }) => (
                 <div className="flex flex-col">
-                    <span className="font-medium">{row.original.name}</span>
-                    <span className="text-xs text-muted-foreground">{row.original.sku || "No SKU"}</span>
+                    <span className="font-medium">{row.original.product?.name}</span>
+                    <span className="text-xs text-muted-foreground">{row.original.product?.sku || "No SKU"}</span>
                 </div>
             ),
         },
         {
-            accessorKey: "businessUnit",
-            header: "Business Unit",
-            cell: ({ row }) => {
-                const bu = row.original.businessUnit;
-                if (!bu) return <span className="text-muted-foreground text-xs">Global</span>;
-                return <span className="text-xs">{(typeof bu === 'object' && (bu as any).name) ? (bu as any).name : bu}</span>;
-            },
+            accessorKey: "product.category.name",
+            header: "Category",
+            cell: ({ row }) => row.original.product?.category?.name || "-",
         },
         {
-            accessorKey: "stock",
+            accessorKey: "inventory.stock",
             header: "Stock Level",
             cell: ({ row }) => {
                 const stock = row.original.inventory?.stock || 0;
-                const threshold = row.original.inventory?.lowStockThreshold || 10;
+                const threshold = row.original.inventory?.lowStockThreshold || 10; // Fallback
                 const status = stock === 0 ? 'critical' : stock <= threshold ? 'low' : 'good';
                 const max = Math.max(stock + 20, 100);
 
@@ -118,8 +83,6 @@ export const InventoryList = () => {
                         <Progress
                             value={(stock / max) * 100}
                             className={`h-2 ${status === 'good' ? 'bg-green-100' : status === 'low' ? 'bg-yellow-100' : 'bg-red-100'}`}
-                        // Note: standard shadcn Progress component might not support color props on root easily without custom styles, 
-                        // but the indicator is usually primary. We can rely on default for now.
                         />
                     </div>
                 );
@@ -138,8 +101,11 @@ export const InventoryList = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEditStock(row.original)}>
-                            <Edit className="mr-2 h-4 w-4" /> Adjust Stock
+                        <DropdownMenuItem onClick={() => {
+                            // Redirect to ledger or adjustment?
+                            toast.info("Please use Adjustment module for changes.");
+                        }}>
+                            View History (Ledger)
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -147,29 +113,30 @@ export const InventoryList = () => {
         },
     ];
 
-    const filteredItems = (Array.isArray(products) ? products : []).filter((item: any) =>
-        (item.name && item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (item.sku && item.sku.toLowerCase().includes(searchTerm.toLowerCase()))
+    const filteredItems = inventoryItems.filter((item: any) =>
+        (item.product?.name && item.product.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (item.product?.sku && item.product.sku.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    const lowStockCount = (Array.isArray(products) ? products : []).filter((i: any) => (i.inventory?.stock || 0) <= (i.inventory?.lowStockThreshold || 10)).length;
+    const lowStockCount = inventoryItems.filter((i: any) =>
+        (i.inventory?.stock || 0) <= (i.inventory?.lowStockThreshold || 10)
+    ).length;
 
     return (
         <DataPageLayout
-            title="Inventory Management"
-            description="Monitor stock levels and manage warehouse operations."
+            title="Stock Levels"
+            description="Real-time inventory tracking."
             stats={
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <StatCard
                         title="Total Items"
-                        value={products.length}
+                        value={inventoryItems.length}
                         icon={Package}
                     />
                     <StatCard
                         title="Low Stock"
                         value={lowStockCount}
                         icon={AlertTriangle}
-                        trend={lowStockCount > 0 ? "destructive" : "neutral"}
                     />
                 </div>
             }
@@ -178,7 +145,7 @@ export const InventoryList = () => {
                     <div className="relative flex-1">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Search inventory..."
+                            placeholder="Search product name or SKU..."
                             className="pl-8"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -191,33 +158,7 @@ export const InventoryList = () => {
             }
         >
             <DataTable columns={columns} data={filteredItems} isLoading={loading} />
-
-            <AutoFormModal
-                open={isModalOpen}
-                onOpenChange={setIsModalOpen}
-                title="Adjust Stock"
-                description="Update inventory levels manually."
-                fields={[
-                    {
-                        name: "stock",
-                        label: "Current Stock",
-                        type: "number",
-                        required: true,
-                    },
-                    {
-                        name: "lowStockThreshold",
-                        label: "Low Stock Threshold",
-                        type: "number",
-                        required: true,
-                    }
-                ]}
-                onSubmit={handleSubmit}
-                defaultValues={selectedItem ? {
-                    stock: selectedItem.stock,
-                    lowStockThreshold: selectedItem.lowStockThreshold
-                } : {}}
-                submitLabel={isUpdating ? "Updating..." : "Update Inventory"}
-            />
+            {/* AutoFormModal removed for now as we want explicit adjustment */}
         </DataPageLayout>
     );
 };

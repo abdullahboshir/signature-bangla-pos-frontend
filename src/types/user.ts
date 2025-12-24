@@ -36,6 +36,15 @@ export interface User {
   isActive?: boolean;
   isDeleted?: boolean;
   
+  // Authorization Context (Effective Permissions)
+  hierarchyLevel?: number;
+  maxDataAccess?: {
+    products: number;
+    orders: number;
+    customers: number;
+  };
+  effectivePermissions?: any[]; // Populated permission objects
+  
   createdAt?: string;
   updatedAt?: string;
 }

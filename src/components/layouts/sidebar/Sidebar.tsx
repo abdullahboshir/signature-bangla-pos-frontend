@@ -4,7 +4,7 @@
 import { useState, useMemo } from "react"
 import { useParams, usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { getSidebarMenu, getBusinessUnitInfo } from "@/config/sidebar-menu"
+import { getSidebarMenu } from "@/config/sidebar-menu"
 import { Input } from "@/components/ui/input"
 import { Search, ChevronLeft, ChevronRight } from "lucide-react"
 
@@ -189,7 +189,7 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
   }, [menuItems, searchQuery]);
 
 
-  const businessUnitInfo = businessUnit ? getBusinessUnitInfo(businessUnit) : undefined
+
 
 
   return (

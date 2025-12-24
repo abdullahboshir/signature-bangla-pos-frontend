@@ -38,21 +38,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
     const router = useRouter();
 
-    // RTK Query Hooks
-    // useGetMeQuery handles initial load, session restoration, and acts as the source of truth for 'user'
-    const {
-        data: user,
-        isLoading: isUserLoading,
-        refetch: refetchUser,
-        isError
-    } = useGetMeQuery(undefined, {
-        pollingInterval: 0,
-        refetchOnFocus: false, // Don't aggressive refetch
-    });
-
-    const [loginMutation] = useLoginMutation();
-    const [logoutMutation] = useLogoutMutation();
-
     const [activeBusinessUnit, setActiveBusinessUnitState] = useState<string | null>(null);
 
     // Initialize from localStorage on mount
@@ -62,6 +47,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setActiveBusinessUnitState(stored);
         }
     }, []);
+
+    const queryParams = activeBusinessUnit ? { businessUnitId: activeBusinessUnit } : undefined;
+
+    // RTK Query Hooks
+    // useGetMeQuery handles initial load, session restoration, and acts as the source of truth for 'user'
+    const {
+        data: user,
+        isLoading: isUserLoading,
+        refetch: refetchUser,
+        isError
+    } = useGetMeQuery(queryParams, {
+        pollingInterval: 0,
+        refetchOnFocus: false, // Don't aggressive refetch
+        refetchOnMountOrArgChange: true // Ensure re-fetch on BU change
+    });
+
+    const [loginMutation] = useLoginMutation();
+    const [logoutMutation] = useLogoutMutation();
 
     const setActiveBusinessUnit = (id: string | null) => {
         if (id) {
@@ -106,9 +109,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             };
 
         } catch (err: any) {
+            let errorMessage = "Login failed";
+
+            if (err?.status === "FETCH_ERROR") {
+                errorMessage = "Unable to connect to the server. Please check your internet connection.";
+            } else if (err?.status === "PARSING_ERROR") {
+                errorMessage = "Server response invalid. Please contact support.";
+            } else if (err?.data?.message) {
+                errorMessage = err.data.message;
+            } else if (err?.error) {
+                errorMessage = err.error;
+            } else if (err?.message === "Failed to fetch" || err?.message?.includes("NetworkError")) {
+                errorMessage = "Network Error: Unable to reach the server.";
+            }
+
             return {
                 success: false,
-                message: err?.data?.message || err?.message || "Login failed",
+                message: errorMessage,
             };
         }
     };

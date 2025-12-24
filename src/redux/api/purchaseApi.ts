@@ -9,7 +9,7 @@ export const purchaseApi = baseApi.injectEndpoints({
         method: "POST",
         data,
       }),
-      invalidatesTags: [tagTypes.purchase],
+      invalidatesTags: [tagTypes.purchase, tagTypes.product],
     }),
     getPurchases: build.query({
       query: (arg) => ({
@@ -32,14 +32,14 @@ export const purchaseApi = baseApi.injectEndpoints({
         method: "PATCH",
         data: data.body,
       }),
-      invalidatesTags: [tagTypes.purchase],
+      invalidatesTags: [tagTypes.purchase, tagTypes.product],
     }),
     deletePurchase: build.mutation({
       query: (id) => ({
         url: `/super-admin/purchases/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [tagTypes.purchase],
+      invalidatesTags: [tagTypes.purchase, tagTypes.product],
     }),
   }),
 });

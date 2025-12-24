@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit"
 import { useAuth } from "@/hooks/useAuth"
+import { usePermissions } from "@/hooks/usePermissions"
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner"
 import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
@@ -31,6 +32,7 @@ import { useGetAllOutletsQuery } from "@/redux/api/outletApi"
 import Swal from "sweetalert2"
 
 import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi"
+import { PERMISSION_KEYS } from "@/config/permission-keys"
 
 const USER_STATUS = {
     ACTIVE: 'active',
@@ -62,6 +64,8 @@ export function UserManagementTable() {
         isLoading: isLoadingUsers,
         refetch: refetchUsers
     } = useGetAllUsersQuery({});
+
+    const { hasPermission } = usePermissions();
 
     const { data: rawRoles = [] } = useGetRolesQuery({});
 
@@ -394,7 +398,6 @@ export function UserManagementTable() {
             cell: ({ row }) => row.original.phone || "—",
         },
         {
-            accessorKey: "status",
             header: "Status",
             cell: ({ row }) => {
                 const user = row.original;
@@ -410,7 +413,7 @@ export function UserManagementTable() {
                     }
                 };
 
-                if (isTargetSuperAdmin) {
+                if (isTargetSuperAdmin || !hasPermission(PERMISSION_KEYS.USER.UPDATE)) {
                     return (
                         <Badge variant={getStatusVariant(user.status)}>
                             {user.status || "Pending"}
@@ -470,22 +473,28 @@ export function UserManagementTable() {
                               Note: Route parsing logic might need adjustment if centralized. 
                               Use checks to construct path properly.
                             */}
-                            <DropdownMenuItem onClick={() => {
-                                // If super admin path
-                                if (isSuperAdmin) {
-                                    router.push(`/super-admin/users/${row.original._id || row.original.id}`)
-                                } else if (params.role) {
-                                    router.push(`/${params.role}/${params["business-unit"]}/user-management/users/${row.original._id || row.original.id}`)
-                                }
-                            }}>
-                                <User className="mr-2 h-4 w-4" /> View Profile
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEdit(row.original)}>
-                                <Edit className="mr-2 h-4 w-4" /> Edit Role/Status
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(row.original)}>
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
-                            </DropdownMenuItem>
+                            {hasPermission(PERMISSION_KEYS.USER.READ) && (
+                                <DropdownMenuItem onClick={() => {
+                                    // If super admin path
+                                    if (isSuperAdmin) {
+                                        router.push(`/super-admin/users/${row.original._id || row.original.id}`)
+                                    } else if (params.role) {
+                                        router.push(`/${params.role}/${params["business-unit"]}/user-management/users/${row.original._id || row.original.id}`)
+                                    }
+                                }}>
+                                    <User className="mr-2 h-4 w-4" /> View Profile
+                                </DropdownMenuItem>
+                            )}
+                            {hasPermission(PERMISSION_KEYS.USER.UPDATE) && (
+                                <DropdownMenuItem onClick={() => handleEdit(row.original)}>
+                                    <Edit className="mr-2 h-4 w-4" /> Edit Role/Status
+                                </DropdownMenuItem>
+                            )}
+                            {hasPermission(PERMISSION_KEYS.USER.DELETE) && (
+                                <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(row.original)}>
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                </DropdownMenuItem>
+                            )}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )
@@ -498,10 +507,10 @@ export function UserManagementTable() {
             <DataPageLayout
                 title="All Users"
                 description="View and manage all user accounts across the system."
-                createAction={{
+                createAction={hasPermission(PERMISSION_KEYS.USER.CREATE) ? {
                     label: "Add User",
                     onClick: handleCreate
-                }}
+                } : undefined}
                 stats={
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                         <StatCard

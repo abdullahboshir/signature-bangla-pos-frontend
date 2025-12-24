@@ -12,12 +12,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
     useGetSingleUserQuery,
     useUpdateUserMutation,
     useGetProfileQuery,
     useUpdateProfileMutation
 } from "@/redux/api/userApi";
+import { useGetRolesQuery } from "@/redux/api/roleApi";
+import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -49,6 +52,14 @@ export function UserProfileForm({ userId }: UserProfileFormProps) {
     // Admin API might return { success: true, data: { ... } }
     // Profile API might return { success: true, data: { ... } }
 
+    // --- Data Fetching (Admin Only Roles/BUs) ---
+    const { data: rolesData, isLoading: isLoadingRoles } = useGetRolesQuery({}, { skip: !useAdminQuery });
+    const { data: businessUnitsData, isLoading: isLoadingBUs } = useGetBusinessUnitsQuery(undefined, { skip: !useAdminQuery });
+
+    const roles = Array.isArray(rolesData) ? rolesData : [];
+    const businessUnits = (Array.isArray(businessUnitsData) ? businessUnitsData : businessUnitsData?.data) || [];
+
+    // Normalization logic
     const unwrapUser = (data: any) => {
         if (!data) return null;
         return data.data || data.result || data;
@@ -70,14 +81,20 @@ export function UserProfileForm({ userId }: UserProfileFormProps) {
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-    const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm({
+    const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm({
         defaultValues: {
             firstName: "",
             lastName: "",
             email: "",
             phone: "",
+            role: "",
+            businessUnit: ""
         }
     });
+
+    // Watch values for Select components (controlled)
+    const selectedRole = watch("role");
+    const selectedBU = watch("businessUnit");
 
     // --- Effects ---
     useEffect(() => {
@@ -90,8 +107,16 @@ export function UserProfileForm({ userId }: UserProfileFormProps) {
             setValue("email", fetchedUser.email || "");
             setValue("phone", fetchedUser.phone || "");
             setPreviewImage(fetchedUser.avatar || null);
+
+            // Set Role/BU if in Admin Mode
+            if (useAdminQuery) {
+                const roleId = fetchedUser.roles?.[0]?._id || (typeof fetchedUser.roles?.[0] === 'string' ? fetchedUser.roles[0] : "") || "";
+                const buId = fetchedUser.businessUnits?.[0]?._id || (typeof fetchedUser.businessUnits?.[0] === 'string' ? fetchedUser.businessUnits[0] : "") || "";
+                setValue("role", roleId);
+                setValue("businessUnit", buId);
+            }
         }
-    }, [fetchedUser, setValue]);
+    }, [fetchedUser, setValue, useAdminQuery]);
 
     // --- Handlers ---
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,13 +135,19 @@ export function UserProfileForm({ userId }: UserProfileFormProps) {
         try {
             const formData = new FormData();
 
-            const updateData = {
+            const updateData: any = {
                 name: {
                     firstName: data.firstName,
                     lastName: data.lastName
                 },
                 phone: data.phone
             };
+
+            if (useAdminQuery && userId) {
+                // Attach Role & BU updates in Admin Mode
+                if (data.role) updateData.roles = [data.role];
+                if (data.businessUnit) updateData.businessUnits = [data.businessUnit];
+            }
 
             formData.append("data", JSON.stringify(updateData));
 
@@ -193,6 +224,50 @@ export function UserProfileForm({ userId }: UserProfileFormProps) {
                             </div>
 
                             <Separator />
+
+                            {/* Admin-Only Role/BU Selection */}
+                            {useAdminQuery && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="businessUnit">Business Unit</Label>
+                                        <Select
+                                            value={selectedBU}
+                                            onValueChange={(val) => setValue('businessUnit', val)}
+                                            disabled={isLoadingBUs}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select Business Unit" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {businessUnits.map((bu: any) => (
+                                                    <SelectItem key={bu._id || bu.id} value={bu._id || bu.id}>
+                                                        {bu.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="role">Role</Label>
+                                        <Select
+                                            value={selectedRole}
+                                            onValueChange={(val) => setValue('role', val)}
+                                            disabled={isLoadingRoles}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select Role" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {roles.map((r: any) => (
+                                                    <SelectItem key={r._id} value={r._id}>
+                                                        {r.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">

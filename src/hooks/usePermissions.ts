@@ -11,6 +11,10 @@ export function usePermissions() {
       userRole: [],
       hasRoleAccess: false,
       isLoading: true,
+      hasPermission: () => false,
+      hasAnyPermission: () => false,
+      hasAllPermissions: () => false,
+      permissions: [],
     };
   }
 
@@ -20,10 +24,24 @@ export function usePermissions() {
       userRole: [],
       hasRoleAccess: false,
       isLoading: false,
+      hasPermission: () => false,
+      hasAnyPermission: () => false,
+      hasAllPermissions: () => false,
+      permissions: [],
     };
   }
   
+  // Helper to determine if user is Super Admin
+  const isSuperAdmin = 
+    user?.isSuperAdmin || 
+    user?.roles?.some((r: any) => 
+      (typeof r === 'string' && r === 'super-admin') || 
+      (r?.name === 'super-admin') || 
+      (r?.slug === 'super-admin')
+    );
+
   const hasPermission = (permissionCode: string) => {
+    if (isSuperAdmin) return true; // 👑 Super Admin bypass
     if (!user?.permissions) return false;
     
     // Check if any role has this permission

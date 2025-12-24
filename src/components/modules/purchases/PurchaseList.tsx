@@ -1,7 +1,9 @@
 "use client"
 
 import { useState } from "react";
-import { useParams } from "next/navigation";
+
+import { useParams, useRouter } from "next/navigation";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -17,6 +19,9 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AutoFormModal } from "@/components/shared/AutoFormModal";
 import { FieldConfig } from "@/types/auto-form";
 import {
@@ -31,6 +36,7 @@ import { PurchaseItemsField } from "./components/PurchaseItemsField";
 import { useAuth } from "@/hooks/useAuth";
 import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
 import { useGetAllOutletsQuery } from "@/redux/api/outletApi";
+import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit";
 
 const statusColors = {
     completed: "bg-green-500/10 text-green-500 border-green-500/20",
@@ -47,19 +53,53 @@ export const PurchaseList = () => {
     const paramBusinessUnit = params?.["business-unit"] as string;
     const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
 
-    // SA Business Unit Selection logic already in other lists, mimicking here
-    // But AutoFormModal usually handles form state.
-    // For listing:
-    const businessUnit = isSuperAdmin ? undefined : paramBusinessUnit; // SA sees all by default, or could enable filter
+    const { currentBusinessUnit: contextBusinessUnit } = useCurrentBusinessUnit();
+    // Fetch BUs for SA form AND for resolving ID from slug
+    const { data: businessUnits = [] } = useGetBusinessUnitsQuery({ limit: 100 }, { skip: !isSuperAdmin });
+
+    // Helper: Validates if a string is a 24-char MongoDB ObjectId
+    const isValidObjectId = (id: any) => typeof id === 'string' && /^[0-9a-fA-F]{24}$/.test(id);
+
+    // Stronger Resolution Logic:
+    // 1. Try context _id (ensure it's a valid ObjectId)
+    // 2. If SA, context might be incomplete or invalid. params['business-unit'] is the slug.
+    //    Look up the slug in the fetched 'businessUnits' list to find the real _id.
+    const resolveBusinessUnitId = () => {
+        if (contextBusinessUnit?._id && isValidObjectId(contextBusinessUnit._id)) {
+            return contextBusinessUnit._id;
+        }
+
+        // If context _id is missing OR invalid (like being a slug), try lookup
+        if (paramBusinessUnit && isSuperAdmin && businessUnits.length > 0) {
+            const found = businessUnits.find((b: any) =>
+                b.id === paramBusinessUnit ||
+                b.slug === paramBusinessUnit ||
+                (b.name && b.name.toLowerCase().replace(/ /g, '-') === paramBusinessUnit)
+            );
+            if (found?._id && isValidObjectId(found._id)) return found._id;
+        }
+        return undefined;
+    };
+
+    const contextBUId = resolveBusinessUnitId();
+
+    // Determining the filter value:
+    // 1. If we have a param (scoped view), we MUST use the resolved ID.
+    // 2. If no param (global view) AND Super Admin, we pass undefined (show all).
+    // 3. Logic: If param exists, wait for contextBUId.
+    const queryBusinessUnit = paramBusinessUnit ? contextBUId : undefined;
 
     // RTK Query Hooks
-    const { data: purchasesResponse, isLoading: isPurchasesLoading } = useGetPurchasesQuery({ businessUnit });
+    // SKIP the query if we are in a scoped view (param exists) but ID is not yet resolved.
+    const { data: purchasesResponse, isLoading: isPurchasesLoading } = useGetPurchasesQuery(
+        { businessUnit: queryBusinessUnit },
+        { skip: !!paramBusinessUnit && !queryBusinessUnit }
+    );
+
     const { data: suppliersResponse } = useGetSuppliersQuery({});
-    // Fetch BUs for SA form
-    const { data: businessUnits = [] } = useGetBusinessUnitsQuery({ limit: 100 }, { skip: !isSuperAdmin });
     // Fetch Outlets (All or Filtered)
     const { data: outlets = [] } = useGetAllOutletsQuery({
-        businessUnit: isSuperAdmin ? undefined : paramBusinessUnit
+        businessUnit: queryBusinessUnit
     });
 
     const [createPurchase] = useCreatePurchaseMutation();
@@ -71,27 +111,102 @@ export const PurchaseList = () => {
     const suppliers = suppliersResponse?.data || (Array.isArray(suppliersResponse) ? suppliersResponse : []) || [];
     const loading = isPurchasesLoading;
     const [searchTerm, setSearchTerm] = useState("");
+    const router = useRouter();
 
     // Modal State
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedPurchase, setSelectedPurchase] = useState<any>(null);
-    const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+    const [statusModalOpen, setStatusModalOpen] = useState(false);
+    const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+    const [selectedActionPurchase, setSelectedActionPurchase] = useState<any>(null);
 
-    const handleCreate = () => {
-        setSelectedPurchase({
-            purchaseDate: new Date().toISOString().split('T')[0],
-            status: 'pending',
-            items: [],
-            businessUnit: paramBusinessUnit // Pre-fill if known
-        });
-        setModalMode('create');
-        setIsModalOpen(true);
+    // Form State for Modals
+    const [newStatus, setNewStatus] = useState("");
+    const [paymentAmount, setPaymentAmount] = useState("");
+
+    const handleStatusClick = (purchase: any) => {
+        setSelectedActionPurchase(purchase);
+        setNewStatus(purchase.status);
+        setStatusModalOpen(true);
     };
 
-    const handleEdit = (purchase: any) => {
-        setSelectedPurchase(purchase);
-        setModalMode('edit');
-        setIsModalOpen(true);
+    const handlePaymentClick = (purchase: any) => {
+        setSelectedActionPurchase(purchase);
+        setPaymentAmount(""); // Reset
+        setPaymentModalOpen(true);
+    };
+
+    const handleStatusSubmit = async () => {
+        const purchaseId = selectedActionPurchase?._id || selectedActionPurchase?.id;
+        if (!purchaseId || !newStatus) return;
+        try {
+            await updatePurchase({
+                id: purchaseId,
+                body: { status: newStatus }
+            }).unwrap();
+            toast.success("Status updated successfully");
+            setStatusModalOpen(false);
+        } catch (error) {
+            toast.error("Failed to update status");
+        }
+    };
+
+    const handlePaymentSubmit = async () => {
+        const purchaseId = selectedActionPurchase?._id || selectedActionPurchase?.id;
+        if (!purchaseId || !paymentAmount) return;
+        const amount = Number(paymentAmount);
+        if (isNaN(amount) || amount <= 0) {
+            toast.error("Invalid payment amount");
+            return;
+        }
+
+        const currentPaid = selectedActionPurchase.paidAmount || 0;
+        const total = selectedActionPurchase.grandTotal || selectedActionPurchase.totalAmount || 0;
+        const newPaidTotal = currentPaid + amount;
+
+        const due = selectedActionPurchase.dueAmount || 0;
+        if (amount > due) {
+            if (!confirm(`Amount (${amount}) exceeds Due (${due}). Continue?`)) return;
+        }
+
+        try {
+            await updatePurchase({
+                id: purchaseId,
+                body: {
+                    paidAmount: newPaidTotal,
+                    // If fully paid, we can optionally set status, but backend should ideally handle 'paymentStatus' derived field
+                    paymentStatus: newPaidTotal >= total ? 'paid' : (newPaidTotal > 0 ? 'partial' : 'unpaid'),
+                    dueAmount: Math.max(0, total - newPaidTotal)
+                }
+            }).unwrap();
+            toast.success("Payment added successfully");
+            setPaymentModalOpen(false);
+        } catch (error) {
+            toast.error("Failed to add payment");
+        }
+    };
+
+    // Navigation Handlers
+    const getEditUrl = (purchaseId: string) => {
+        const rolePath = params?.role as string;
+        const buPath = params?.["business-unit"] as string;
+
+        if (rolePath && buPath) {
+            return `/${rolePath}/${buPath}/purchases/${purchaseId}/edit`;
+        }
+        // Global Fallback
+        return `/${rolePath}/inventory/purchase/${purchaseId}/edit`;
+    };
+
+    const handleCreate = () => {
+        const rolePath = params?.role as string;
+        const buPath = params?.["business-unit"] as string;
+
+        if (rolePath && buPath) {
+            // Scoped View
+            router.push(`/${rolePath}/${buPath}/purchases/create`);
+        } else if (rolePath) {
+            // Global View (e.g. /super-admin/inventory/purchase)
+            router.push(`/${rolePath}/inventory/purchase/create`);
+        }
     };
 
     const handleDelete = async (id: string) => {
@@ -106,117 +221,6 @@ export const PurchaseList = () => {
         }
     };
 
-    const handleSubmit = async (values: any) => {
-        try {
-            // Validate Business Unit for SA
-            if (isSuperAdmin && !values.businessUnit) {
-                // If SA didn't pick, maybe valid (global)? Or enforce?
-                // Usually purchases belong to a BU.
-                // Assuming global is null/undefined.
-            } else if (!isSuperAdmin) {
-                values.businessUnit = paramBusinessUnit;
-            }
-
-            // Calculate totals if items are present
-            if (values.items && Array.isArray(values.items)) {
-                values.subTotal = values.items.reduce((acc: number, item: any) => acc + (item.total || 0), 0);
-                values.totalAmount = values.subTotal + (values.tax || 0) - (values.discount || 0);
-            }
-
-            if (modalMode === 'create') {
-                const res = await createPurchase(values).unwrap();
-                if (res.success || res.data) {
-                    toast.success("Purchase created successfully");
-                }
-            } else {
-                const res = await updatePurchase({ id: selectedPurchase._id, body: values }).unwrap();
-                if (res.success || res.data) {
-                    toast.success("Purchase updated successfully");
-                }
-            }
-            setIsModalOpen(false);
-        } catch (error: any) {
-            const msg = error?.data?.message || error?.message || "Failed";
-            toast.error(msg);
-        }
-    };
-
-    const purchaseFields: FieldConfig[] = [
-        ...(isSuperAdmin ? [{
-            name: "businessUnit",
-            label: "Business Unit",
-            type: "select",
-            options: businessUnits.map((bu: any) => ({ label: bu.name, value: bu._id })),
-            required: false, // Optional if Global allowed
-            placeholder: "Select Business Unit (Optional)"
-        } as FieldConfig] : []),
-        {
-            name: "supplier",
-            label: "Supplier",
-            type: "select",
-            options: suppliers.map((s: any) => ({ label: s.name, value: s._id || s.id })),
-            required: true,
-        },
-        {
-            name: "outlet",
-            label: "Outlet",
-            type: "select",
-            options: outlets.map((o: any) => ({ label: o.name, value: o._id })),
-            required: true,
-            placeholder: "Select Receiving Outlet"
-        },
-        {
-            name: "purchaseDate",
-            label: "Date",
-            type: "date",
-            required: true,
-        },
-        {
-            name: "dueDate",
-            label: "Due Date",
-            type: "date",
-        },
-        {
-            name: "referenceNo",
-            label: "Reference No",
-            type: "text",
-        },
-        {
-            name: "status",
-            label: "Status",
-            type: "select",
-            options: [
-                { label: "Pending", value: "pending" },
-                { label: "Ordered", value: "ordered" },
-                { label: "Received", value: "received" }
-            ],
-            defaultValue: "pending"
-        },
-        // Custom Items Field
-        {
-            name: "items",
-            label: "Items",
-            type: "custom",
-            render: ({ control, name }) => {
-                // Watch logic for Business Unit to filter products?
-                // For now, let's just use the selectedPurchase's or the form's BU if possible.
-                // Ideally useFormContext() inside PurchaseItemsField or pass it.
-                // But PurchaseItemsField takes 'businessUnit' prop we added.
-
-                // If isSuperAdmin, we want to watch 'businessUnit' field.
-                // But we can't easily hook useWatch here inside array def.
-                // We'll pass undefined for now, so it shows all products for SA, or filtered by Token for Role.
-                // This is consistent with previous analysis.
-                return <PurchaseItemsField control={control} name={name} />
-            }
-        },
-        {
-            name: "notes",
-            label: "Notes",
-            type: "textarea",
-        }
-    ];
-
     const columns: ColumnDef<any>[] = [
         {
             accessorKey: "referenceNo",
@@ -227,8 +231,6 @@ export const PurchaseList = () => {
                 {(isSuperAdmin && row.original.businessUnit) && (
                     <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                         <Building className="h-3 w-3" />
-                        {/* We don't have BU name populated in purchase object typically unless populated. 
-                             Assuming it might be id or populated object. */}
                         {typeof row.original.businessUnit === 'object' ? row.original.businessUnit.name : "BU"}
                     </span>
                 )}
@@ -238,6 +240,11 @@ export const PurchaseList = () => {
             accessorKey: "supplier",
             header: "Supplier",
             cell: ({ row }) => {
+                // If populated object
+                if (row.original.supplier && typeof row.original.supplier === 'object') {
+                    return row.original.supplier.name || "Unknown";
+                }
+                // If ID, try to lookup
                 const s = suppliers.find((sup: any) => sup._id === row.original.supplier || sup.id === row.original.supplier);
                 return s ? s.name : "Unknown";
             },
@@ -245,12 +252,73 @@ export const PurchaseList = () => {
         {
             accessorKey: "purchaseDate",
             header: "Date",
-            cell: ({ row }) => row.original.purchaseDate ? new Date(row.original.purchaseDate).toLocaleDateString() : "",
+            cell: ({ row }) => row.original.purchaseDate ? format(new Date(row.original.purchaseDate), "dd MMM yyyy") : "",
         },
         {
-            accessorKey: "totalAmount",
-            header: "Amount",
-            cell: ({ row }) => <span className="font-semibold">৳{row.original.totalAmount?.toFixed(2)}</span>,
+            accessorKey: "items",
+            header: "Items (Qty)",
+            cell: ({ row }) => (
+                <div className="flex flex-col gap-1 text-sm">
+                    {row.original.items?.map((item: any, idx: number) => (
+                        <div key={idx} className="flex justify-between items-center text-xs">
+                            <span className="text-muted-foreground mr-2">
+                                {item.product?.name || "Unknown Product"}
+                            </span>
+                            <span className="font-semibold whitespace-nowrap">
+                                {item.quantity} {item.product?.unit?.name || "pcs"}
+                            </span>
+                        </div>
+                    ))}
+                    {(!row.original.items || row.original.items.length === 0) && (
+                        <span className="text-muted-foreground text-xs text-center">-</span>
+                    )}
+                </div>
+            ),
+        },
+        // Detailed Financial Columns
+        {
+            accessorKey: "subTotal",
+            header: "Sub Total",
+            cell: ({ row }) => <span className="text-muted-foreground">৳{(row.original.subTotal || 0).toFixed(2)}</span>,
+        },
+        {
+            accessorKey: "tax",
+            header: "Tax",
+            cell: ({ row }) => <span className="text-muted-foreground">৳{(row.original.tax || 0).toFixed(2)}</span>,
+        },
+        {
+            accessorKey: "discount",
+            header: "Discount",
+            cell: ({ row }) => <span className="text-muted-foreground">৳{(row.original.discount || 0).toFixed(2)}</span>,
+        },
+        {
+            accessorKey: "shippingCost",
+            header: "Shipping",
+            cell: ({ row }) => <span className="text-muted-foreground">৳{(row.original.shippingCost || 0).toFixed(2)}</span>,
+        },
+        {
+            accessorKey: "grandTotal", // CHANGED from totalAmount
+            header: "Total",
+            cell: ({ row }) => <span className="font-bold">৳{(row.original.grandTotal || row.original.totalAmount || 0).toFixed(2)}</span>,
+        },
+        {
+            accessorKey: "paidAmount",
+            header: "Paid",
+            cell: ({ row }) => <span className="text-green-600">৳{(row.original.paidAmount || 0).toFixed(2)}</span>,
+        },
+        {
+            accessorKey: "dueAmount",
+            header: "Due",
+            cell: ({ row }) => <span className="text-red-500 font-medium">৳{(row.original.dueAmount || 0).toFixed(2)}</span>,
+        },
+        {
+            accessorKey: "paymentStatus",
+            header: "Payment",
+            cell: ({ row }) => (
+                <Badge variant={row.original.paymentStatus === "paid" ? "default" : "outline"} className="capitalize">
+                    {row.original.paymentStatus || "pending"}
+                </Badge>
+            ),
         },
         {
             accessorKey: "status",
@@ -267,31 +335,48 @@ export const PurchaseList = () => {
         {
             id: "actions",
             header: "Actions",
-            cell: ({ row }) => (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEdit(row.original)}>
-                            <Edit className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(row.original._id)} className="text-red-600">
-                            <Trash className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            ),
+            cell: ({ row }) => {
+                const purchase = row.original;
+                return (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => router.push(getEditUrl(purchase._id || purchase.id))}>
+                                <Edit className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+                            {/* Quick Status Update */}
+                            <DropdownMenuItem onClick={() => handleStatusClick(purchase)}>
+                                Update Status
+                            </DropdownMenuItem>
+
+                            {/* Quick Payment update */}
+                            <DropdownMenuItem onClick={() => handlePaymentClick(purchase)}>
+                                Add Payment
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem onClick={() => handleDelete(purchase._id)} className="text-red-600 mt-2">
+                                <Trash className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                );
+            },
         },
     ];
 
-    const filteredPurchases = purchases.filter((p: any) =>
-        (p.referenceNo && p.referenceNo.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const filteredPurchases = purchases.filter((p: any) => {
+        if (!searchTerm) return true;
+        const searchLower = searchTerm.toLowerCase();
+        const refMatch = p.referenceNo && p.referenceNo.toLowerCase().includes(searchLower);
+        const supplierMatch = p.supplier?.name && p.supplier.name.toLowerCase().includes(searchLower);
+        return refMatch || supplierMatch;
+    });
 
     return (
         <DataPageLayout
@@ -329,15 +414,80 @@ export const PurchaseList = () => {
         >
             <DataTable columns={columns} data={filteredPurchases} isLoading={loading} />
 
-            <AutoFormModal
-                open={isModalOpen}
-                onOpenChange={setIsModalOpen}
-                title={modalMode === 'create' ? "New Purchase" : "Edit Purchase"}
-                fields={purchaseFields}
-                onSubmit={handleSubmit}
-                initialValues={selectedPurchase}
-                submitLabel={modalMode === 'create' ? "Create Purchase" : "Update Purchase"}
-            />
+            {/* Status Update Modal */}
+            <Dialog open={statusModalOpen} onOpenChange={setStatusModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Update Status</DialogTitle>
+                        <DialogDescription>
+                            Change the status of purchase {selectedActionPurchase?.referenceNo || selectedActionPurchase?.id}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right">Status</Label>
+                            <Select
+                                value={newStatus}
+                                onValueChange={setNewStatus}
+                            >
+                                <SelectTrigger className="col-span-3">
+                                    <SelectValue placeholder="Select status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="pending">Pending</SelectItem>
+                                    <SelectItem value="ordered">Ordered</SelectItem>
+                                    <SelectItem value="received">Received</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setStatusModalOpen(false)}>Cancel</Button>
+                        <Button onClick={handleStatusSubmit} disabled={!newStatus || newStatus === selectedActionPurchase?.status}>Update Status</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Payment Update Modal */}
+            <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add Payment</DialogTitle>
+                        <DialogDescription>
+                            Add a payment for purchase {selectedActionPurchase?.referenceNo}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right text-muted-foreground">Grand Total</Label>
+                            <div className="col-span-3 font-bold">৳{(selectedActionPurchase?.grandTotal || selectedActionPurchase?.totalAmount || 0).toFixed(2)}</div>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right text-muted-foreground">Paid</Label>
+                            <div className="col-span-3 text-green-600">৳{(selectedActionPurchase?.paidAmount || 0).toFixed(2)}</div>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right text-muted-foreground">Due</Label>
+                            <div className="col-span-3 text-red-500">৳{(selectedActionPurchase?.dueAmount || 0).toFixed(2)}</div>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="payment-amount" className="text-right">Amount</Label>
+                            <Input
+                                id="payment-amount"
+                                type="number"
+                                value={paymentAmount}
+                                onChange={(e) => setPaymentAmount(e.target.value)}
+                                className="col-span-3"
+                                placeholder="Enter amount to pay"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setPaymentModalOpen(false)}>Cancel</Button>
+                        <Button onClick={handlePaymentSubmit} disabled={!paymentAmount || Number(paymentAmount) <= 0}>Add Payment</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </DataPageLayout>
     );
 }

@@ -14,7 +14,8 @@ export default async function InventoryLayout({
     const { role } = await params
 
     return (
-
-        { children }
+        <AppLayout>
+            {children}
+        </AppLayout>
     )
 }
