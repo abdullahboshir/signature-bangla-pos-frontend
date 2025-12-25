@@ -30,9 +30,12 @@ import {
 import { useGetSubCategoriesQuery } from "@/redux/api/subCategoryApi";
 import { useAuth } from "@/hooks/useAuth";
 import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSION_KEYS } from "@/config/permission-keys";
 
 export const ChildCategoryList = () => {
     const { user } = useAuth();
+    const { hasPermission } = usePermissions();
     const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
     const params = useParams();
     const paramBusinessUnit = params?.["business-unit"] as string;
@@ -138,15 +141,19 @@ export const ChildCategoryList = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => {
-                            setEditingItem(row.original);
-                            setIsCreateOpen(true);
-                        }}>
-                            <Pencil className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(row.original._id)} className="text-destructive">
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
+                        {hasPermission(PERMISSION_KEYS.CATEGORY.UPDATE) && (
+                            <DropdownMenuItem onClick={() => {
+                                setEditingItem(row.original);
+                                setIsCreateOpen(true);
+                            }}>
+                                <Pencil className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+                        )}
+                        {hasPermission(PERMISSION_KEYS.CATEGORY.DELETE) && (
+                            <DropdownMenuItem onClick={() => handleDelete(row.original._id)} className="text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                        )}
                     </DropdownMenuContent>
                 </DropdownMenu>
             ),
@@ -251,13 +258,13 @@ export const ChildCategoryList = () => {
             <DataPageLayout
                 title="Child-Categories"
                 description="Manage child-categories (Level 3)"
-                createAction={{
+                createAction={hasPermission(PERMISSION_KEYS.CATEGORY.CREATE) ? {
                     label: "Add Child-Category",
                     onClick: () => {
                         setEditingItem(null);
                         setIsCreateOpen(true);
                     }
-                }}
+                } : undefined}
                 extraFilters={
                     <div className="relative flex-1 max-w-sm min-w-[200px]">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />

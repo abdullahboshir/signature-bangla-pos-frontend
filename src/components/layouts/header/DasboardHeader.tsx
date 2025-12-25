@@ -15,6 +15,7 @@ import { Clock } from "@/components/shared/Clock";
 import { NetworkStatus } from "@/components/shared/NetworkStatus";
 import { OpenRegisterModal } from "@/components/pos/OpenRegisterModal";
 import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
+import { CommandPalette } from "@/components/shared/CommandPalette";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -39,6 +40,7 @@ export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
   const { user, setActiveBusinessUnit } = useAuth(); // Destructure setActiveBusinessUnit
 
   const [isOpenRegisterOpen, setIsOpenRegisterOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
   // Fetch all units if Super Admin
   const isSuperAdmin = user?.roles?.includes('super-admin') || user?.isSuperAdmin;
@@ -67,6 +69,23 @@ export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
       setActiveBusinessUnit(null);
     }
   }, [businessUnitSlug, availableUnits, setActiveBusinessUnit]);
+
+  // Global keyboard shortcut for Command Palette
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen(true);
+      }
+      if (e.key === 'F2') {
+        e.preventDefault();
+        setIsCommandPaletteOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const userData: any = {
     fullName: typeof user?.name === 'string' ? user.name : (user?.name?.firstName ? `${user.name.firstName} ${user.name.lastName}` : (user?.fullName || "Staff")),
@@ -119,22 +138,16 @@ export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
             />
           </div>
 
-          {/* Center: Search & Status (POS Style) */}
-          <div className="flex-1 flex justify-center items-center gap-6">
-            <div className="hidden md:flex items-center gap-2 bg-muted/40 px-3 py-1.5 rounded-full border tabular-nums">
-              <Clock className="text-xs" />
-              <div className="h-4 w-px bg-border" />
-              <NetworkStatus className="w-2 h-2 text-[10px]" />
-            </div>
-
-            <div className="hidden lg:flex w-full max-w-sm relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Scan item or search..."
-                className="pl-9 h-9 bg-muted/50 border-muted-foreground/20 focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-ring"
-              />
-              <div className="absolute right-2 top-2 text-[10px] text-muted-foreground border px-1.5 rounded">F2</div>
-            </div>
+          {/* Center: Search (POS Style) */}
+          <div className="flex-1 flex justify-center items-center">
+            <button
+              onClick={() => setIsCommandPaletteOpen(true)}
+              className="hidden lg:flex w-full max-w-sm relative items-center gap-2 px-3 h-9 bg-muted/50 border border-muted-foreground/20 rounded-md hover:bg-background transition-colors text-sm text-muted-foreground"
+            >
+              <Search className="h-4 w-4" />
+              <span>Search products, pages...</span>
+              <div className="ml-auto text-[10px] border px-1.5 rounded bg-background">Ctrl+K</div>
+            </button>
           </div>
 
           {/* Right: Actions & User */}
@@ -174,6 +187,7 @@ export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
       </header>
 
       <OpenRegisterModal open={isOpenRegisterOpen} onOpenChange={setIsOpenRegisterOpen} />
+      <CommandPalette open={isCommandPaletteOpen} onOpenChange={setIsCommandPaletteOpen} />
     </>
   );
 }

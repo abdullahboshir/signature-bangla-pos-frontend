@@ -1,7 +1,5 @@
-"use client";
-
-import OrderList from "@/components/modules/sales/OrderList";
+import ReturnList from "@/components/modules/sales/ReturnList"
 
 export default function ReturnsPage() {
-    return <OrderList initialTab="returns" />;
+    return <ReturnList />
 }

@@ -46,6 +46,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useParams } from "next/navigation";
 import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
 import { Badge } from "@/components/ui/badge";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSION_KEYS } from "@/config/permission-keys";
 
 export const SupplierList = () => {
     // Auth & Context
@@ -57,6 +59,7 @@ export const SupplierList = () => {
     const { currentBusinessUnit: contextBusinessUnit } = useCurrentBusinessUnit();
     const contextBUId = contextBusinessUnit?._id || contextBusinessUnit?.id;
     const isScoped = !!paramBusinessUnit;
+    const { hasPermission } = usePermissions();
 
     // Fallback for non-super admins or explicit scoping
     const effectiveBusinessUnitId = isSuperAdmin ? undefined : contextBUId;
@@ -434,12 +437,16 @@ export const SupplierList = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEdit(row.original)}>
-                            <Edit className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(row.original._id)} className="text-red-600">
-                            <Trash className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
+                        {hasPermission(PERMISSION_KEYS.SUPPLIER.UPDATE) && (
+                            <DropdownMenuItem onClick={() => handleEdit(row.original)}>
+                                <Edit className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+                        )}
+                        {hasPermission(PERMISSION_KEYS.SUPPLIER.DELETE) && (
+                            <DropdownMenuItem onClick={() => handleDelete(row.original._id)} className="text-red-600">
+                                <Trash className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                        )}
                     </DropdownMenuContent>
                 </DropdownMenu>
             ),
@@ -455,10 +462,10 @@ export const SupplierList = () => {
         <DataPageLayout
             title="Suppliers"
             description="Manage supplier relationships."
-            createAction={{
+            createAction={hasPermission(PERMISSION_KEYS.SUPPLIER.CREATE) ? {
                 label: "Add Supplier",
                 onClick: handleCreate
-            }}
+            } : undefined}
             stats={
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <StatCard

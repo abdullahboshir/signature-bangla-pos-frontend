@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
-import { useGetAllOutletsQuery } from "@/redux/api/outletApi";
+import { useGetOutletsQuery } from "@/redux/api/outletApi";
 import { useState, useEffect } from "react";
 import { Store } from "lucide-react";
 
@@ -30,7 +30,7 @@ export function BusinessUnitSwitcher({ currentBusinessUnit, currentRole, availab
 
   // Fetch outlets for the active business unit
   // Skip if no active unit
-  const { data: outletsData, isLoading: loadingOutlets } = useGetAllOutletsQuery(
+  const { data: outletsData, isLoading: loadingOutlets } = useGetOutletsQuery(
     { businessUnit: activeUnitId },
     { skip: !activeUnitId }
   );

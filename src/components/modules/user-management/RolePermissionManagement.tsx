@@ -10,6 +10,11 @@ import { Plus, Check, Shield, Save, Search, Settings, Users, ShoppingCart, Packa
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import PermissionGroupManagement from './PermissionGroupManagement';
+import {
+    RESOURCE_KEYS,
+    PERMISSION_SCOPES,
+    PERMISSION_OPERATORS
+} from '@/config/permission-keys';
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -36,6 +41,7 @@ import {
     useUpdateRoleMutation,
     useDeleteRoleMutation
 } from "@/redux/api/roleApi";
+import { usePermissions } from "@/hooks/usePermissions";
 
 // Exported Types
 export interface Permission {
@@ -44,6 +50,9 @@ export interface Permission {
     resource: string; // "product"
     action: string; // "view"
     description: string;
+    scope?: string;
+    operator?: string;
+    value?: string;
 }
 
 export interface PermissionGroup {
@@ -75,55 +84,132 @@ export interface Role {
 
 // Helper to map resource to icon
 const getResourceIcon = (resource: string) => {
-    switch (resource.toLowerCase()) {
-        case 'product': return Package;
-        case 'pos':
-        case 'terminal':
-        case 'cashregister': return Monitor;
-        case 'sales':
-        case 'order': return ShoppingCart;
-        case 'user':
-        case 'staff':
-        case 'attendance':
-        case 'payroll':
-        case 'leave':
-        case 'designation':
-        case 'department': return Users;
-        case 'role': return Shield;
-        case 'businessunit':
-        case 'business-unit': return Building2;
-        case 'settings':
-        case 'system': return Settings;
-        case 'inventory':
-        case 'purchase':
-        case 'supplier': return BoxIcon;
-        case 'warehouse': return Warehouse;
-        case 'finance':
-        case 'payment':
-        case 'expense':
-        case 'budget':
-        case 'account':
-        case 'transaction': return CreditCard;
-        case 'storefront':
-        case 'marketing':
-        case 'adcampaign':
-        case 'promotion': return Megaphone;
-        case 'report':
-        case 'analytics': return TrendingUp;
-        case 'ticket':
-        case 'chat': return MessageSquare;
-        case 'shipping':
-        case 'delivery': return Truck;
-        case 'content': return FileText;
-        case 'global':
-        case 'zone':
-        case 'language':
-        case 'currency': return Globe;
-        default: return Shield;
+    switch (resource) {
+        // Catalog
+        case RESOURCE_KEYS.PRODUCT:
+        case RESOURCE_KEYS.CATEGORY:
+        case RESOURCE_KEYS.BRAND:
+        case RESOURCE_KEYS.ATTRIBUTE:
+        case RESOURCE_KEYS.UNIT:
+            return Package;
+
+        // Sales & POS
+        case RESOURCE_KEYS.ORDER:
+        case RESOURCE_KEYS.RETURN:
+        case RESOURCE_KEYS.CART: // Was SHOPPING_CART
+            return ShoppingCart;
+        case RESOURCE_KEYS.TERMINAL:
+        case RESOURCE_KEYS.CASH_REGISTER:
+            return Monitor;
+        case RESOURCE_KEYS.INVOICE:
+            return FileText;
+
+        // HRM
+        case RESOURCE_KEYS.USER:
+        case RESOURCE_KEYS.STAFF:
+        case RESOURCE_KEYS.ATTENDANCE:
+        case RESOURCE_KEYS.PAYROLL:
+        case RESOURCE_KEYS.LEAVE:
+        case RESOURCE_KEYS.DESIGNATION:
+        case RESOURCE_KEYS.DEPARTMENT:
+            return Users;
+
+        // Business
+        case RESOURCE_KEYS.ROLE:
+        case RESOURCE_KEYS.PERMISSION:
+            return Shield;
+        case RESOURCE_KEYS.BUSINESS_UNIT:
+        case RESOURCE_KEYS.OUTLET:
+            return Building2;
+
+        // System
+        case RESOURCE_KEYS.SYSTEM:
+        case RESOURCE_KEYS.SYSTEM: // Was SETTINGS
+            return Settings;
+
+        // Inventory
+        case RESOURCE_KEYS.INVENTORY:
+        case RESOURCE_KEYS.PURCHASE:
+        case RESOURCE_KEYS.SUPPLIER:
+        case RESOURCE_KEYS.STOCK_TRANSFER: // legacy
+        case RESOURCE_KEYS.TRANSFER:
+        case RESOURCE_KEYS.ADJUSTMENT:
+            return BoxIcon;
+        case RESOURCE_KEYS.WAREHOUSE:
+            return Warehouse;
+
+        // Finance
+        case RESOURCE_KEYS.PAYMENT:
+        case RESOURCE_KEYS.EXPENSE:
+        case RESOURCE_KEYS.EXPENSE_CATEGORY:
+        case RESOURCE_KEYS.BUDGET:
+        case RESOURCE_KEYS.ACCOUNT:
+        case RESOURCE_KEYS.TRANSACTION:
+        case RESOURCE_KEYS.SETTLEMENT:
+        case RESOURCE_KEYS.PAYOUT:
+            return CreditCard;
+
+        // Marketing
+        case RESOURCE_KEYS.STOREFRONT:
+        case RESOURCE_KEYS.AD_CAMPAIGN:
+        case RESOURCE_KEYS.PROMOTION:
+        case RESOURCE_KEYS.COUPON:
+        case RESOURCE_KEYS.AFFILIATE:
+        case RESOURCE_KEYS.LOYALTY:
+        case RESOURCE_KEYS.PIXEL:
+        case RESOURCE_KEYS.AUDIENCE:
+        case RESOURCE_KEYS.AD_CAMPAIGN: // Was MARKETING
+            return Megaphone;
+
+        // Content
+        case RESOURCE_KEYS.CONTENT:
+        case RESOURCE_KEYS.LANDING_PAGE:
+        case RESOURCE_KEYS.EMAIL_TEMPLATE:
+        case RESOURCE_KEYS.SMS_TEMPLATE:
+            return FileText;
+
+        // Reports
+        case RESOURCE_KEYS.REPORT:
+        case RESOURCE_KEYS.ANALYTICS:
+        case RESOURCE_KEYS.SALES_REPORT:
+        case RESOURCE_KEYS.PURCHASE_REPORT:
+        case RESOURCE_KEYS.STOCK_REPORT:
+        case RESOURCE_KEYS.PROFIT_LOSS_REPORT:
+        case RESOURCE_KEYS.AUDIT_LOG:
+            return TrendingUp;
+
+        // Support
+        case RESOURCE_KEYS.TICKET:
+        case RESOURCE_KEYS.CHAT:
+        case RESOURCE_KEYS.DISPUTE:
+        case RESOURCE_KEYS.QUESTION:
+            return MessageSquare;
+
+        // Logistics
+        case RESOURCE_KEYS.SHIPPING:
+        case RESOURCE_KEYS.DELIVERY:
+        case RESOURCE_KEYS.COURIER:
+        case RESOURCE_KEYS.PARCEL:
+            return Truck;
+
+        // Risk
+        case RESOURCE_KEYS.FRAUD_DETECTION:
+        case RESOURCE_KEYS.BLACKLIST:
+        case RESOURCE_KEYS.RISK_RULE:
+        case RESOURCE_KEYS.RISK_PROFILE:
+            return Shield;
+
+        // Global/Common
+        case RESOURCE_KEYS.SYSTEM: // Was GLOBAL
+            return Globe;
+
+        default:
+            return Shield;
     }
 };
 
 export function RolePermissionManagement() {
+    const { hasPermission } = usePermissions();
     // RTK Query Hooks
     const { data: rolesData, isLoading: isRolesLoading } = useGetRolesQuery({ limit: 1000 });
     const { data: permissionsData, isLoading: isPermsLoading } = useGetPermissionsQuery({ limit: 5000 });
@@ -289,7 +375,7 @@ export function RolePermissionManagement() {
     };
 
     const handleTogglePermission = (permissionId: string) => {
-        if (!selectedRole || isSuperAdmin(selectedRole)) return;
+        if (!selectedRole || isSuperAdmin(selectedRole) || !hasPermission(PERMISSION_KEYS.ROLE.UPDATE)) return;
         // Optimistic update locally
         const updatedRoles = roles.map(role => {
             if (role._id === selectedRole._id) {
@@ -307,7 +393,7 @@ export function RolePermissionManagement() {
     };
 
     const handleToggleGroup = (groupId: string) => {
-        if (!selectedRole || isSuperAdmin(selectedRole)) return;
+        if (!selectedRole || isSuperAdmin(selectedRole) || !hasPermission(PERMISSION_KEYS.ROLE.UPDATE)) return;
 
         const group = groupsData?.result?.find((g: PermissionGroup) => g._id === groupId);
         if (!group) return;
@@ -347,7 +433,7 @@ export function RolePermissionManagement() {
     };
 
     const handleToggleInheritedRole = (targetRoleId: string) => {
-        if (!selectedRole || isSuperAdmin(selectedRole)) return;
+        if (!selectedRole || isSuperAdmin(selectedRole) || !hasPermission(PERMISSION_KEYS.ROLE.UPDATE)) return;
         if (targetRoleId === selectedRole._id) return; // Cannot inherit self
 
         const currentInherited = selectedRole.inheritedRoles ? [...selectedRole.inheritedRoles] : [];
@@ -370,7 +456,7 @@ export function RolePermissionManagement() {
     };
 
     const handleSave = async () => {
-        if (!selectedRole || isSuperAdmin(selectedRole)) return;
+        if (!selectedRole || isSuperAdmin(selectedRole) || !hasPermission(PERMISSION_KEYS.ROLE.UPDATE)) return;
         try {
             const payload = {
                 permissions: selectedRole.permissions,
@@ -423,7 +509,7 @@ export function RolePermissionManagement() {
     const [editingDataAccess, setEditingDataAccess] = useState({ products: 0, orders: 0, customers: 0 });
 
     const handleEditRole = () => {
-        if (!selectedRole || isSuperAdmin(selectedRole)) return;
+        if (!selectedRole || isSuperAdmin(selectedRole) || !hasPermission(PERMISSION_KEYS.ROLE.UPDATE)) return;
         setEditingRoleName(selectedRole.name);
         setEditingRoleDesc(selectedRole.description || '');
         setEditingHierarchy(selectedRole.hierarchyLevel || 1);
@@ -437,7 +523,7 @@ export function RolePermissionManagement() {
     };
 
     const handleUpdateRole = async () => {
-        if (!selectedRole || !editingRoleName || isSuperAdmin(selectedRole)) return;
+        if (!selectedRole || !editingRoleName || isSuperAdmin(selectedRole) || !hasPermission(PERMISSION_KEYS.ROLE.UPDATE)) return;
         try {
             await updateRole({
                 id: selectedRole._id,
@@ -468,7 +554,7 @@ export function RolePermissionManagement() {
     };
 
     const handleDeleteRole = async () => {
-        if (!selectedRole || isSuperAdmin(selectedRole)) return;
+        if (!selectedRole || isSuperAdmin(selectedRole) || !hasPermission(PERMISSION_KEYS.ROLE.DELETE)) return;
 
         const result = await Swal.fire({
             title: 'Are you sure?',
@@ -532,10 +618,12 @@ export function RolePermissionManagement() {
                         {/* Create Role Button */}
                         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                             <DialogTrigger asChild>
-                                <Button>
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Create New Role
-                                </Button>
+                                {hasPermission(PERMISSION_KEYS.ROLE.CREATE) && (
+                                    <Button>
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        Create New Role
+                                    </Button>
+                                )}
                             </DialogTrigger>
                             <DialogContent>
                                 <DialogHeader>
@@ -945,6 +1033,21 @@ export function RolePermissionManagement() {
                                                                                 {perm.action.replace(/_/g, ' ').toUpperCase()}
                                                                             </span>
                                                                             <span className="text-[10px] text-muted-foreground/70">{perm.description}</span>
+                                                                            {/* Dynamic Scope Badge */}
+                                                                            {(perm.scope || perm.operator) && (
+                                                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                                                    {perm.scope && (
+                                                                                        <Badge variant="outline" className="text-[10px] h-4 py-0 px-1 border-blue-200 text-blue-600">
+                                                                                            {perm.scope}
+                                                                                        </Badge>
+                                                                                    )}
+                                                                                    {perm.operator && (
+                                                                                        <Badge variant="outline" className="text-[10px] h-4 py-0 px-1 border-orange-200 text-orange-600">
+                                                                                            {perm.operator}
+                                                                                        </Badge>
+                                                                                    )}
+                                                                                </div>
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 );

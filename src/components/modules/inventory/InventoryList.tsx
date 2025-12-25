@@ -23,22 +23,27 @@ import { DataPageLayout } from "@/components/shared/DataPageLayout";
 import { StatCard } from "@/components/shared/StatCard";
 // import { AutoFormModal } from "@/components/shared/AutoFormModal"; // Re-enable if we want quick edit
 
-import { useGetStockLevelsQuery } from "@/redux/api/inventoryApi"; // CHANGED
+import { useGetInventorysQuery } from "@/redux/api/inventoryApi"; // CHANGED
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSION_KEYS } from "@/config/permission-keys";
 
 export const InventoryList = () => {
     const params = useParams();
-    // const paramBusinessUnit = params["business-unit"] as string;
+    const paramBusinessUnit = params?.["business-unit"] as string;
     const { user } = useAuth();
-    // const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
+    const { hasPermission } = usePermissions();
+    const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
+    const businessUnit = isSuperAdmin ? undefined : paramBusinessUnit;
 
     const [searchTerm, setSearchTerm] = useState("");
     // const [isModalOpen, setIsModalOpen] = useState(false);
     // const [selectedItem, setSelectedItem] = useState<any>(null);
 
     // Fetch Stock Levels
-    const { data, isLoading: loading, refetch } = useGetStockLevelsQuery({});
-    const inventoryItems = data?.data || [];
+    const { data: inventoryData, isLoading: queryLoading, refetch } = useGetInventorysQuery({ businessUnit });
+    const inventoryItems = inventoryData?.data || [];
+    const loading = queryLoading;
 
     // const handleEditStock = (item: any) => {
     //     // Logic to open adjustment modal?
@@ -101,12 +106,14 @@ export const InventoryList = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => {
-                            // Redirect to ledger or adjustment?
-                            toast.info("Please use Adjustment module for changes.");
-                        }}>
-                            View History (Ledger)
-                        </DropdownMenuItem>
+                        {hasPermission(PERMISSION_KEYS.INVENTORY.TRACK) && (
+                            <DropdownMenuItem onClick={() => {
+                                // Redirect to ledger or adjustment?
+                                toast.info("Please use Adjustment module for changes.");
+                            }}>
+                                View History (Ledger)
+                            </DropdownMenuItem>
+                        )}
                     </DropdownMenuContent>
                 </DropdownMenu>
             ),

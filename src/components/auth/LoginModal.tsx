@@ -3,11 +3,14 @@
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Swal from "sweetalert2";
+import { toast } from "sonner";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CenteredLoading } from "@/components/shared/CenteredLoading";
+import { useLoadingStore } from "@/store/loadingStore";
 
 import { useUserRegisterMutation } from "@/redux/api/authApi";
 import Link from "next/link";
@@ -24,6 +27,7 @@ export default function LoginModal({ open = false, onOpenChange }: LoginModalPro
     const router = useRouter();
     const isLoginPage = pathname === "/auth/login";
     const { login: authLogin } = useAuth();
+    const { setLoading } = useLoadingStore();
 
     const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
     const [isLoading, setIsLoading] = useState(false);
@@ -88,16 +92,16 @@ export default function LoginModal({ open = false, onOpenChange }: LoginModalPro
                 throw new Error("Invalid response: Missing access token");
             }
 
-            Swal.fire({
-                icon: "success",
-                title: "Logged in successfully",
-                timer: 1500,
-                showConfirmButton: false,
-            });
+            // Show quick success toast
+            toast.success("Logged in successfully!");
+
+            // Activate global loading for navigation
+            setLoading(true, "Loading dashboard...");
 
             // After login → close modal if not on login page
             if (!isLoginPage && onOpenChange) onOpenChange(false);
 
+            // Navigate to dashboard
             if (res.redirect) {
                 router.push(res.redirect);
             } else {
@@ -105,127 +109,140 @@ export default function LoginModal({ open = false, onOpenChange }: LoginModalPro
             }
 
             setFormData({ firstName: "", lastName: "", email: "", password: "" });
+
+            // Global loading will clear when page loads
         } catch (err: any) {
             Swal.fire({
                 icon: "error",
                 title: "Login failed",
                 text: err?.message || "Something went wrong",
             });
+            setIsLoading(false); // Only clear loading on error
+            setLoading(false); // Clear global loading
         }
-
-        setIsLoading(false);
     };
 
     return (
-        <Dialog open={isLoginPage ? true : open} onOpenChange={(o) => !isLoginPage && onOpenChange?.(o)}>
-            <DialogContent
-                className="sm:max-w-md"
-                onInteractOutside={(e) => isLoginPage && e.preventDefault()}
-            >
-                <DialogHeader>
-                    <DialogTitle className="text-2xl text-center">
-                        {activeTab === "login" ? "Welcome Back" : "Create Account"}
-                    </DialogTitle>
-                    <DialogDescription className="text-center">
-                        {activeTab === "login"
-                            ? "Sign in to your Signature Bangla POS dashboard"
-                            : "Create your Signature Bangla POS account"}
-                    </DialogDescription>
-                </DialogHeader>
+        <>
+            {/* Full screen loading overlay during login/navigation */}
+            {isLoading && (
+                <CenteredLoading
+                    fullScreen
+                    message={activeTab === "login" ? "Logging in..." : "Creating account..."}
+                    size="lg"
+                />
+            )}
 
-                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-                    <TabsList className="grid grid-cols-2">
-                        <TabsTrigger value="login">Login</TabsTrigger>
-                        <TabsTrigger value="signup">Sign Up</TabsTrigger>
-                    </TabsList>
+            <Dialog open={isLoginPage ? true : open} onOpenChange={(o) => !isLoginPage && onOpenChange?.(o)}>
+                <DialogContent
+                    className="sm:max-w-md"
+                    onInteractOutside={(e) => isLoginPage && e.preventDefault()}
+                >
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl text-center">
+                            {activeTab === "login" ? "Welcome Back" : "Create Account"}
+                        </DialogTitle>
+                        <DialogDescription className="text-center">
+                            {activeTab === "login"
+                                ? "Sign in to your Signature Bangla POS dashboard"
+                                : "Create your Signature Bangla POS account"}
+                        </DialogDescription>
+                    </DialogHeader>
 
-                    {/* FORM */}
-                    <form onSubmit={handleSubmit}>
-                        {/* LOGIN */}
-                        <TabsContent value="login" className="space-y-4">
-                            <div className="space-y-2">
-                                <label>Email</label>
-                                <Input
-                                    name="email"
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </div>
+                    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+                        <TabsList className="grid grid-cols-2">
+                            <TabsTrigger value="login">Login</TabsTrigger>
+                            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                        </TabsList>
 
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                    <label>Password</label>
-                                    <Link href="/forgot-password" className="text-xs text-primary">
-                                        Forgot Password?
-                                    </Link>
-                                </div>
-                                <div className="relative">
+                        {/* FORM */}
+                        <form onSubmit={handleSubmit}>
+                            {/* LOGIN */}
+                            <TabsContent value="login" className="space-y-4">
+                                <div className="space-y-2">
+                                    <label>Email</label>
                                     <Input
-                                        name="password"
-                                        type={showPassword ? "text" : "password"}
-                                        value={formData.password}
+                                        name="email"
+                                        type="email"
+                                        value={formData.email}
                                         onChange={handleChange}
                                         required
-                                        className="pr-10"
                                     />
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                    >
-                                        {showPassword ? (
-                                            <EyeOff className="h-4 w-4 text-muted-foreground" />
-                                        ) : (
-                                            <Eye className="h-4 w-4 text-muted-foreground" />
-                                        )}
-                                        <span className="sr-only">
-                                            {showPassword ? "Hide password" : "Show password"}
-                                        </span>
-                                    </Button>
                                 </div>
-                            </div>
 
-                            <Button disabled={isLoading} className="w-full">
-                                {isLoading ? "Processing..." : "Login"}
-                            </Button>
-                        </TabsContent>
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                        <label>Password</label>
+                                        <Link href="/forgot-password" className="text-xs text-primary">
+                                            Forgot Password?
+                                        </Link>
+                                    </div>
+                                    <div className="relative">
+                                        <Input
+                                            name="password"
+                                            type={showPassword ? "text" : "password"}
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                            required
+                                            className="pr-10"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                        >
+                                            {showPassword ? (
+                                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                            ) : (
+                                                <Eye className="h-4 w-4 text-muted-foreground" />
+                                            )}
+                                            <span className="sr-only">
+                                                {showPassword ? "Hide password" : "Show password"}
+                                            </span>
+                                        </Button>
+                                    </div>
+                                </div>
 
-                        {/* SIGNUP */}
-                        <TabsContent value="signup" className="space-y-4">
-                            <Input name="firstName" placeholder="First Name" value={formData.firstName} onChange={handleChange} required />
-                            <Input name="lastName" placeholder="Last Name" value={formData.lastName} onChange={handleChange} required />
-                            <Input name="email" type="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
-                            <Input name="password" type="password" placeholder="Password" value={formData.password} onChange={handleChange} required />
+                                <Button disabled={isLoading} className="w-full">
+                                    {isLoading ? "Processing..." : "Login"}
+                                </Button>
+                            </TabsContent>
 
-                            <Button disabled={isLoading} className="w-full">
-                                {isLoading ? "Processing..." : "Create Account"}
-                            </Button>
-                        </TabsContent>
-                    </form>
-                </Tabs>
+                            {/* SIGNUP */}
+                            <TabsContent value="signup" className="space-y-4">
+                                <Input name="firstName" placeholder="First Name" value={formData.firstName} onChange={handleChange} required />
+                                <Input name="lastName" placeholder="Last Name" value={formData.lastName} onChange={handleChange} required />
+                                <Input name="email" type="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
+                                <Input name="password" type="password" placeholder="Password" value={formData.password} onChange={handleChange} required />
 
-                <div className="text-center text-sm">
-                    {activeTab === "login" ? (
-                        <p>
-                            Don’t have an account?
-                            <button className="text-primary ml-1" onClick={() => setActiveTab("signup")}>
-                                Sign Up
-                            </button>
-                        </p>
-                    ) : (
-                        <p>
-                            Already have an account?
-                            <button className="text-primary ml-1" onClick={() => setActiveTab("login")}>
-                                Login
-                            </button>
-                        </p>
-                    )}
-                </div>
-            </DialogContent>
-        </Dialog>
+                                <Button disabled={isLoading} className="w-full">
+                                    {isLoading ? "Processing..." : "Create Account"}
+                                </Button>
+                            </TabsContent>
+                        </form>
+                    </Tabs>
+
+                    <div className="text-center text-sm">
+                        {activeTab === "login" ? (
+                            <p>
+                                Don't have an account?
+                                <button className="text-primary ml-1" onClick={() => setActiveTab("signup")}>
+                                    Sign Up
+                                </button>
+                            </p>
+                        ) : (
+                            <p>
+                                Already have an account?
+                                <button className="text-primary ml-1" onClick={() => setActiveTab("login")}>
+                                    Login
+                                </button>
+                            </p>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }

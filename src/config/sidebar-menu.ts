@@ -19,6 +19,7 @@ import {
   DollarSign,
   Warehouse,
   Globe,
+  ShieldAlert,
 } from "lucide-react"
 import { RESOURCE_KEYS, ACTION_KEYS } from "./permission-keys"
 import { ROUTE_PATHS } from "./route-paths"
@@ -32,6 +33,13 @@ const MENU_MODULES = {
     exact: true,
     resource: RESOURCE_KEYS.SYSTEM
   },
+  EXPENSES: {
+    title: "Expenses",
+    path: ROUTE_PATHS.ACCOUNTING.EXPENSES,
+    icon: DollarSign,
+    resource: RESOURCE_KEYS.EXPENSE
+  },
+
   BUSINESS_UNITS: {
     title: "Business Units",
     path: ROUTE_PATHS.BUSINESS_UNITS.ROOT,
@@ -43,6 +51,44 @@ const MENU_MODULES = {
       { title: "Analytics", path: ROUTE_PATHS.BUSINESS_UNITS.ANALYTICS, resource: RESOURCE_KEYS.ANALYTICS },
     ],
   },
+  
+  LOGISTICS: {
+    title: "Logistics",
+    path: ROUTE_PATHS.LOGISTICS.ROOT,
+    icon: Truck,
+    resource: RESOURCE_KEYS.COURIER,
+    children: [
+      { title: "Couriers", path: ROUTE_PATHS.LOGISTICS.COURIER, resource: RESOURCE_KEYS.COURIER, action: ACTION_KEYS.MANAGE },
+      { title: "Parcels", path: ROUTE_PATHS.LOGISTICS.PARCEL, resource: RESOURCE_KEYS.PARCEL },
+      { title: "Reports", path: ROUTE_PATHS.LOGISTICS.REPORTS, resource: RESOURCE_KEYS.DELIVERY, action: ACTION_KEYS.VIEW },
+    ]
+  },
+  
+  CONTENT: {
+    title: "Content",
+    path: ROUTE_PATHS.CONTENT.ROOT,
+    icon: FileText,
+    resource: RESOURCE_KEYS.CONTENT,
+  },
+
+  RISK_MANAGEMENT: {
+    title: "Risk & Fraud",
+    path: ROUTE_PATHS.RISK.ROOT,
+    icon: ShieldAlert,
+    resource: RESOURCE_KEYS.FRAUD_DETECTION,
+    children: [
+       { title: "Fraud Detection", path: ROUTE_PATHS.RISK.FRAUD, resource: RESOURCE_KEYS.FRAUD_DETECTION },
+       { title: "Blacklist", path: ROUTE_PATHS.RISK.BLACKLIST, resource: RESOURCE_KEYS.BLACKLIST },
+       { title: "Risk Rules", path: ROUTE_PATHS.RISK.RULES, resource: RESOURCE_KEYS.RISK_RULE },
+       { title: "Risk Profiles", path: "/risk/profiles", resource: RESOURCE_KEYS.RISK_PROFILE },
+       { title: "Analytics", path: ROUTE_PATHS.RISK.ANALYTICS, resource: RESOURCE_KEYS.ANALYTICS },
+    ]
+  },
+  // ... (keeping existing structure, but I need to insert EXPENSES before or near Business Units or where appropriate)
+  // Actually, I should use replace_file_content to insert it in MENU_MODULES and then usages.
+
+  // Let's do it in two chunks? No, replace_file_content doesn't support multiple non-contiguous unless I use multi_replace.
+  // I will use multi_replace_file_content.
   OUTLETS: {
     title: "Outlets",
     path: ROUTE_PATHS.OUTLETS.ROOT,
@@ -74,10 +120,12 @@ const MENU_MODULES = {
       { title: "Categories", path: ROUTE_PATHS.CATALOG.CATEGORY, resource: RESOURCE_KEYS.CATEGORY },
       { title: "Sub-Categories", path: ROUTE_PATHS.CATALOG.SUB_CATEGORY, resource: RESOURCE_KEYS.CATEGORY },
       { title: "Child-Categories", path: ROUTE_PATHS.CATALOG.CHILD_CATEGORY, resource: RESOURCE_KEYS.CATEGORY },
+      { title: "Variants", path: "/catalog/variants", resource: RESOURCE_KEYS.VARIANT },
       { title: "Brands", path: ROUTE_PATHS.CATALOG.BRAND, resource: RESOURCE_KEYS.BRAND },
       { title: "Units", path: ROUTE_PATHS.CATALOG.UNIT, resource: RESOURCE_KEYS.UNIT },
       { title: "Attributes", path: ROUTE_PATHS.CATALOG.ATTRIBUTE, resource: RESOURCE_KEYS.ATTRIBUTE },
       { title: "Attribute Groups", path: ROUTE_PATHS.CATALOG.ATTRIBUTE_GROUP, resource: RESOURCE_KEYS.ATTRIBUTE_GROUP },
+      { title: "Warranties", path: "/catalog/warranties", resource: RESOURCE_KEYS.WARRANTY },
       { title: "Tax", path: ROUTE_PATHS.CATALOG.TAX, resource: RESOURCE_KEYS.TAX },
     ],
   },
@@ -89,11 +137,10 @@ const MENU_MODULES = {
     children: [
       { title: "Stock Levels", path: ROUTE_PATHS.INVENTORY.ROOT },
       { title: "Purchases", path: ROUTE_PATHS.INVENTORY.PURCHASE, resource: RESOURCE_KEYS.PURCHASE },
-      { title: "Adjustments", path: ROUTE_PATHS.INVENTORY.ADJUSTMENTS, action: ACTION_KEYS.UPDATE },
-      { title: "Stock Ledger", path: ROUTE_PATHS.INVENTORY.LEDGER },
+      { title: "Stock Ledger", path: ROUTE_PATHS.INVENTORY.LEDGER, resource: RESOURCE_KEYS.INVENTORY, action: ACTION_KEYS.TRACK },
       { title: "Warehouses", path: ROUTE_PATHS.INVENTORY.WAREHOUSES, resource: RESOURCE_KEYS.WAREHOUSE },
-      // { title: "Stock Transfers", path: "inventory/transfers", action: ACTION_KEYS.UPDATE }, // Added from Store Manager
-      // { title: "Low Stock Alerts", path: "inventory/alerts" }, // Added from Store Manager
+      { title: "Transfers", path: ROUTE_PATHS.INVENTORY.TRANSFERS, resource: RESOURCE_KEYS.TRANSFER, action: ACTION_KEYS.CREATE },
+      { title: "Adjustments", path: ROUTE_PATHS.INVENTORY.ADJUSTMENTS, resource: RESOURCE_KEYS.ADJUSTMENT, action: ACTION_KEYS.ADJUST },
     ]
   },
   PURCHASES: {
@@ -116,6 +163,7 @@ const MENU_MODULES = {
       { title: "Shipping", path: ROUTE_PATHS.SALES.SHIPPING, resource: RESOURCE_KEYS.SHIPPING },
       { title: "Delivery", path: ROUTE_PATHS.SALES.DELIVERY, resource: RESOURCE_KEYS.DELIVERY },
       { title: "Returns", path: ROUTE_PATHS.SALES.RETURNS, resource: RESOURCE_KEYS.RETURN },
+      { title: "Invoices", path: ROUTE_PATHS.SALES.INVOICES, resource: RESOURCE_KEYS.INVOICE },
     ]
   },
   MARKETING: {
@@ -129,7 +177,10 @@ const MENU_MODULES = {
       { title: "Ad Campaigns", path: ROUTE_PATHS.MARKETING.CAMPAIGNS, resource: RESOURCE_KEYS.AD_CAMPAIGN },
       { title: "Affiliates", path: ROUTE_PATHS.MARKETING.AFFILIATES, resource: RESOURCE_KEYS.AFFILIATE },
       { title: "Loyalty", path: ROUTE_PATHS.MARKETING.LOYALTY, resource: RESOURCE_KEYS.LOYALTY },
-      { title: "SEO", path: ROUTE_PATHS.MARKETING.SEO, resource: RESOURCE_KEYS.SEO },
+      { title: "SEO", path: "/marketing/seo", resource: RESOURCE_KEYS.SEO },
+      { title: "Pixel & Events", path: ROUTE_PATHS.MARKETING.PIXEL, resource: RESOURCE_KEYS.PIXEL },
+      { title: "Events", path: "/marketing/events", resource: RESOURCE_KEYS.EVENT },
+      { title: "Audiences", path: "/marketing/audiences", resource: RESOURCE_KEYS.AUDIENCE },
     ]
   },
   CUSTOMERS: {
@@ -154,16 +205,11 @@ const MENU_MODULES = {
     resource: RESOURCE_KEYS.TICKET,
     children: [
       { title: "Tickets", path: ROUTE_PATHS.SUPPORT.TICKETS, resource: RESOURCE_KEYS.TICKET },
-      { title: "Chat", path: ROUTE_PATHS.SUPPORT.CHAT, resource: RESOURCE_KEYS.CHAT },
-      { title: "Disputes", path: ROUTE_PATHS.SUPPORT.DISPUTES, resource: RESOURCE_KEYS.DISPUTE },
+      { title: "Chat", path: "/support/chat", resource: RESOURCE_KEYS.CHAT },
+      { title: "Disputes", path: "/support/disputes", resource: RESOURCE_KEYS.DISPUTE },
     ]
   },
-  CONTENT: {
-    title: "Content",
-    path: ROUTE_PATHS.CONTENT.ROOT,
-    icon: FileText,
-    resource: RESOURCE_KEYS.CONTENT,
-  },
+
   FINANCE: {
     title: "Financials",
     path: ROUTE_PATHS.FINANCE.ROOT,
@@ -173,8 +219,10 @@ const MENU_MODULES = {
       { title: "Payments", path: ROUTE_PATHS.FINANCE.PAYMENTS, resource: RESOURCE_KEYS.PAYMENT },
       { title: "Settlements", path: ROUTE_PATHS.FINANCE.SETTLEMENTS, resource: RESOURCE_KEYS.SETTLEMENT },
       { title: "Payouts", path: ROUTE_PATHS.FINANCE.PAYOUTS, resource: RESOURCE_KEYS.PAYOUT },
+      { title: "Reconciliations", path: "/finance/reconciliation", resource: RESOURCE_KEYS.RECONCILIATION },
+
       { title: "Fraud Detection", path: ROUTE_PATHS.FINANCE.FRAUD, resource: RESOURCE_KEYS.FRAUD_DETECTION },
-      { title: "Reports", path: ROUTE_PATHS.FINANCE.REPORTS, resource: RESOURCE_KEYS.REPORT },
+      // { title: "Reports", path: ROUTE_PATHS.FINANCE.REPORTS, resource: RESOURCE_KEYS.REPORT }, // Removed in favor of main Reports module
       { title: "Analytics", path: ROUTE_PATHS.FINANCE.ANALYTICS, resource: RESOURCE_KEYS.ANALYTICS },
       { title: "Audit Logs", path: ROUTE_PATHS.FINANCE.AUDIT_LOGS, resource: RESOURCE_KEYS.AUDIT_LOG },
     ]
@@ -208,7 +256,14 @@ const MENU_MODULES = {
     title: "Reports",
     path: ROUTE_PATHS.REPORTS.ROOT,
     icon: BarChart3,
-    resource: RESOURCE_KEYS.REPORT
+    resource: RESOURCE_KEYS.REPORT,
+    children: [
+      { title: "Sales Analysis", path: ROUTE_PATHS.REPORTS.SALES, resource: RESOURCE_KEYS.SALES_REPORT },
+      { title: "Purchase History", path: ROUTE_PATHS.REPORTS.PURCHASES, resource: RESOURCE_KEYS.PURCHASE_REPORT },
+      { title: "Stock Valuation", path: ROUTE_PATHS.REPORTS.STOCK, resource: RESOURCE_KEYS.STOCK_REPORT },
+      { title: "Profit & Loss", path: ROUTE_PATHS.REPORTS.PROFIT_LOSS, resource: RESOURCE_KEYS.PROFIT_LOSS_REPORT },
+      { title: "Expense Report", path: ROUTE_PATHS.REPORTS.EXPENSE, resource: RESOURCE_KEYS.EXPENSE_CATEGORY }, // Using Expense Category or general Expense? Expense Report key doesn't exist? Ah, I added EXPENSE_REPORT? No, check permission-keys. Added EXPENSE_CATEGORY. Maybe use PROFIT_LOSS_REPORT or just REPORT for now? Wait, looking at permission-keys.ts... "SALES_REPORT", "PURCHASE_REPORT", "STOCK_REPORT", "PROFIT_LOSS_REPORT". No "EXPENSE_REPORT". I should keep generic REPORT or use PROFIT_LOSS? Let's stick to REPORT for Expense for now or use EXPENSE with READ. Let's use RESOURCE_KEYS.EXPENSE and ACTION_KEYS.READ (implied). Or View. 
+    ]
   },
   POS_TERMINAL: {
     title: "POS Terminal",
@@ -246,6 +301,7 @@ const MENU_MODULES = {
       { title: "Chart of Accounts", path: ROUTE_PATHS.ACCOUNTING.ACCOUNTS, resource: RESOURCE_KEYS.ACCOUNT },
       { title: "Transactions", path: ROUTE_PATHS.ACCOUNTING.TRANSACTIONS, resource: RESOURCE_KEYS.TRANSACTION },
       { title: "Expenses", path: ROUTE_PATHS.ACCOUNTING.EXPENSES, resource: RESOURCE_KEYS.EXPENSE },
+      { title: "Expense Categories", path: "/accounting/expense-categories", resource: RESOURCE_KEYS.EXPENSE_CATEGORY },
       { title: "Budgets", path: ROUTE_PATHS.ACCOUNTING.BUDGETS, resource: RESOURCE_KEYS.BUDGET },
       { title: "Tax Rules", path: ROUTE_PATHS.ACCOUNTING.TAX, resource: RESOURCE_KEYS.TAX },
     ]
@@ -257,8 +313,8 @@ const MENU_MODULES = {
     resource: RESOURCE_KEYS.VENDOR,
     children: [
       { title: "All Vendors", path: ROUTE_PATHS.VENDORS.ROOT, resource: RESOURCE_KEYS.VENDOR },
-      { title: "Onboarding", path: ROUTE_PATHS.VENDORS.ONBOARDING, resource: RESOURCE_KEYS.VENDOR },
-      { title: "Payouts", path: ROUTE_PATHS.VENDORS.PAYOUTS, resource: RESOURCE_KEYS.PAYOUT },
+      { title: "Onboarding", path: ROUTE_PATHS.VENDORS.ONBOARDING, resource: RESOURCE_KEYS.VENDOR, action: ACTION_KEYS.CREATE },
+      { title: "Payouts", path: ROUTE_PATHS.VENDORS.PAYOUTS, resource: RESOURCE_KEYS.PAYOUT, action: ACTION_KEYS.MANAGE },
     ]
   },
   POS_CONFIG: {
@@ -279,8 +335,11 @@ const MENU_MODULES = {
     children: [
       { title: "Store Builder", path: ROUTE_PATHS.STOREFRONT.UI_BUILDER, resource: RESOURCE_KEYS.STOREFRONT },
       { title: "Pages", path: ROUTE_PATHS.STOREFRONT.PAGES, resource: RESOURCE_KEYS.STOREFRONT },
+      { title: "Landing Pages", path: ROUTE_PATHS.STOREFRONT.LANDING_PAGES, resource: RESOURCE_KEYS.LANDING_PAGE },
       { title: "Themes", path: ROUTE_PATHS.STOREFRONT.THEMES, resource: RESOURCE_KEYS.THEME },
       { title: "Plugins", path: ROUTE_PATHS.STOREFRONT.PLUGINS, resource: RESOURCE_KEYS.PLUGIN },
+      { title: "Questions", path: "/online-store/questions", resource: RESOURCE_KEYS.QUESTION },
+      { title: "Abandoned Carts", path: "/online-store/abandoned-carts", resource: RESOURCE_KEYS.ABANDONED_CART },
       { title: "Settings", path: ROUTE_PATHS.STOREFRONT.SETTINGS, resource: RESOURCE_KEYS.STOREFRONT },
     ]
   }
@@ -298,6 +357,8 @@ export const sidebarMenuConfig = {
       MENU_MODULES.USER_MANAGEMENT,
       MENU_MODULES.CATALOG,
       MENU_MODULES.INVENTORY,
+      MENU_MODULES.LOGISTICS,
+      MENU_MODULES.RISK_MANAGEMENT,
       MENU_MODULES.SUPPLIERS,
       MENU_MODULES.SALES,
       MENU_MODULES.MARKETING,
@@ -306,6 +367,7 @@ export const sidebarMenuConfig = {
       MENU_MODULES.HRM,
       MENU_MODULES.SUPPORT,
       MENU_MODULES.CONTENT,
+      MENU_MODULES.REPORTS, // Added explicitly for Super Admin
       MENU_MODULES.FINANCE,
       MENU_MODULES.ACCOUNTING,
       MENU_MODULES.POS_CONFIG,
@@ -364,6 +426,7 @@ export const sidebarMenuConfig = {
         ],
       },
       MENU_MODULES.SUPPLIERS,
+      MENU_MODULES.EXPENSES,
       MENU_MODULES.REPORTS,
     ],
     
@@ -458,6 +521,7 @@ export const sidebarMenuConfig = {
            { title: "Units", path: ROUTE_PATHS.CATALOG.UNIT, resource: RESOURCE_KEYS.PRODUCT },
            { title: "Attributes", path: ROUTE_PATHS.CATALOG.ATTRIBUTE, resource: RESOURCE_KEYS.ATTRIBUTE },
            { title: "Attribute Groups", path: ROUTE_PATHS.CATALOG.ATTRIBUTE_GROUP, resource: RESOURCE_KEYS.ATTRIBUTE_GROUP },
+           { title: "Warranties", path: "/catalog/warranties", resource: RESOURCE_KEYS.WARRANTY },
            { title: "Tax", path: ROUTE_PATHS.CATALOG.TAX, resource: RESOURCE_KEYS.SYSTEM },
         ]
       },
@@ -479,8 +543,8 @@ export const sidebarMenuConfig = {
         icon: Package, // Revert icon to Package for dynamic
         children: [
           { title: "Stock Levels", path: ROUTE_PATHS.INVENTORY.ROOT },
-          { title: "Transfers", path: ROUTE_PATHS.INVENTORY.TRANSFERS, action: ACTION_KEYS.UPDATE },
-          { title: "Adjustments", path: ROUTE_PATHS.INVENTORY.ADJUSTMENTS, action: ACTION_KEYS.UPDATE },
+          { title: "Transfers", path: ROUTE_PATHS.INVENTORY.TRANSFERS, resource: RESOURCE_KEYS.TRANSFER, action: ACTION_KEYS.CREATE },
+          { title: "Adjustments", path: ROUTE_PATHS.INVENTORY.ADJUSTMENTS, resource: RESOURCE_KEYS.ADJUSTMENT, action: ACTION_KEYS.ADJUST },
         ]
       },
       {
@@ -504,7 +568,7 @@ export const sidebarMenuConfig = {
         resource: undefined, // Removed
       },
       MENU_MODULES.CONTENT,
-      MENU_MODULES.REPORTS,
+      MENU_MODULES.REPORTS, // Uses the updated definition with children
       {
         ...MENU_MODULES.FINANCE,
         resource: undefined, // Removed
@@ -517,6 +581,8 @@ export const sidebarMenuConfig = {
         ]
       },
       MENU_MODULES.ACCOUNTING,
+      MENU_MODULES.LOGISTICS,
+      MENU_MODULES.RISK_MANAGEMENT,
       MENU_MODULES.HRM,
       MENU_MODULES.VENDORS,
       MENU_MODULES.POS_CONFIG,

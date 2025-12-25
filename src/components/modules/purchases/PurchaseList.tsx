@@ -35,8 +35,10 @@ import { toast } from "sonner";
 import { PurchaseItemsField } from "./components/PurchaseItemsField";
 import { useAuth } from "@/hooks/useAuth";
 import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
-import { useGetAllOutletsQuery } from "@/redux/api/outletApi";
+import { useGetOutletsQuery } from "@/redux/api/outletApi";
 import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSION_KEYS } from "@/config/permission-keys";
 
 const statusColors = {
     completed: "bg-green-500/10 text-green-500 border-green-500/20",
@@ -49,6 +51,7 @@ const statusColors = {
 export const PurchaseList = () => {
     // Auth & Context
     const { user } = useAuth();
+    const { hasPermission } = usePermissions();
     const params = useParams();
     const paramBusinessUnit = params?.["business-unit"] as string;
     const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
@@ -98,7 +101,7 @@ export const PurchaseList = () => {
 
     const { data: suppliersResponse } = useGetSuppliersQuery({});
     // Fetch Outlets (All or Filtered)
-    const { data: outlets = [] } = useGetAllOutletsQuery({
+    const { data: outlets = [] } = useGetOutletsQuery({
         businessUnit: queryBusinessUnit
     });
 
@@ -347,22 +350,30 @@ export const PurchaseList = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => router.push(getEditUrl(purchase._id || purchase.id))}>
-                                <Edit className="mr-2 h-4 w-4" /> Edit
-                            </DropdownMenuItem>
+                            {hasPermission(PERMISSION_KEYS.PURCHASE.UPDATE) && (
+                                <DropdownMenuItem onClick={() => router.push(getEditUrl(purchase._id || purchase.id))}>
+                                    <Edit className="mr-2 h-4 w-4" /> Edit
+                                </DropdownMenuItem>
+                            )}
                             {/* Quick Status Update */}
-                            <DropdownMenuItem onClick={() => handleStatusClick(purchase)}>
-                                Update Status
-                            </DropdownMenuItem>
+                            {hasPermission(PERMISSION_KEYS.PURCHASE.UPDATE) && (
+                                <DropdownMenuItem onClick={() => handleStatusClick(purchase)}>
+                                    Update Status
+                                </DropdownMenuItem>
+                            )}
 
                             {/* Quick Payment update */}
-                            <DropdownMenuItem onClick={() => handlePaymentClick(purchase)}>
-                                Add Payment
-                            </DropdownMenuItem>
+                            {hasPermission(PERMISSION_KEYS.PAYMENT.CREATE) && (
+                                <DropdownMenuItem onClick={() => handlePaymentClick(purchase)}>
+                                    Add Payment
+                                </DropdownMenuItem>
+                            )}
 
-                            <DropdownMenuItem onClick={() => handleDelete(purchase._id)} className="text-red-600 mt-2">
-                                <Trash className="mr-2 h-4 w-4" /> Delete
-                            </DropdownMenuItem>
+                            {hasPermission(PERMISSION_KEYS.PURCHASE.DELETE) && (
+                                <DropdownMenuItem onClick={() => handleDelete(purchase._id)} className="text-red-600 mt-2">
+                                    <Trash className="mr-2 h-4 w-4" /> Delete
+                                </DropdownMenuItem>
+                            )}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 );
@@ -382,10 +393,10 @@ export const PurchaseList = () => {
         <DataPageLayout
             title="Purchases"
             description="Manage your purchase orders and inventory replenishment"
-            createAction={{
+            createAction={hasPermission(PERMISSION_KEYS.PURCHASE.CREATE) ? {
                 label: "New Purchase",
                 onClick: handleCreate
-            }}
+            } : undefined}
             stats={
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <StatCard

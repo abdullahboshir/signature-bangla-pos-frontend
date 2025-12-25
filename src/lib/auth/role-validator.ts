@@ -73,10 +73,18 @@ export async function hasRouteAccess(
       // Backend uses 'resource' but we might have previously used 'source' or valid backend data
       const permResource = perm.resource || perm.source;
       
-      const resourceMatch = permResource === requiredPermission.resource;
-      const actionMatch = perm.action === requiredPermission.action;
-      const hasWildcard = perm.action === "*"; // Support wildcard actions
-      const hasResourceWildcard = permResource === "*"; // Support wildcard resources
+      // Case-insensitive check
+      const permResourceLower = (permResource || "").toLowerCase();
+      const reqResourceLower = (requiredPermission.resource || "").toLowerCase();
+      
+      const permActionLower = (perm.action || "").toLowerCase();
+      const reqActionLower = (requiredPermission.action || "").toLowerCase();
+      
+      const resourceMatch = permResourceLower === reqResourceLower;
+      const actionMatch = permActionLower === reqActionLower;
+      
+      const hasWildcard = permActionLower === "*"; 
+      const hasResourceWildcard = permResourceLower === "*"; 
       
       // Checking for exact match or wildcards
       return (resourceMatch || hasResourceWildcard) && (actionMatch || hasWildcard);

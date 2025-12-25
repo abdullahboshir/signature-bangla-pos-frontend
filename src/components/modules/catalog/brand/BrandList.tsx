@@ -24,6 +24,8 @@ import { AutoFormModal } from "@/components/shared/AutoFormModal";
 import { useCreateBrandMutation, useDeleteBrandMutation, useGetBrandsQuery, useUpdateBrandMutation } from "@/redux/api/brandApi";
 import { useAuth } from "@/hooks/useAuth";
 import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSION_KEYS } from "@/config/permission-keys";
 
 interface Brand {
     _id: string;
@@ -39,6 +41,7 @@ export const BrandList = () => {
     const params = useParams();
     const paramBusinessUnit = params["business-unit"] as string;
     const { user } = useAuth();
+    const { hasPermission } = usePermissions();
     const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
 
     const businessUnit = isSuperAdmin ? undefined : paramBusinessUnit;
@@ -178,18 +181,22 @@ export const BrandList = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => {
-                            setEditingBrand(row.original);
-                            setIsCreateOpen(true);
-                        }}>
-                            <Edit className="mr-2 h-4 w-4" /> Edit Brand
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => handleDelete(row.original._id)}
-                        >
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
+                        {hasPermission(PERMISSION_KEYS.BRAND.UPDATE) && (
+                            <DropdownMenuItem onClick={() => {
+                                setEditingBrand(row.original);
+                                setIsCreateOpen(true);
+                            }}>
+                                <Edit className="mr-2 h-4 w-4" /> Edit Brand
+                            </DropdownMenuItem>
+                        )}
+                        {hasPermission(PERMISSION_KEYS.BRAND.DELETE) && (
+                            <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => handleDelete(row.original._id)}
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                        )}
                     </DropdownMenuContent>
                 </DropdownMenu>
             ),
@@ -255,13 +262,13 @@ export const BrandList = () => {
             <DataPageLayout
                 title="Brands"
                 description="Manage product brands."
-                createAction={{
+                createAction={hasPermission(PERMISSION_KEYS.BRAND.CREATE) ? {
                     label: "Add New Brand",
                     onClick: () => {
                         setEditingBrand(null);
                         setIsCreateOpen(true);
                     }
-                }}
+                } : undefined}
                 stats={
                     <>
                         <StatCard

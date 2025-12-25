@@ -1,7 +1,5 @@
-"use client";
-
-import OrderList from "@/components/modules/sales/OrderList";
+import ShippingList from "@/components/modules/sales/ShippingList"
 
 export default function ShippingPage() {
-    return <OrderList initialTab="shipping" />;
+    return <ShippingList />
 }

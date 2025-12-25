@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
-import { Edit2, MoreHorizontal, Trash2, DollarSign, Package, CheckCircle, AlertTriangle, Search, Copy, Archive } from "lucide-react";
+import { Edit2, MoreHorizontal, Trash2, DollarSign, Package, CheckCircle, AlertTriangle, Search, Copy, Archive, Download } from "lucide-react";
+import { ProductBulkImport } from "./ProductBulkImport";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
@@ -33,6 +34,7 @@ import { DataTable } from "@/components/shared/DataTable";
 import { DataPageLayout } from "@/components/shared/DataPageLayout";
 import { filterDataByDate } from "@/lib/dateFilterUtils";
 import { getImageUrl } from "@/lib/utils";
+import { exportToCSV } from "@/utils/export";
 
 
 import {
@@ -40,6 +42,8 @@ import {
     useDeleteProductMutation,
     useUpdateProductMutation
 } from "@/redux/api/productApi";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSION_KEYS } from "@/config/permission-keys";
 
 export function ProductList() {
     const router = useRouter();
@@ -50,6 +54,7 @@ export function ProductList() {
     const isSuperAdmin = user?.roles?.some((r: any) =>
         (typeof r === 'string' ? r : r.name) === 'super-admin'
     );
+    const { hasPermission } = usePermissions();
 
     // Date Filter State
     const [dateFilter, setDateFilter] = useState<string>("all");
@@ -142,6 +147,21 @@ export function ProductList() {
     const lowStockCount = products.filter((p: any) =>
         (p.inventory?.inventory?.stock || 0) <= (p.inventory?.inventory?.lowStockThreshold || 0)
     ).length;
+
+    const handleExport = () => {
+        const dataToExport = displayedProducts.map((p: any) => ({
+            Name: p.name,
+            SKU: p.sku,
+            Brand: p.brands?.[0]?.name || "",
+            Category: p.primaryCategory?.name || "",
+            Cost: p.pricing?.costPrice || 0,
+            Price: p.pricing?.basePrice || 0,
+            Stock: p.inventory?.inventory?.stock || 0,
+            Status: p.statusInfo?.status || "draft",
+            Created: p.createdAt ? format(new Date(p.createdAt), "yyyy-MM-dd") : ""
+        }));
+        exportToCSV(dataToExport, "products-export");
+    };
 
     // Define Columns
     const columns: ColumnDef<any>[] = [
@@ -317,34 +337,46 @@ export function ProductList() {
                             <DropdownMenuItem onClick={(e) => handleCopyId(product._id, e)}>
                                 <Copy className="mr-2 h-4 w-4" /> Copy ID
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => handleEdit(product._id, e)}>
-                                <Edit2 className="mr-2 h-4 w-4" /> Edit
-                            </DropdownMenuItem>
-                            {product.statusInfo?.status !== "published" && (
+
+                            {hasPermission(PERMISSION_KEYS.PRODUCT.UPDATE) && (
+                                <DropdownMenuItem onClick={(e) => handleEdit(product._id, e)}>
+                                    <Edit2 className="mr-2 h-4 w-4" /> Edit
+                                </DropdownMenuItem>
+                            )}
+
+                            {hasPermission(PERMISSION_KEYS.PRODUCT.UPDATE) && product.statusInfo?.status !== "published" && (
                                 <DropdownMenuItem onClick={(e) => handleStatusUpdate(product, "published", e)}>
                                     <CheckCircle className="mr-2 h-4 w-4 text-green-600" /> Publish
                                 </DropdownMenuItem>
                             )}
-                            {product.statusInfo?.status !== "draft" && (
+
+                            {hasPermission(PERMISSION_KEYS.PRODUCT.UPDATE) && product.statusInfo?.status !== "draft" && (
                                 <DropdownMenuItem onClick={(e) => handleStatusUpdate(product, "draft", e)}>
                                     <Edit2 className="mr-2 h-4 w-4 text-muted-foreground" /> Mark as Draft
                                 </DropdownMenuItem>
                             )}
+
                             <DropdownMenuSeparator />
-                            {product.statusInfo?.status !== "archived" && (
+
+                            {hasPermission(PERMISSION_KEYS.PRODUCT.UPDATE) && product.statusInfo?.status !== "archived" && (
                                 <DropdownMenuItem onClick={(e) => handleStatusUpdate(product, "archived", e)}>
                                     <Archive className="mr-2 h-4 w-4 text-orange-600" /> Archive
                                 </DropdownMenuItem>
                             )}
-                            {product.statusInfo?.status !== "suspended" && (
+
+                            {hasPermission(PERMISSION_KEYS.PRODUCT.UPDATE) && product.statusInfo?.status !== "suspended" && (
                                 <DropdownMenuItem onClick={(e) => handleStatusUpdate(product, "suspended", e)}>
                                     <AlertTriangle className="mr-2 h-4 w-4 text-red-600" /> Suspend
                                 </DropdownMenuItem>
                             )}
+
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={(e) => handleDelete(product._id, e)} className="text-destructive">
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
-                            </DropdownMenuItem>
+
+                            {hasPermission(PERMISSION_KEYS.PRODUCT.DELETE) && (
+                                <DropdownMenuItem onClick={(e) => handleDelete(product._id, e)} className="text-destructive">
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                </DropdownMenuItem>
+                            )}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )
@@ -495,7 +527,17 @@ export function ProductList() {
     return (
         <DataPageLayout
             title="Products"
-            createAction={{
+            action={
+                <div className="flex gap-2">
+                    <ProductBulkImport />
+                    {hasPermission(PERMISSION_KEYS.PRODUCT.EXPORT) && (
+                        <Button variant="outline" onClick={handleExport}>
+                            <Download className="mr-2 h-4 w-4" /> Export
+                        </Button>
+                    )}
+                </div>
+            }
+            createAction={hasPermission(PERMISSION_KEYS.PRODUCT.CREATE) ? {
                 label: "Create Product",
                 onClick: () => {
                     if (isSuperAdmin) {
@@ -504,7 +546,7 @@ export function ProductList() {
                         router.push(`/${role}/${businessUnit}/catalog/product/add`);
                     }
                 }
-            }}
+            } : undefined}
             stats={
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <StatCard

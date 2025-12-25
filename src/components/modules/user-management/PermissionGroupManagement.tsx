@@ -37,12 +37,17 @@ import {
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { Permission, PermissionGroup } from './RolePermissionManagement';
+import { PERMISSION_STRATEGIES, PERMISSION_EFFECTS, PERMISSION_KEYS } from '@/config/permission-keys';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function PermissionGroupManagement() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [editingGroup, setEditingGroup] = useState<PermissionGroup | null>(null);
     const [formData, setFormData] = useState({ name: '', description: '', permissions: [] as string[] });
     const [searchQuery, setSearchQuery] = useState('');
+
+    const { hasPermission } = usePermissions();
+
 
     const { data: groupsData, isLoading: isGroupsLoading } = useGetPermissionGroupsQuery({});
     const { data: permissionsData, isLoading: isPermissionsLoading } = useGetPermissionsQuery({ limit: 1000 });
@@ -62,14 +67,15 @@ export default function PermissionGroupManagement() {
     }, {});
 
     const handleCreate = async () => {
+        if (!hasPermission(PERMISSION_KEYS.PERMISSION.CREATE)) return;
         try {
             await createGroup({
                 ...formData,
                 resolver: {
-                    strategy: "priority-based",
+                    strategy: PERMISSION_STRATEGIES.PRIORITY_BASED,
                     priority: 0,
                     override: false,
-                    fallback: "deny"
+                    fallback: PERMISSION_EFFECTS.DENY
                 }
             }).unwrap();
             setIsCreateModalOpen(false);
@@ -81,16 +87,16 @@ export default function PermissionGroupManagement() {
     };
 
     const handleUpdate = async () => {
-        if (!editingGroup) return;
+        if (!editingGroup || !hasPermission(PERMISSION_KEYS.PERMISSION.UPDATE)) return;
         try {
             await updateGroup({
                 id: editingGroup._id,
                 ...formData,
                 resolver: {
-                    strategy: "priority-based",
+                    strategy: PERMISSION_STRATEGIES.PRIORITY_BASED,
                     priority: 0,
                     override: false,
-                    fallback: "deny"
+                    fallback: PERMISSION_EFFECTS.DENY
                 }
             }).unwrap();
             setEditingGroup(null);
@@ -102,6 +108,7 @@ export default function PermissionGroupManagement() {
     };
 
     const handleDelete = async (id: string) => {
+        if (!hasPermission(PERMISSION_KEYS.PERMISSION.DELETE)) return;
         const result = await Swal.fire({
             title: 'Are you sure?',
             text: "You won't be able to revert this!",
@@ -181,9 +188,11 @@ export default function PermissionGroupManagement() {
                     }
                 }}>
                     <DialogTrigger asChild>
-                        <Button onClick={() => setIsCreateModalOpen(true)}>
-                            <Plus className="h-4 w-4 mr-2" /> New Group
-                        </Button>
+                        {hasPermission(PERMISSION_KEYS.PERMISSION.CREATE) && (
+                            <Button onClick={() => setIsCreateModalOpen(true)}>
+                                <Plus className="h-4 w-4 mr-2" /> New Group
+                            </Button>
+                        )}
                     </DialogTrigger>
                     <DialogContent className="max-w-[50vw] max-h-[95vh] h-[90vh] flex flex-col p-0 gap-0">
                         <DialogHeader className="p-6 pb-4 border-b">
@@ -227,15 +236,31 @@ export default function PermissionGroupManagement() {
                                                 </div>
                                                 <div className="space-y-2 ml-1">
                                                     {perms.map((perm: Permission) => (
-                                                        <div key={perm._id} className="flex items-center space-x-2">
-                                                            <Checkbox
-                                                                id={perm._id}
-                                                                checked={formData.permissions.includes(perm._id)}
-                                                                onCheckedChange={() => togglePermission(perm._id)}
-                                                            />
-                                                            <label htmlFor={perm._id} className="text-xs leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                                                {perm.action}
-                                                            </label>
+                                                        <div key={perm._id} className="flex flex-col space-y-1">
+                                                            <div className="flex items-center space-x-2">
+                                                                <Checkbox
+                                                                    id={perm._id}
+                                                                    checked={formData.permissions.includes(perm._id)}
+                                                                    onCheckedChange={() => togglePermission(perm._id)}
+                                                                />
+                                                                <label htmlFor={perm._id} className="text-xs leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 font-medium">
+                                                                    {perm.action}
+                                                                </label>
+                                                            </div>
+                                                            {(perm.scope || perm.operator) && (
+                                                                <div className="flex flex-wrap gap-1 ml-6">
+                                                                    {perm.scope && (
+                                                                        <Badge variant="outline" className="text-[10px] h-3 py-0 px-1 border-blue-200 text-blue-600">
+                                                                            {perm.scope}
+                                                                        </Badge>
+                                                                    )}
+                                                                    {perm.operator && (
+                                                                        <Badge variant="outline" className="text-[10px] h-3 py-0 px-1 border-orange-200 text-orange-600">
+                                                                            {perm.operator}
+                                                                        </Badge>
+                                                                    )}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     ))}
                                                 </div>
@@ -291,12 +316,16 @@ export default function PermissionGroupManagement() {
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-right space-x-2">
-                                        <Button variant="ghost" size="sm" onClick={() => openEditModal(group)}>
-                                            <Edit className="h-4 w-4 text-blue-500" />
-                                        </Button>
-                                        <Button variant="ghost" size="sm" onClick={() => handleDelete(group._id)}>
-                                            <Trash2 className="h-4 w-4 text-red-500" />
-                                        </Button>
+                                        {hasPermission(PERMISSION_KEYS.PERMISSION.UPDATE) && (
+                                            <Button variant="ghost" size="sm" onClick={() => openEditModal(group)}>
+                                                <Edit className="h-4 w-4 text-blue-500" />
+                                            </Button>
+                                        )}
+                                        {hasPermission(PERMISSION_KEYS.PERMISSION.DELETE) && (
+                                            <Button variant="ghost" size="sm" onClick={() => handleDelete(group._id)}>
+                                                <Trash2 className="h-4 w-4 text-red-500" />
+                                            </Button>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))

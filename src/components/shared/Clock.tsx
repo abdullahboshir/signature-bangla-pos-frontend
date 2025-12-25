@@ -52,7 +52,7 @@ export function Clock({ className, showIcon = true }: ClockProps) {
 
     return (
         <div className={cn("flex items-center gap-3 text-sm font-medium", className)}>
-            {showIcon && <ClockIcon className="h-8 w-8 text-muted-foreground/50 bg-muted/50 p-1.5 rounded-md" />}
+            {showIcon && <ClockIcon className="h-6 w-6 text-muted-foreground/50 bg-muted/50 p-1.5 rounded-md" />}
             <div className="flex flex-col justify-center leading-tight">
                 <div className="tabular-nums font-bold text-foreground whitespace-nowrap">
                     {formatTime(time)}

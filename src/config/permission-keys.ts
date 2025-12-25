@@ -25,8 +25,8 @@ export const RESOURCE_KEYS = {
   INVENTORY: "inventory",
   SUPPLIER: "supplier",
   PURCHASE: "purchase",
-  STOCK_TRANSFER: "stockTransfer",
-  ADJUSTMENT: "stockAdjustment",
+  TRANSFER: "transfer", // backend key
+  STOCK_TRANSFER: "stockTransfer", // legacy or alias? Keeping both for now if needed, but 'transfer' is the new one
   WAREHOUSE: "warehouse",
   
   // HRM
@@ -43,6 +43,7 @@ export const RESOURCE_KEYS = {
   TRANSACTION: "transaction",
   PAYMENT: "payment",
   EXPENSE: "expense",
+  EXPENSE_CATEGORY: "expenseCategory",
   BUDGET: "budget",
 
   // Vendors
@@ -59,6 +60,10 @@ export const RESOURCE_KEYS = {
   NOTIFICATION: "notification",
   AUDIT_LOG: "auditLog",
   REPORT: "report",
+  SALES_REPORT: "salesReport",
+  PURCHASE_REPORT: "purchaseReport",
+  STOCK_REPORT: "stockReport",
+  PROFIT_LOSS_REPORT: "profitLossReport",
   FRAUD_DETECTION: "fraudDetection",
   SETTLEMENT: "settlement",
   USER: "user",
@@ -101,6 +106,31 @@ export const RESOURCE_KEYS = {
 
   // Storefront
   STOREFRONT: "storefront",
+  LANDING_PAGE: "landingPage",
+  ABANDONED_CART: "abandonedCart",
+  QUESTION: "question",
+
+  // Logistics
+  COURIER: "courier",
+  PARCEL: "parcel",
+
+  // Risk & Fraud
+  BLACKLIST: "blacklist",
+  RISK_RULE: "riskRule",
+  RISK_PROFILE: "riskProfile",
+  
+  // Marketing & Tools
+  PIXEL: "pixel",
+  EVENT: "event",
+  AUDIENCE: "audience",
+
+  // Finance
+  INVOICE: "invoice",
+  RECONCILIATION: "reconciliation",
+  ADJUSTMENT: "adjustment", // Backend match
+  
+  // Dashboard
+  DASHBOARD: "dashboard",
 } as const;
 
 export const ACTION_KEYS = {
@@ -111,6 +141,34 @@ export const ACTION_KEYS = {
   IMPORT: "IMPORT",
   EXPORT: "EXPORT",
   MANAGE: "MANAGE",
+  VIEW: "VIEW", // Backend match
+  BLOCK: "BLOCK",
+  RESTRICT: "RESTRICT",
+  ADJUST: "ADJUST",
+  TRACK: "TRACK",
+  
+  // Workflow Actions
+  APPROVE: "APPROVE",
+  REJECT: "REJECT",
+  CANCEL: "CANCEL",
+  VERIFY: "VERIFY",
+  ESCALATE: "ESCALATE",
+  
+  // Fulfillment
+  SHIP: "SHIP",
+  DISPATCH: "DISPATCH",
+  DELIVER: "DELIVER", // Backend doesn't have DELIVER action, but has DELIVERY resource. Backend has 'ship', 'dispatch', 'refund'.
+  REFUND: "REFUND",
+  
+  // Content/System
+  PUBLISH: "PUBLISH",
+  UNPUBLISH: "UNPUBLISH",
+  SYNC: "SYNC",
+  SCHEDULE: "SCHEDULE",
+  ASSIGN: "ASSIGN",
+  PRINT: "PRINT",
+  DOWNLOAD: "DOWNLOAD",
+  REPLY: "REPLY",
 } as const;
 
 // Helper to generate permission codes (e.g., USER.CREATE -> "USER_CREATE")
@@ -125,3 +183,55 @@ export const PERMISSION_KEYS = Object.fromEntries(
     )
   ])
 ) as Record<keyof typeof RESOURCE_KEYS, Record<keyof typeof ACTION_KEYS, string>>;
+
+export const PERMISSION_SCOPES = {
+  GLOBAL: "global",
+  VENDOR: "vendor",
+  OUTLET: "outlet",
+  CATEGORY: "category",
+  REGION: "region",
+  BUSINESS_UNIT: "businessUnit",
+  TEAM: "team",
+  BRANCH: "branch",
+  WAREHOUSE: "warehouse",
+  DEPARTMENT: "department",
+  SELF: "self",
+  CHANNEL: "channel",
+  SEGMENT: "segment",
+  IP: "ip",
+  DEVICE: "device",
+  // Anomalous/Advanced Scopes present in Backend
+  BETWEEN: "between",
+  REGEX: "regex",
+  LIKE: "like",
+} as const;
+
+export const PERMISSION_OPERATORS = {
+  EQ: "eq",
+  NEQ: "neq",
+  GT: "gt",
+  GTE: "gte",
+  LT: "lt",
+  LTE: "lte",
+  IN: "in",
+  NOT_IN: "not-in",
+  CONTAINS: "contains",
+  STARTS_WITH: "starts-with",
+  ENDS_WITH: "ends-with",
+  BETWEEN: "between",
+  REGEX: "regex",
+  LIKE: "like",
+} as const;
+
+export const PERMISSION_EFFECTS = {
+  ALLOW: "allow",
+  DENY: "deny",
+} as const;
+
+export const PERMISSION_STRATEGIES = {
+  FIRST_MATCH: "first-match",
+  MOST_SPECIFIC: "most-specific",
+  PRIORITY_BASED: "priority-based",
+  CUMULATIVE: "cumulative",
+} as const;
+

@@ -3,7 +3,7 @@ import { filterDataByDate } from "@/lib/dateFilterUtils";
 import { useEffect, useState } from "react";
 import { useRouter, usePathname, useParams } from "next/navigation";
 import Link from "next/link";
-import { Eye, Plus, DollarSign, ShoppingBag, Clock, CheckCircle, FilePenLine, Search } from "lucide-react";
+import { Eye, Plus, DollarSign, ShoppingBag, Clock, CheckCircle, FilePenLine, Search, Download } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -16,9 +16,11 @@ import {
     TabsTrigger,
 } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { useGetOrdersQuery, useUpdateOrderStatusMutation } from "@/redux/api/orderApi";
+import { useGetOrdersQuery, useUpdateOrderMutation } from "@/redux/api/orderApi";
 import { IOrder } from "./order.types";
 import { toast } from "sonner";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSION_KEYS } from "@/config/permission-keys";
 import {
     Dialog,
     DialogContent,
@@ -39,6 +41,7 @@ import { DateRange } from "react-day-picker";
 import { DataTable } from "@/components/shared/DataTable";
 import { DataPageLayout } from "@/components/shared/DataPageLayout";
 import { ColumnDef } from "@tanstack/react-table";
+import { exportToCSV } from "@/utils/export";
 
 const ORDER_STATUSES = [
     { value: "pending", label: "Pending" },
@@ -62,6 +65,7 @@ export default function OrderList({ initialTab = "all" }: OrderListProps) {
     const params = useParams();
     const paramBusinessUnit = params?.["business-unit"] as string;
     const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
+    const { hasPermission } = usePermissions();
 
     // Filter by Business Unit
     const businessUnit = isSuperAdmin ? undefined : paramBusinessUnit;
@@ -87,7 +91,7 @@ export default function OrderList({ initialTab = "all" }: OrderListProps) {
 
     // RTK Query
     const { data: orderData, isLoading: queryLoading } = useGetOrdersQuery({ businessUnit });
-    const [updateOrderStatus] = useUpdateOrderStatusMutation();
+    const [updateOrderStatus] = useUpdateOrderMutation();
 
     // Derived state from RTK Query data
     useEffect(() => {
@@ -152,6 +156,18 @@ export default function OrderList({ initialTab = "all" }: OrderListProps) {
         return filtered.filter(o => o.status === status);
     };
 
+    const handleExport = () => {
+        const dataToExport = filterOrders(activeTab).map((o: IOrder) => ({
+            "Order ID": o.orderId,
+            "Date": format(new Date(o.createdAt), "yyyy-MM-dd"),
+            "Customer": o.customer?.name || "Walk-in",
+            "Total": o.totalAmount,
+            "Payment Status": o.paymentStatus,
+            "Status": o.status
+        }));
+        exportToCSV(dataToExport, "orders-export");
+    };
+
     // Define Columns
     const columns: ColumnDef<IOrder>[] = [
         {
@@ -197,9 +213,11 @@ export default function OrderList({ initialTab = "all" }: OrderListProps) {
             header: "Actions",
             cell: ({ row }) => (
                 <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => openQuickUpdate(row.original)}>
-                        <FilePenLine className="h-4 w-4" />
-                    </Button>
+                    {hasPermission(PERMISSION_KEYS.ORDER.UPDATE) && (
+                        <Button variant="ghost" size="icon" onClick={() => openQuickUpdate(row.original)}>
+                            <FilePenLine className="h-4 w-4" />
+                        </Button>
+                    )}
                     <Button variant="ghost" size="icon" asChild>
                         <Link href={`${pathname}/${row.original._id}`}>
                             <Eye className="h-4 w-4" />
@@ -214,10 +232,17 @@ export default function OrderList({ initialTab = "all" }: OrderListProps) {
         <>
             <DataPageLayout
                 title="Orders"
-                createAction={{
+                action={
+                    hasPermission(PERMISSION_KEYS.ORDER.EXPORT) ? (
+                        <Button variant="outline" onClick={handleExport}>
+                            <Download className="mr-2 h-4 w-4" /> Export
+                        </Button>
+                    ) : undefined
+                }
+                createAction={hasPermission(PERMISSION_KEYS.ORDER.CREATE) ? {
                     label: "Create Order",
                     onClick: () => router.push(`${pathname}/create`)
-                }}
+                } : undefined}
                 extraFilters={
                     <div className="relative flex-1 max-w-sm ml-auto">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />

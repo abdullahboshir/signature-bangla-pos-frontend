@@ -1,6 +1,6 @@
 "use client";
 
-import { useGetAllAttributeGroupsQuery, useDeleteAttributeGroupMutation } from "@/redux/api/attributeGroupApi";
+import { useGetAttributeGroupsQuery, useDeleteAttributeGroupMutation } from "@/redux/api/attributeGroupApi";
 import { DataTable } from "@/components/data-display/tables/DataTable";
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 export default function AttributeGroupsPage() {
-    const { data: attributeGroups, isLoading } = useGetAllAttributeGroupsQuery(undefined);
+    const { data: attributeGroups, isLoading } = useGetAttributeGroupsQuery(undefined);
     const [deleteAttributeGroup] = useDeleteAttributeGroupMutation();
 
     const handleDelete = async (id: string) => {

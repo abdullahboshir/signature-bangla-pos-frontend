@@ -56,7 +56,7 @@ import { toast } from "sonner";
 
 import { useCreatePurchaseMutation } from "@/redux/api/purchaseApi";
 import { useGetSuppliersQuery } from "@/redux/api/supplierApi";
-import { useGetAllOutletsQuery } from "@/redux/api/outletApi";
+import { useGetOutletsQuery } from "@/redux/api/outletApi";
 import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
 import { useGetProductsQuery } from "@/redux/api/productApi";
 
@@ -144,7 +144,7 @@ export function CreatePurchaseForm() {
         });
     });
 
-    const { data: outlets = [] } = useGetAllOutletsQuery({ businessUnit: businessUnitId }, { skip: !businessUnitId });
+    const { data: outlets = [] } = useGetOutletsQuery({ businessUnit: businessUnitId }, { skip: !businessUnitId });
 
     // Product Search
     const [searchQuery, setSearchQuery] = useState("");

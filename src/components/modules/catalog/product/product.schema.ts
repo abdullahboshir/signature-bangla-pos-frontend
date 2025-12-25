@@ -18,10 +18,22 @@ export const productSchema = z.object({
   primaryCategory: z.string().min(1, "Primary category is required"),
   subCategory: z.string().optional(),
   childCategory: z.string().optional(),
+  crossSellProducts: z.array(z.string()).optional(),
+  upsellProducts: z.array(z.string()).optional(),
+  
   brands: z.array(z.string()).optional(),
   
+  images: z.array(z.string()).min(1, "At least one image is required"),
+  videos: z.array(z.string()).optional(),
+
   tags: z.array(z.string()).optional(),
   tagsBangla: z.array(z.string()).optional(),
+  
+  translations: z.array(z.object({
+      lang: z.string(),
+      field: z.string(),
+      value: z.string()
+  })).optional(),
 
   unit: z.string().min(1, "Unit is required"),
 
@@ -53,6 +65,21 @@ export const productSchema = z.object({
       type: z.enum(["percentage", "fixed"]).default("percentage"),
       isActive: z.boolean().default(false)
     }).optional(),
+    
+    // Flash Sale
+    flashSale: z.object({
+        price: z.number().min(0).optional(),
+        stock: z.number().min(0).optional(),
+        startDate: z.string().optional(), // Date picker returns ISO string
+        endDate: z.string().optional(),
+    }).optional(),
+
+    // Wholesale Tiers
+    wholesaleTiers: z.array(z.object({
+        minQuantity: z.number().min(1),
+        maxQuantity: z.number().optional(),
+        price: z.number().min(0),
+    })).optional(),
     tax: z.object({
       taxable: z.boolean().default(false),
       taxClass: z.string().min(1, "Tax Class required").default("standard"),
@@ -81,6 +108,10 @@ export const productSchema = z.object({
     origin: z.string().min(1, "Origin is required"),
     manufacturer: z.string().optional(),
     model: z.string().optional(),
+    video: z.object({
+        provider: z.enum(["youtube", "vimeo", "dailymotion"]).optional(),
+        link: z.string().url("Must be a valid URL").or(z.literal("")).optional(),
+    }).optional(),
   }),
 
   // Shipping
@@ -195,6 +226,13 @@ export const defaultProductValues: ProductFormValues = {
     unit: "",
     tags: [],
     tagsBangla: [],
+    images: [],
+    videos: [],
+    
+    translations: [],
+    crossSellProducts: [],
+    upsellProducts: [],
+    
     attributes: {
         isOrganic: false,
         isElectric: false,
@@ -217,7 +255,14 @@ export const defaultProductValues: ProductFormValues = {
             taxClass: "standard",
             taxRate: 0,
             taxInclusive: false,
-        }
+        },
+        flashSale: {
+            price: 0,
+            stock: 0,
+            startDate: undefined,
+            endDate: undefined
+        },
+        wholesaleTiers: []
     },
     inventory: {
         inventory: {
@@ -233,7 +278,11 @@ export const defaultProductValues: ProductFormValues = {
         images: [],
         origin: "Bangladesh",
         manufacturer: "",
-        model: ""
+        model: "",
+        video: {
+            provider: "youtube",
+            link: ""
+        }
     },
     shipping: {
         delivery: {

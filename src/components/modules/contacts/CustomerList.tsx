@@ -29,6 +29,8 @@ import {
 import { useGetRolesQuery } from "@/redux/api/roleApi"
 import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi"
 import { useParams } from "next/navigation"
+import { usePermissions } from "@/hooks/usePermissions"
+import { PERMISSION_KEYS } from "@/config/permission-keys"
 
 export const CustomerList = () => {
     // Auth & Context
@@ -39,6 +41,7 @@ export const CustomerList = () => {
 
     const { currentBusinessUnit: contextBusinessUnit } = useCurrentBusinessUnit();
     const effectiveBusinessUnitId = isSuperAdmin ? undefined : (contextBusinessUnit?._id || contextBusinessUnit?.id);
+    const { hasPermission } = usePermissions();
 
     // RTK Query Hooks
     const { data: usersData, isLoading: isUsersLoading } = useGetAllUsersQuery({})
@@ -301,15 +304,19 @@ export const CustomerList = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEdit(row.original)}>
-                            <Edit className="mr-2 h-4 w-4" /> Edit Customer
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => handleDelete(row.original)}
-                        >
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
+                        {hasPermission(PERMISSION_KEYS.CUSTOMER.UPDATE) && (
+                            <DropdownMenuItem onClick={() => handleEdit(row.original)}>
+                                <Edit className="mr-2 h-4 w-4" /> Edit Customer
+                            </DropdownMenuItem>
+                        )}
+                        {hasPermission(PERMISSION_KEYS.CUSTOMER.DELETE) && (
+                            <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => handleDelete(row.original)}
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                        )}
                     </DropdownMenuContent>
                 </DropdownMenu>
             ),
@@ -320,10 +327,10 @@ export const CustomerList = () => {
         <DataPageLayout
             title="Customers"
             description="Manage customer profiles and loyalty programs."
-            createAction={{
+            createAction={hasPermission(PERMISSION_KEYS.CUSTOMER.CREATE) ? {
                 label: "Add Customer",
                 onClick: handleCreate
-            }}
+            } : undefined}
             stats={
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <StatCard

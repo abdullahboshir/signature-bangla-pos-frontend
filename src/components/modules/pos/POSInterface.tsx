@@ -30,7 +30,7 @@ import { useGetProductsQuery } from "@/redux/api/productApi";
 import { useGetAllUsersQuery } from "@/redux/api/userApi";
 import { useCreateOrderMutation } from "@/redux/api/orderApi";
 import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
-import { useGetAllOutletsQuery } from "@/redux/api/outletApi";
+import { useGetOutletsQuery } from "@/redux/api/outletApi";
 import { CreateOrderPayload } from "@/components/modules/sales/order.types";
 import { ReceiptTemplate } from "./ReceiptTemplate";
 import { useGetBusinessUnitSettingsQuery } from "@/redux/api/settingsApi";
@@ -86,7 +86,7 @@ export default function POSInterface() {
 
     // Outlet Selection
     const [selectedOutletId, setSelectedOutletId] = useState<string>("");
-    const { data: outlets = [] } = useGetAllOutletsQuery({ businessUnit: businessUnitId }, { skip: !businessUnitId });
+    const { data: outlets = [] } = useGetOutletsQuery({ businessUnit: businessUnitId }, { skip: !businessUnitId });
 
     // Fetch Settings for Receipt
     const { data: settingsData } = useGetBusinessUnitSettingsQuery(businessUnitId, {

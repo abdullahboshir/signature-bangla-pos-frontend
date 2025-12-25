@@ -39,7 +39,7 @@ import { useGetAllUsersQuery } from "@/redux/api/userApi";
 import { useCreateOrderMutation } from "@/redux/api/orderApi";
 import { useAuth } from "@/hooks/useAuth";
 import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
-import { useGetAllOutletsQuery } from "@/redux/api/outletApi";
+import { useGetOutletsQuery } from "@/redux/api/outletApi";
 
 // Types for POS
 interface Product {
@@ -89,7 +89,7 @@ export default function CreateOrder() {
 
     // Outlet Selection
     const [selectedOutletId, setSelectedOutletId] = useState<string>("");
-    const { data: outlets = [] } = useGetAllOutletsQuery({ businessUnit: businessUnitId }, { skip: !businessUnitId });
+    const { data: outlets = [] } = useGetOutletsQuery({ businessUnit: businessUnitId }, { skip: !businessUnitId });
 
     // Auto-select single outlet
     useEffect(() => {

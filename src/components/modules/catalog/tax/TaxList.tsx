@@ -12,7 +12,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { useGetTaxesQuery, useDeleteTaxMutation, useCreateTaxMutation, useUpdateTaxMutation } from "@/redux/api/taxApi"; // Added update hook if exists?
+import { useGetTaxsQuery, useDeleteTaxMutation, useCreateTaxMutation, useUpdateTaxMutation } from "@/redux/api/taxApi"; // Added update hook if exists?
 import { DataTable } from "@/components/shared/DataTable";
 import { DataPageLayout } from "@/components/shared/DataPageLayout";
 import { StatCard } from "@/components/shared/StatCard";
@@ -20,6 +20,8 @@ import { ColumnDef } from "@tanstack/react-table";
 import { AutoFormModal } from "@/components/shared/AutoFormModal";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSION_KEYS } from "@/config/permission-keys";
 
 interface ITax {
     _id: string;
@@ -37,13 +39,14 @@ export const TaxList = () => {
     const params = useParams();
     const paramBusinessUnit = params["business-unit"] as string;
     const { user } = useAuth();
+    const { hasPermission } = usePermissions();
     const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
 
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [editingTax, setEditingTax] = useState<ITax | null>(null);
 
     // RTK Query Hooks
-    const { data: taxesResponse, isLoading: isTaxesLoading } = useGetTaxesQuery({ businessUnit: paramBusinessUnit });
+    const { data: taxesResponse, isLoading: isTaxesLoading } = useGetTaxsQuery({ businessUnit: paramBusinessUnit });
     const { data: businessUnits = [] } = useGetBusinessUnitsQuery({ limit: 100 }, { skip: !isSuperAdmin });
 
     const [deleteTax] = useDeleteTaxMutation();
@@ -168,12 +171,16 @@ export const TaxList = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEdit(row.original)}>
-                            <Edit className="mr-2 h-4 w-4" /> Edit Tax
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(row.original._id)} className="text-red-600">
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
+                        {hasPermission(PERMISSION_KEYS.TAX.UPDATE) && (
+                            <DropdownMenuItem onClick={() => handleEdit(row.original)}>
+                                <Edit className="mr-2 h-4 w-4" /> Edit Tax
+                            </DropdownMenuItem>
+                        )}
+                        {hasPermission(PERMISSION_KEYS.TAX.DELETE) && (
+                            <DropdownMenuItem onClick={() => handleDelete(row.original._id)} className="text-red-600">
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                        )}
                     </DropdownMenuContent>
                 </DropdownMenu>
             ),
@@ -263,13 +270,13 @@ export const TaxList = () => {
             <DataPageLayout
                 title="Taxes"
                 description="Manage validation taxes and rates."
-                createAction={{
+                createAction={hasPermission(PERMISSION_KEYS.TAX.CREATE) ? {
                     label: "Add New Tax",
                     onClick: () => {
                         setEditingTax(null);
                         setCreateModalOpen(true);
                     }
-                }}
+                } : undefined}
                 stats={
                     <div className="flex flex-row gap-4">
                         <StatCard

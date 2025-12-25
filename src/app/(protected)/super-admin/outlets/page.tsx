@@ -7,7 +7,7 @@ import { Plus, Store, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/shared/DataTable";
-import { useGetAllOutletsQuery, useDeleteOutletMutation } from "@/redux/api/outletApi";
+import { useGetOutletsQuery, useDeleteOutletMutation } from "@/redux/api/outletApi";
 import Swal from "sweetalert2";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +25,7 @@ export default function GlobalOutletListPage() {
     const pathname = usePathname();
 
     // Fetch ALL outlets (pass undefined/null to get global list)
-    const { data: outletsResult, isLoading, refetch } = useGetAllOutletsQuery(undefined);
+    const { data: outletsResult, isLoading, refetch } = useGetOutletsQuery(undefined);
     const [deleteOutlet] = useDeleteOutletMutation();
 
     // Handle data structure

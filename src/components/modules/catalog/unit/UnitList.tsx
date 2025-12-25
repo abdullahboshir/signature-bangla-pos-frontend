@@ -22,6 +22,8 @@ import { useCreateUnitMutation, useDeleteUnitMutation, useGetUnitsQuery, useUpda
 import { toast } from "sonner";
 import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi"; // Using consistent API
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSION_KEYS } from "@/config/permission-keys";
 
 interface Unit {
     _id: string;
@@ -34,6 +36,7 @@ export const UnitList = () => {
     const params = useParams();
     const paramBusinessUnit = params["business-unit"] as string;
     const { user } = useAuth();
+    const { hasPermission } = usePermissions();
     const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
 
     const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -112,18 +115,22 @@ export const UnitList = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => {
-                            setEditingUnit(row.original);
-                            setCreateModalOpen(true);
-                        }}>
-                            <Edit className="mr-2 h-4 w-4" /> Edit Unit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => handleDelete(row.original._id)}
-                        >
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
+                        {hasPermission(PERMISSION_KEYS.UNIT.UPDATE) && (
+                            <DropdownMenuItem onClick={() => {
+                                setEditingUnit(row.original);
+                                setCreateModalOpen(true);
+                            }}>
+                                <Edit className="mr-2 h-4 w-4" /> Edit Unit
+                            </DropdownMenuItem>
+                        )}
+                        {hasPermission(PERMISSION_KEYS.UNIT.DELETE) && (
+                            <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => handleDelete(row.original._id)}
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                        )}
                     </DropdownMenuContent>
                 </DropdownMenu>
             ),
@@ -240,13 +247,13 @@ export const UnitList = () => {
             <DataPageLayout
                 title="Measurement Units"
                 description="Manage product measurement units (e.g., kg, pcs)."
-                createAction={{
+                createAction={hasPermission(PERMISSION_KEYS.UNIT.CREATE) ? {
                     label: "Add Measurement Unit",
                     onClick: () => {
                         setEditingUnit(null);
                         setCreateModalOpen(true);
                     }
-                }}
+                } : undefined}
                 stats={
                     <div className="flex flex-row gap-4">
                         <StatCard

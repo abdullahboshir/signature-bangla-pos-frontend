@@ -22,6 +22,8 @@ import { useCreateAttributeMutation, useDeleteAttributeMutation, useGetAttribute
 import { toast } from "sonner";
 import { Controller } from "react-hook-form";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSION_KEYS } from "@/config/permission-keys";
 
 interface Attribute {
     id: string;
@@ -39,6 +41,7 @@ export const AttributeList = () => {
     const params = useParams();
     const paramBusinessUnit = params["business-unit"] as string;
     const { user } = useAuth();
+    const { hasPermission } = usePermissions();
     const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
 
     // Attributes usually global. If businessUnit logic needed, can be added here.
@@ -131,18 +134,22 @@ export const AttributeList = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => {
-                            setEditingAttribute(row.original);
-                            setIsCreateOpen(true);
-                        }}>
-                            <Edit className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => handleDelete(row.original._id || row.original.id)}
-                        >
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
+                        {hasPermission(PERMISSION_KEYS.ATTRIBUTE.UPDATE) && (
+                            <DropdownMenuItem onClick={() => {
+                                setEditingAttribute(row.original);
+                                setIsCreateOpen(true);
+                            }}>
+                                <Edit className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+                        )}
+                        {hasPermission(PERMISSION_KEYS.ATTRIBUTE.DELETE) && (
+                            <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => handleDelete(row.original._id || row.original.id)}
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                        )}
                     </DropdownMenuContent>
                 </DropdownMenu>
             ),
@@ -280,13 +287,13 @@ export const AttributeList = () => {
             <DataPageLayout
                 title="Product Attributes"
                 description="Manage global attributes like Size, Color, etc."
-                createAction={{
+                createAction={hasPermission(PERMISSION_KEYS.ATTRIBUTE.CREATE) ? {
                     label: "Add New Attribute",
                     onClick: () => {
                         setEditingAttribute(null);
                         setIsCreateOpen(true);
                     }
-                }}
+                } : undefined}
                 stats={
                     <>
                         <StatCard

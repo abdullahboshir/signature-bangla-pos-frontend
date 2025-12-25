@@ -5,7 +5,7 @@ import { useParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
 import { DollarSign, ShoppingCart, TrendingUp, Users } from "lucide-react"
-import { useGetAllOutletsQuery } from "@/redux/api/outletApi"
+import { useGetOutletsQuery } from "@/redux/api/outletApi"
 import { useGetBusinessUnitByIdQuery, useGetBusinessUnitDashboardStatsQuery } from "@/redux/api/businessUnitApi"
 import {
     Select,
@@ -40,7 +40,7 @@ export default function OverviewPage() {
     const businessUnitId = buData?._id || buData?.id;
 
     // 2. Fetch Outlets using the resolved ID
-    const { data: outletData, isLoading: outletsLoading } = useGetAllOutletsQuery({
+    const { data: outletData, isLoading: outletsLoading } = useGetOutletsQuery({
         businessUnit: businessUnitId,
         limit: 100,
     }, {

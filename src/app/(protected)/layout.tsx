@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { UserMenu } from "@/components/layouts/header/UserMenu";
+import { LoadingClearer } from "@/components/shared/LoadingClearer";
 
 interface ProtectedLayoutProps {
   children: React.ReactNode;
@@ -47,6 +48,7 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      <LoadingClearer />
       {children}
     </div>
   );

@@ -1,54 +1,18 @@
-import { baseApi } from './base/baseApi';
-import { tagTypes } from '../tag-types';
+import { tagTypes } from "../tag-types";
+import { createCrudApi } from "./base/createCrudApi";
 
-export const inventoryApi = baseApi.injectEndpoints({
-    endpoints: (build) => ({
-        getStockLevels: build.query({
-            query: (params) => ({
-                url: '/inventory/stock-levels',
-                method: 'GET',
-                params,
-            }),
-            providesTags: [tagTypes.Inventory],
-        }),
-        getProductStockLevel: build.query({
-            query: (id) => ({
-                url: `/inventory/stock-levels/${id}`,
-                method: 'GET',
-            }),
-            providesTags: [tagTypes.Inventory],
-        }),
-        getAdjustments: build.query({
-            query: (params) => ({
-                url: '/inventory/adjustments',
-                method: 'GET',
-                params,
-            }),
-            providesTags: [tagTypes.InventoryAdjustment],
-        }),
-        createAdjustment: build.mutation({
-            query: (data) => ({
-                url: '/inventory/adjustments',
-                method: 'POST',
-                body: data,
-            }),
-            invalidatesTags: [tagTypes.InventoryAdjustment, tagTypes.Inventory, tagTypes.product],
-        }),
-        getLedger: build.query({
-            query: (params) => ({
-                url: '/inventory/ledger',
-                method: 'GET',
-                params,
-            }),
-            providesTags: [tagTypes.InventoryLedger],
-        }),
-    }),
+const { api: inventoryApi, hooks } = createCrudApi({
+  resourceName: 'inventory',
+  baseUrl: '/super-admin/inventory',
+  tagType: tagTypes.inventory,
 });
 
 export const {
-    useGetStockLevelsQuery,
-    useGetProductStockLevelQuery,
-    useGetAdjustmentsQuery,
-    useCreateAdjustmentMutation,
-    useGetLedgerQuery,
-} = inventoryApi;
+  useCreateInventoryMutation,
+  useGetInventorysQuery,
+  useGetInventoryQuery,
+  useUpdateInventoryMutation,
+  useDeleteInventoryMutation,
+} = hooks;
+
+export default inventoryApi;

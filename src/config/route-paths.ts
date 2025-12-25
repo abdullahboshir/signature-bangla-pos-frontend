@@ -11,6 +11,19 @@ export const ROUTE_PATHS = {
     ROOT: "outlets",
     NEW: "outlets/new",
   },
+  LOGISTICS: {
+    ROOT: "logistics",
+    COURIER: "logistics/courier",
+    PARCEL: "logistics/parcel",
+    REPORTS: "logistics/reports",
+  },
+  RISK: {
+    ROOT: "risk",
+    FRAUD: "risk/fraud",
+    BLACKLIST: "risk/blacklist",
+    RULES: "risk/rules",
+    ANALYTICS: "risk/analytics",
+  },
   USER_MANAGEMENT: {
     ROOT: "user-management",
     ALL_USERS: "user-management/all-users",
@@ -52,6 +65,7 @@ export const ROUTE_PATHS = {
     SHIPPING: "sales/shipping",
     DELIVERY: "sales/delivery",
     RETURNS: "sales/returns",
+    INVOICES: "sales/invoices",
   },
   MARKETING: {
     ROOT: "marketing",
@@ -61,6 +75,8 @@ export const ROUTE_PATHS = {
     AFFILIATES: "marketing/affiliates",
     LOYALTY: "marketing/loyalty",
     SEO: "marketing/seo",
+    PIXEL: "marketing/pixel",
+    AUDIENCES: "marketing/audiences",
   },
   CUSTOMERS: {
     ROOT: "customers",
@@ -108,6 +124,11 @@ export const ROUTE_PATHS = {
   },
   REPORTS: {
     ROOT: "reports",
+    SALES: "reports/sales",
+    PURCHASES: "reports/purchases",
+    STOCK: "reports/stock",
+    PROFIT_LOSS: "reports/profit-loss",
+    EXPENSE: "reports/expenses",
   },
   STAFF: {
     ROOT: "staff",
@@ -146,6 +167,7 @@ export const ROUTE_PATHS = {
     PAGES: "online-store/pages",
     THEMES: "online-store/themes",
     PLUGINS: "online-store/plugins",
+    LANDING_PAGES: "online-store/landing-pages",
     SETTINGS: "online-store/settings",
   },
   POS: {

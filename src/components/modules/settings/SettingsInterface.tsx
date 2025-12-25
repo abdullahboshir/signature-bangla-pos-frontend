@@ -18,6 +18,8 @@ import { GlobalDataRetentionSettings } from "./GlobalDataRetentionSettings"
 import { useGetBusinessUnitSettingsQuery, useUpdateBusinessUnitSettingsMutation } from "@/redux/api/settingsApi"
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/useAuth"
+import { usePermissions } from "@/hooks/usePermissions"
+import { PERMISSION_KEYS } from "@/config/permission-keys"
 
 export function SettingsInterface() {
     const params = useParams()
@@ -37,6 +39,9 @@ export function SettingsInterface() {
     const businessUnit = paramBusinessUnit || defaultBusinessUnitId;
 
     const { theme, isLoading: themeLoading, isSaving, updateTheme, resetTheme, previewTheme } = useThemeSettings()
+
+    // Permission Hook
+    const { hasPermission } = usePermissions();
 
     // API Hooks
     // If businessUnit is undefined, this query might compile global settings or skip.
@@ -142,7 +147,7 @@ export function SettingsInterface() {
                         Manage your Outlet configuration and preferences
                     </p>
                 </div>
-                <Button onClick={saveSettings} disabled={updateLoading || !localSettings}>
+                <Button onClick={saveSettings} disabled={updateLoading || !localSettings || !hasPermission(PERMISSION_KEYS.SYSTEM.UPDATE)}>
                     {updateLoading ? "Saving..." : "Save Outlet Configuration"}
                 </Button>
             </div>
@@ -448,7 +453,7 @@ export function SettingsInterface() {
                                     >
                                         Reset Defaults
                                     </Button>
-                                    <Button onClick={() => handleThemeSave()} disabled={isSaving}>Save Theme</Button>
+                                    <Button onClick={() => handleThemeSave()} disabled={isSaving || !hasPermission(PERMISSION_KEYS.SYSTEM.UPDATE)}>Save Theme</Button>
                                 </div>
                             </CardContent>
                         </Card>

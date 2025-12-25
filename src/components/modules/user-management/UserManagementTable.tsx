@@ -28,7 +28,7 @@ import { AutoFormModal } from "@/components/shared/AutoFormModal"
 import { useParams, useRouter } from "next/navigation"
 import { useGetAllUsersQuery, useCreateUserMutation, useUpdateUserMutation, useDeleteUserMutation } from "@/redux/api/userApi"
 import { useGetRolesQuery } from "@/redux/api/roleApi"
-import { useGetAllOutletsQuery } from "@/redux/api/outletApi"
+import { useGetOutletsQuery } from "@/redux/api/outletApi"
 import Swal from "sweetalert2"
 
 import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi"
@@ -73,7 +73,7 @@ export function UserManagementTable() {
     const { data: rawBusinessUnits = [] } = useGetBusinessUnitsQuery(undefined, { skip: !isSuperAdmin });
 
     // Fetch All Outlets for Lookup (handling missing population)
-    const { data: rawOutlets } = useGetAllOutletsQuery({ limit: 1000 }, { skip: !isSuperAdmin });
+    const { data: rawOutlets } = useGetOutletsQuery({ limit: 1000 }, { skip: !isSuperAdmin });
 
     const availableOutlets = useMemo(() => {
         if (!rawOutlets) return [];

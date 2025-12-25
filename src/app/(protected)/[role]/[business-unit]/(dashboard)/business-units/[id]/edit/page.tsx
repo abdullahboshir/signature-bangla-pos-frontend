@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useGetBusinessUnitByIdQuery, useUpdateBusinessUnitMutation } from "@/redux/api/businessUnitApi";
-import { useGetAllAttributeGroupsQuery } from "@/redux/api/attributeGroupApi";
+import { useGetAttributeGroupsQuery } from "@/redux/api/attributeGroupApi";
 import Swal from "sweetalert2";
 import { BUSINESS_UNIT_STATUS, BUSINESS_UNIT_STATUS_OPTIONS, BUSINESS_UNIT_TYPE, BUSINESS_UNIT_TYPE_OPTIONS } from "@/constant/business-unit.constant";
 
@@ -41,7 +41,7 @@ export default function EditBusinessUnitPage() {
     const id = params?.id as string;
     const { data: businessUnit, isLoading: isFetching } = useGetBusinessUnitByIdQuery(id);
     const [updateBusinessUnit, { isLoading: isSaving }] = useUpdateBusinessUnitMutation();
-    const { data: attributeGroups } = useGetAllAttributeGroupsQuery(undefined);
+    const { data: attributeGroups } = useGetAttributeGroupsQuery(undefined);
 
     const { register, handleSubmit, control, setValue, reset, watch, formState: { errors } } = useForm({
         defaultValues: {
@@ -52,7 +52,6 @@ export default function EditBusinessUnitPage() {
             city: "",
             country: "",
             status: "",
-            type: "",
             type: "",
             attributeGroups: [] as string[],
             features: {
@@ -119,8 +118,6 @@ export default function EditBusinessUnitPage() {
                 contact: { email: data.email, phone: data.phone },
                 location: { city: data.city, country: data.country },
 
-                status: data.status,
-                businessUnitType: data.type,
                 status: data.status,
                 businessUnitType: data.type,
                 attributeGroups: data.attributeGroups,

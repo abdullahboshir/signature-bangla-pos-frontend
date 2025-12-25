@@ -1,55 +1,10 @@
-
 import { tagTypes } from "../tag-types";
-import { baseApi } from "./base/baseApi";
+import { createCrudApi } from "./base/createCrudApi";
 
-const brandApi = baseApi.injectEndpoints({
-  endpoints: (build) => ({
-    createBrand: build.mutation({
-      query: (data) => ({
-        url: "/super-admin/brands",
-        method: "POST",
-        contentType: "application/json",
-        data,
-      }),
-      transformResponse: (response: any) => response.data,
-      invalidatesTags: [tagTypes.brand],
-    }),
-    getBrands: build.query({
-      query: (params) => ({
-        url: "/super-admin/brands",
-        method: "GET",
-        params,
-      }),
-      transformResponse: (response: any) => response.data?.data?.result || response.data?.data || response.data?.result || response.data || [],
-      providesTags: [tagTypes.brand],
-    }),
-    getBrand: build.query({
-      query: (id) => ({
-        url: `/super-admin/brands/${id}`,
-        method: "GET",
-      }),
-      transformResponse: (response: any) => response.data?.data || response.data,
-      providesTags: [tagTypes.brand],
-    }),
-    updateBrand: build.mutation({
-      query: (data) => ({
-        url: `/super-admin/brands/${data.id}`,
-        method: "PATCH",
-        contentType: "application/json",
-        data: data.body,
-      }),
-      transformResponse: (response: any) => response.data,
-      invalidatesTags: [tagTypes.brand],
-    }),
-    deleteBrand: build.mutation({
-      query: (id) => ({
-        url: `/super-admin/brands/${id}`,
-        method: "DELETE",
-      }),
-      transformResponse: (response: any) => response.data,
-      invalidatesTags: [tagTypes.brand],
-    }),
-  }),
+const { api: brandApi, hooks } = createCrudApi({
+  resourceName: 'brand',
+  baseUrl: '/super-admin/brands',
+  tagType: tagTypes.brand,
 });
 
 export const {
@@ -58,4 +13,6 @@ export const {
   useGetBrandQuery,
   useUpdateBrandMutation,
   useDeleteBrandMutation,
-} = brandApi;
+} = hooks;
+
+export default brandApi;

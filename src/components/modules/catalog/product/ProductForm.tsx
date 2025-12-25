@@ -6,7 +6,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Check, Loader2, Upload, X, Trash2 } from "lucide-react";
+import { Check, Loader2, Upload, X, Trash2, Plus } from "lucide-react";
 
 import { useGetCategoriesQuery } from "@/redux/api/categoryApi";
 import { useGetSubCategoriesQuery, useGetSubCategoriesByParentQuery } from "@/redux/api/subCategoryApi";
@@ -46,9 +46,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 import { defaultProductValues, productSchema, ProductFormValues } from "./product.schema";
 import { VariantGenerator } from "./components/VariantGenerator";
+import { RelatedProducts } from "./components/RelatedProducts";
 
 
 
@@ -309,8 +311,12 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                         <TabsTrigger value="inventory">Inventory</TabsTrigger>
                         <TabsTrigger value="details">Details</TabsTrigger>
                         <TabsTrigger value="variants">Variants</TabsTrigger>
-                        <TabsTrigger value="shipping">Shipping</TabsTrigger>
+                        {/* Shipping Tab - Hide if Digital or Service */}
+                        {!form.watch("attributes.isDigital") && !form.watch("attributes.isService") && (
+                            <TabsTrigger value="shipping">Shipping</TabsTrigger>
+                        )}
                         <TabsTrigger value="seo">SEO</TabsTrigger>
+                        <TabsTrigger value="recommended">Recommended</TabsTrigger>
                         {dynamicFields.length > 0 && <TabsTrigger value="attributes">{attributeGroupData?.data?.name || "Attributes"}</TabsTrigger>}
                     </TabsList>
 
@@ -325,6 +331,17 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                         <FormItem>
                                             <FormLabel>Product Name</FormLabel>
                                             <FormControl><Input placeholder="Product Name" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="nameBangla"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Product Name (Bangla)</FormLabel>
+                                            <FormControl><Input placeholder="পণ্যের নাম (বাংলায়)" {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -593,8 +610,106 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                         )}
                                     />
                                 </div>
+
+                                <Separator className="my-4" />
+
+                                <div className="space-y-4">
+                                    <h3 className="font-semibold text-sm">Flash Sale Settings</h3>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="pricing.flashSale.price"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Flash Sale Price</FormLabel>
+                                                    <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="pricing.flashSale.stock"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Stock Allocated</FormLabel>
+                                                    <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="pricing.flashSale.startDate"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Start Date</FormLabel>
+                                                    <FormControl><Input type="datetime-local" {...field} /></FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="pricing.flashSale.endDate"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>End Date</FormLabel>
+                                                    <FormControl><Input type="datetime-local" {...field} /></FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </div>
+
+                                <Separator className="my-4" />
+
+                                <div className="space-y-4">
+                                    <h3 className="font-semibold text-sm">Wholesale Pricing Tiers</h3>
+                                    <div className="border rounded-md p-4 space-y-2">
+                                        {form.watch("pricing.wholesaleTiers")?.map((tier: any, index: number) => (
+                                            <div key={index} className="grid grid-cols-7 gap-2 items-end">
+                                                <div className="col-span-2">
+                                                    <Label className="text-xs">Min Qty</Label>
+                                                    <Input type="number" value={tier.minQuantity} onChange={(e) => {
+                                                        const newTiers = [...(form.getValues("pricing.wholesaleTiers") || [])];
+                                                        newTiers[index].minQuantity = parseFloat(e.target.value);
+                                                        form.setValue("pricing.wholesaleTiers", newTiers);
+                                                    }} className="h-8" />
+                                                </div>
+                                                <div className="col-span-2">
+                                                    <Label className="text-xs">Max Qty (Opt)</Label>
+                                                    <Input type="number" value={tier.maxQuantity || ''} onChange={(e) => {
+                                                        const newTiers = [...(form.getValues("pricing.wholesaleTiers") || [])];
+                                                        newTiers[index].maxQuantity = e.target.value ? parseFloat(e.target.value) : undefined;
+                                                        form.setValue("pricing.wholesaleTiers", newTiers);
+                                                    }} className="h-8" />
+                                                </div>
+                                                <div className="col-span-2">
+                                                    <Label className="text-xs">Unit Price</Label>
+                                                    <Input type="number" value={tier.price} onChange={(e) => {
+                                                        const newTiers = [...(form.getValues("pricing.wholesaleTiers") || [])];
+                                                        newTiers[index].price = parseFloat(e.target.value);
+                                                        form.setValue("pricing.wholesaleTiers", newTiers);
+                                                    }} className="h-8" />
+                                                </div>
+                                                <Button type="button" variant="destructive" size="icon" className="h-8 w-8" onClick={() => {
+                                                    const current = form.getValues("pricing.wholesaleTiers") || [];
+                                                    form.setValue("pricing.wholesaleTiers", current.filter((_: any, i: number) => i !== index));
+                                                }}><Trash2 className="h-4 w-4" /></Button>
+                                            </div>
+                                        ))}
+                                        <Button type="button" variant="outline" size="sm" onClick={() => {
+                                            const current = form.getValues("pricing.wholesaleTiers") || [];
+                                            form.setValue("pricing.wholesaleTiers", [...current, { minQuantity: 1, price: 0 }]);
+                                        }}>
+                                            <Plus className="h-4 w-4 mr-2" /> Add Tier
+                                        </Button>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
+                    </TabsContent>
+
+                    <TabsContent value="recommended">
+                        <RelatedProducts form={form} />
                     </TabsContent>
 
                     <TabsContent value="inventory">
@@ -681,6 +796,37 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                         </FormItem>
                                     )}
                                 />
+                                <div className="grid grid-cols-3 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="details.video.provider"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Video Provider</FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value || "youtube"}>
+                                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="youtube">YouTube</SelectItem>
+                                                        <SelectItem value="vimeo">Vimeo</SelectItem>
+                                                        <SelectItem value="dailymotion">Dailymotion</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="details.video.link"
+                                        render={({ field }) => (
+                                            <FormItem className="col-span-2">
+                                                <FormLabel>Video Link (URL)</FormLabel>
+                                                <FormControl><Input placeholder="https://youtube.com/watch?v=..." {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
                                 {/* Images placeholder */}
                                 <div className="space-y-4">
                                     <FormLabel>Product Images</FormLabel>
@@ -763,6 +909,50 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                         </div>
                                     </div>
                                     <FormMessage>{form.formState.errors.details?.images?.message}</FormMessage>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <FormLabel>Product Videos (URLs)</FormLabel>
+                                    <div className="space-y-2 border p-4 rounded-md">
+                                        {form.watch("videos")?.length === 0 && <div className="text-xs text-muted-foreground">No videos added.</div>}
+                                        {form.watch("videos")?.map((vid: string, idx: number) => (
+                                            <div key={idx} className="flex gap-2 items-center">
+                                                <div className="flex-1 bg-muted p-2 rounded text-xs truncate font-mono" title={vid}>{vid}</div>
+                                                <Button type="button" variant="destructive" size="icon" className="h-8 w-8" onClick={() => {
+                                                    const current = form.getValues("videos") || [];
+                                                    form.setValue("videos", current.filter((_, i) => i !== idx));
+                                                }}>
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                        <div className="flex gap-2 pt-2">
+                                            <Input
+                                                placeholder="Paste YouTube/Vimeo URL and press Enter"
+                                                id="new-video-url"
+                                                className="h-9 text-sm"
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        const el = e.currentTarget;
+                                                        if (el.value) {
+                                                            const current = form.getValues("videos") || [];
+                                                            form.setValue("videos", [...current, el.value]);
+                                                            el.value = "";
+                                                        }
+                                                    }
+                                                }}
+                                            />
+                                            <Button type="button" size="sm" onClick={() => {
+                                                const el = document.getElementById("new-video-url") as HTMLInputElement;
+                                                if (el && el.value) {
+                                                    const current = form.getValues("videos") || [];
+                                                    form.setValue("videos", [...current, el.value]);
+                                                    el.value = "";
+                                                }
+                                            }}>Add</Button>
+                                        </div>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
@@ -854,7 +1044,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                         }} />
                                         <div className="space-y-2 mt-4">
                                             {variantFields.map((field, index) => (
-                                                <div key={field.id} className="grid grid-cols-7 gap-2 border p-2 rounded items-center">
+                                                <div key={field.id} className="grid grid-cols-8 gap-2 border p-2 rounded items-center">
                                                     {/* Image Column */}
                                                     <div className="col-span-1">
                                                         <FormField
@@ -965,6 +1155,16 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                                         />
                                                     </div>
 
+                                                    <div className="col-span-1">
+                                                        <FormField
+                                                            control={form.control}
+                                                            name={`variants.${index}.barcode`}
+                                                            render={({ field }) => (
+                                                                <FormItem className="space-y-0"><FormControl><Input placeholder="Barcode" className="h-8 text-xs" {...field} /></FormControl></FormItem>
+                                                            )}
+                                                        />
+                                                    </div>
+
                                                     <FormField
                                                         control={form.control}
                                                         name={`variants.${index}.price`}
@@ -995,23 +1195,26 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                         </Card>
                     </TabsContent>
 
-                    <TabsContent value="shipping">
-                        <Card>
-                            <CardHeader><CardTitle>Shipping</CardTitle></CardHeader>
-                            <CardContent>
-                                <FormField
-                                    control={form.control}
-                                    name="shipping.delivery.estimatedDelivery"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Estimated Delivery</FormLabel>
-                                            <FormControl><Input placeholder="e.g. 3-5 days" {...field} /></FormControl>
-                                        </FormItem>
-                                    )}
-                                />
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
+                    {/* Shipping Content - Hide if Digital or Service */}
+                    {!form.watch("attributes.isDigital") && !form.watch("attributes.isService") && (
+                        <TabsContent value="shipping">
+                            <Card>
+                                <CardHeader><CardTitle>Shipping</CardTitle></CardHeader>
+                                <CardContent>
+                                    <FormField
+                                        control={form.control}
+                                        name="shipping.delivery.estimatedDelivery"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Estimated Delivery</FormLabel>
+                                                <FormControl><Input placeholder="e.g. 3-5 days" {...field} /></FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    )}
 
                     <TabsContent value="seo">
                         <Card>

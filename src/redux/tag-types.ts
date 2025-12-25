@@ -23,13 +23,15 @@ export enum tagTypes {
   settings = "settings",
   outlet = "outlet",
   attributeGroup = "attributeGroup",
-  StorefrontConfig = "StorefrontConfig",
-  StorePage = "StorePage",
-  StorePageList = "StorePageList",
-  Inventory = "Inventory",
-  InventoryAdjustment = "InventoryAdjustment",
-  InventoryLedger = "InventoryLedger",
+  storefrontConfig = "storefrontConfig",
+  storePage = "storePage",
+  storePageList = "storePageList",
+  inventory = "inventory",
+  inventoryAdjustment = "inventoryAdjustment",
+  inventoryLedger = "inventoryLedger",
   permissionGroup = "permissionGroup",
+  productQA = "productQA",
+  productReview = "productReview",
 }
 
 export const tagTypesList = Object.values(tagTypes);

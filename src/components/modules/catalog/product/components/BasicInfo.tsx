@@ -50,7 +50,7 @@ export const BasicInfo = ({ form, categories, brands, setLevel1, setLevel2, setL
                 <CardTitle>Basic Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <FormField
                         control={form.control}
                         name="name"
@@ -85,6 +85,19 @@ export const BasicInfo = ({ form, categories, brands, setLevel1, setLevel2, setL
                                 <FormLabel>SKU</FormLabel>
                                 <FormControl>
                                     <Input placeholder="Auto-generated if empty" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="barcode"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Barcode / EAN (Scan)</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Scan barcode here" {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>

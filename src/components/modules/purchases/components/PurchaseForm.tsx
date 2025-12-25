@@ -24,7 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { PurchaseItemsField } from "./PurchaseItemsField";
 import { useGetSuppliersQuery } from "@/redux/api/supplierApi";
 import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
-import { useGetAllOutletsQuery } from "@/redux/api/outletApi";
+import { useGetOutletsQuery } from "@/redux/api/outletApi";
 import { useAuth } from "@/hooks/useAuth";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
@@ -67,7 +67,7 @@ export const PurchaseForm = ({
     );
     const suppliers = suppliersResponse || [];
 
-    const { data: outlets = [] } = useGetAllOutletsQuery({
+    const { data: outlets = [] } = useGetOutletsQuery({
         businessUnit: selectedBU
     }, {
         skip: !selectedBU

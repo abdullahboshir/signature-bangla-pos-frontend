@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { DasboardHeader } from "./header/DasboardHeader";
 import { Sidebar } from "./sidebar/Sidebar";
-import { Footer } from "./Footer";
+import { SidebarFooter } from "./sidebar/SidebarFooter";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
@@ -46,7 +46,7 @@ export function AppLayout({ children, showFooter = true }: AppLayoutProps) {
 
         <main className="flex-1 overflow-auto px-5 pt-4">{children}</main>
 
-        {showFooter && <Footer />}
+        {showFooter && <SidebarFooter />}
       </div>
     </div>
   );
