@@ -13,7 +13,8 @@ import PermissionGroupManagement from './PermissionGroupManagement';
 import {
     RESOURCE_KEYS,
     PERMISSION_SCOPES,
-    PERMISSION_OPERATORS
+    PERMISSION_OPERATORS,
+    PERMISSION_KEYS
 } from '@/config/permission-keys';
 
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -1123,7 +1124,7 @@ export function RolePermissionManagement() {
                                                 </h3>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                                     {groupsData?.result?.map((group: PermissionGroup) => {
-                                                        const groupPermissionIds = group.permissions.map(p => p._id);
+                                                        const groupPermissionIds = group.permissions.map((p: any) => (typeof p === 'object' && p !== null ? p._id : p));
                                                         const isSuper = isSuperAdmin(selectedRole);
 
                                                         // Check if Group ID is explicitly assigned OR all permissions are present
@@ -1196,15 +1197,21 @@ export function RolePermissionManagement() {
                                                     <div className="flex-1 overflow-hidden border rounded-md p-2">
                                                         <ScrollArea className="h-[400px]">
                                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-2">
-                                                                {viewingGroup?.permissions?.map((perm: any) => (
-                                                                    <div key={perm._id || perm.id} className="flex items-start gap-2 text-sm border p-2 rounded bg-muted/20">
-                                                                        <div className={`mt-1 h-1.5 w-1.5 rounded-full ${perm.action === 'delete' ? 'bg-red-500' : 'bg-green-500'}`} />
-                                                                        <div className="flex flex-col">
-                                                                            <span className="font-mono text-xs text-muted-foreground uppercase">{perm.resource}</span>
-                                                                            <span className="font-medium">{perm.description || perm.id}</span>
+                                                                {viewingGroup?.permissions?.map((permOrId: any) => {
+                                                                    // Resolve permission object if it's just an ID
+                                                                    const permId = typeof permOrId === 'object' && permOrId !== null ? permOrId._id : permOrId;
+                                                                    const perm = permissions.find(p => p._id === permId) || (typeof permOrId === 'object' ? permOrId : { id: permId, description: 'Unknown Permission' });
+
+                                                                    return (
+                                                                        <div key={perm._id || perm.id} className="flex items-start gap-2 text-sm border p-2 rounded bg-muted/20">
+                                                                            <div className={`mt-1 h-1.5 w-1.5 rounded-full ${perm.action === 'delete' ? 'bg-red-500' : 'bg-green-500'}`} />
+                                                                            <div className="flex flex-col">
+                                                                                <span className="font-mono text-xs text-muted-foreground uppercase">{perm.resource || '???'}</span>
+                                                                                <span className="font-medium">{perm.description || perm.id}</span>
+                                                                            </div>
                                                                         </div>
-                                                                    </div>
-                                                                ))}
+                                                                    );
+                                                                })}
                                                             </div>
                                                         </ScrollArea>
                                                     </div>

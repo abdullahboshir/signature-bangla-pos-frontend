@@ -10,17 +10,15 @@ interface BusinessUnitLayoutProps {
   }>;
 }
 
-export default async function BusinessUnitLayout({
+export default async function RoleLayout({
   children,
   params,
 }: BusinessUnitLayoutProps) {
 
 
-
-
   return (
-    <>
+    <AppLayout>
       {children}
-    </>
+    </AppLayout>
   );
 }

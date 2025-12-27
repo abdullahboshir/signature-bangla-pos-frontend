@@ -14,8 +14,9 @@ import { SalesSettings } from "@/components/modules/settings/SalesSettings"
 import { PosSettings } from "@/components/modules/settings/PosSettings"
 import { SystemSettings } from "@/components/modules/settings/SystemSettings"
 import { InventorySettings } from "@/components/modules/settings/InventorySettings"
+import { ModuleToggleSettings } from "@/components/modules/settings/ModuleToggleSettings"
 import { GlobalDataRetentionSettings } from "./GlobalDataRetentionSettings"
-import { useGetBusinessUnitSettingsQuery, useUpdateBusinessUnitSettingsMutation } from "@/redux/api/settingsApi"
+import { useGetBusinessUnitSettingsQuery, useUpdateBusinessUnitSettingsMutation, useGetSystemSettingsQuery, useUpdateSystemSettingsMutation } from "@/redux/api/settingsApi"
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/useAuth"
 import { usePermissions } from "@/hooks/usePermissions"
@@ -34,9 +35,12 @@ export function SettingsInterface() {
     // Ideally SA should select a BU or manage "Default/Global" settings.
     // User complained about "Theme", which works globally usually.
 
-    // IMPORANT UX FIX: If no param business unit, try to default to the users first business unit
-    const defaultBusinessUnitId = user?.businessUnits?.[0]?._id || user?.businessUnits?.[0]?.id;
-    const businessUnit = paramBusinessUnit || defaultBusinessUnitId;
+    // If param is present, use it. If not, and we are super-admin, we are in Global Context (businessUnit = null).
+    // If not super-admin and trying to access without param, we might default, but usually routing handles that.
+
+    // Resolve slug to ID if param exists and matches a BU in user context
+    const matchedBU = user?.businessUnits?.find((bu: any) => bu.id === paramBusinessUnit || bu._id === paramBusinessUnit || bu.slug === paramBusinessUnit);
+    const businessUnit = matchedBU?._id || matchedBU?.id || paramBusinessUnit; // undefined if global
 
     const { theme, isLoading: themeLoading, isSaving, updateTheme, resetTheme, previewTheme } = useThemeSettings()
 
@@ -44,11 +48,19 @@ export function SettingsInterface() {
     const { hasPermission } = usePermissions();
 
     // API Hooks
-    // If businessUnit is undefined, this query might compile global settings or skip.
-    const { data: settingsData, isLoading: settingsLoading } = useGetBusinessUnitSettingsQuery(businessUnit, { skip: !businessUnit });
-    // Note: if SA and no BU, do we get Global settings? Assuming yes or skipping for now.
+    // If businessUnit is defined, fetch specific BU settings.
+    const { data: buSettingsData, isLoading: buSettingsLoading } = useGetBusinessUnitSettingsQuery(businessUnit, { skip: !businessUnit });
 
-    const [updateSettings, { isLoading: updateLoading }] = useUpdateBusinessUnitSettingsMutation();
+    // If businessUnit is undefined (Global), fetch System settings
+    const { data: systemSettingsData, isLoading: systemSettingsLoading } = useGetSystemSettingsQuery(undefined, { skip: !!businessUnit });
+
+    const settingsData = businessUnit ? buSettingsData : systemSettingsData;
+    const settingsLoading = businessUnit ? buSettingsLoading : systemSettingsLoading;
+
+    // Use updateSystemSettings if global
+    const [updateBUSettings, { isLoading: updateBULoading }] = useUpdateBusinessUnitSettingsMutation();
+    const [updateSystemSettings, { isLoading: updateSystemLoading }] = useUpdateSystemSettingsMutation();
+    const updateLoading = updateBULoading || updateSystemLoading;
 
     const [localSettings, setLocalSettings] = useState<any>(null);
 
@@ -70,13 +82,14 @@ export function SettingsInterface() {
     }
 
     const saveSettings = async () => {
-        if (!businessUnit && !isSuperAdmin) return; // Safety
         try {
-            // If SA and no BU, we probably pass something else or nothing? 
-            // Assuming update settings endpoint handles global if ID is missing or special.
-
-            await updateSettings({ businessUnitId: businessUnit, body: localSettings }).unwrap();
-            toast.success("Outlet settings updated successfully");
+            if (businessUnit) {
+                await updateBUSettings({ businessUnitId: businessUnit, body: localSettings }).unwrap();
+                toast.success("Outlet settings updated successfully");
+            } else {
+                await updateSystemSettings(localSettings).unwrap();
+                toast.success("System settings updated successfully");
+            }
         } catch (error) {
             console.error(error);
             toast.error("Failed to update settings");
@@ -152,13 +165,13 @@ export function SettingsInterface() {
                 </Button>
             </div>
 
-            <Tabs defaultValue="overview" className="space-y-4">
+            <Tabs defaultValue={businessUnit ? "overview" : "admin"} className="space-y-4">
                 <TabsList>
-                    <TabsTrigger value="overview" className="flex items-center gap-2"><Store className="h-4 w-4" /> Overview</TabsTrigger>
-                    <TabsTrigger value="outlet-setup" className="flex items-center gap-2"><Globe className="h-4 w-4" /> Outlet Setup</TabsTrigger>
-                    <TabsTrigger value="sales" className="flex items-center gap-2"><ShoppingCart className="h-4 w-4" /> Sales & Finance</TabsTrigger>
-                    <TabsTrigger value="pos" className="flex items-center gap-2"><MonitorSmartphone className="h-4 w-4" /> POS & Loyalty</TabsTrigger>
-                    <TabsTrigger value="inventory" className="flex items-center gap-2"><Settings className="h-4 w-4" /> Inventory</TabsTrigger>
+                    <TabsTrigger value="overview" disabled={!businessUnit} className="flex items-center gap-2"><Store className="h-4 w-4" /> Overview</TabsTrigger>
+                    <TabsTrigger value="outlet-setup" disabled={!businessUnit} className="flex items-center gap-2"><Globe className="h-4 w-4" /> Outlet Setup</TabsTrigger>
+                    <TabsTrigger value="sales" disabled={!businessUnit} className="flex items-center gap-2"><ShoppingCart className="h-4 w-4" /> Sales & Finance</TabsTrigger>
+                    <TabsTrigger value="pos" disabled={!businessUnit} className="flex items-center gap-2"><MonitorSmartphone className="h-4 w-4" /> POS & Loyalty</TabsTrigger>
+                    <TabsTrigger value="inventory" disabled={!businessUnit} className="flex items-center gap-2"><Settings className="h-4 w-4" /> Inventory</TabsTrigger>
                     <TabsTrigger value="admin" className="flex items-center gap-2"><Settings className="h-4 w-4" /> System & Admin</TabsTrigger>
                 </TabsList>
 
@@ -234,7 +247,8 @@ export function SettingsInterface() {
 
                     {/* Global Data Retention - Only for Super Admin */}
                     {isSuperAdmin && (
-                        <div className="mt-6">
+                        <div className="mt-6 space-y-6">
+                            <ModuleToggleSettings />
                             <GlobalDataRetentionSettings />
                         </div>
                     )}

@@ -14,13 +14,14 @@ import { useGetChildCategoriesQuery, useGetChildCategoriesByParentQuery } from "
 import { useGetBrandsQuery } from "@/redux/api/brandApi";
 import { useUploadFileMutation } from "@/redux/api/uploadApi";
 import { useGetUnitsQuery } from "@/redux/api/unitApi";
-import { useGetTaxesQuery } from "@/redux/api/taxApi";
+import { useGetTaxsQuery } from "@/redux/api/taxApi";
+
 import {
     useCreateProductMutation,
     useUpdateProductMutation,
 } from "@/redux/api/productApi";
 import { useGetBusinessUnitByIdQuery } from "@/redux/api/businessUnitApi";
-import { useGetAttributeGroupByIdQuery } from "@/redux/api/attributeGroupApi";
+import { useGetAttributeGroupQuery } from "@/redux/api/attributeGroupApi";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -69,7 +70,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     const { data: categories = [] } = useGetCategoriesQuery({});
     const { data: brands = [] } = useGetBrandsQuery({});
     const { data: units = [] } = useGetUnitsQuery({});
-    const { data: taxes = [] } = useGetTaxesQuery({});
+    const { data: taxes = [] } = useGetTaxsQuery({});
 
     // Fetch Business Unit to get Attribute Group
     // Assuming 'businessUnit' from params is the ID or Slug. If slug, we might need a different query or logic.
@@ -80,7 +81,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     const attributeGroupId = businessUnitData?.attributeGroup?._id || businessUnitData?.attributeGroup;
 
     // Fetch Attribute Group Details
-    const { data: attributeGroupData } = useGetAttributeGroupByIdQuery(attributeGroupId, { skip: !attributeGroupId });
+    const { data: attributeGroupData } = useGetAttributeGroupQuery(attributeGroupId, { skip: !attributeGroupId });
     const dynamicFields = attributeGroupData?.data?.fields || [];
 
     // Mutations

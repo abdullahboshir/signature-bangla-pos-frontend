@@ -14,6 +14,8 @@ import {
   CreditCard,
 } from "lucide-react"
 import { useRouter, useParams } from "next/navigation"
+import { buildRoutePath } from "@/lib/buildRoutePath"
+import { ROUTE_PATHS } from "@/config/route-paths"
 
 interface QuickActionsWidgetProps {
   role: string
@@ -29,19 +31,19 @@ export function QuickActionsWidget({ role }: QuickActionsWidgetProps) {
       {
         label: "New Order",
         icon: ShoppingCart,
-        path: `/${businessUnit}/${role}/pos`,
+        path: buildRoutePath(role, businessUnit, ROUTE_PATHS.SALES.POS),
         color: "bg-blue-500",
       },
       {
         label: "Add Product",
         icon: Plus,
-        path: `/${businessUnit}/${role}/products/add`,
+        path: buildRoutePath(role, businessUnit, ROUTE_PATHS.CATALOG.PRODUCT.ADD),
         color: "bg-green-500",
       },
       {
         label: "View Products",
         icon: Package,
-        path: `/${businessUnit}/${role}/products`,
+        path: buildRoutePath(role, businessUnit, ROUTE_PATHS.CATALOG.PRODUCT.ROOT),
         color: "bg-purple-500",
       },
     ]
@@ -52,19 +54,19 @@ export function QuickActionsWidget({ role }: QuickActionsWidgetProps) {
         {
           label: "View Reports",
           icon: BarChart3,
-          path: `/${businessUnit}/${role}/reports`,
+          path: buildRoutePath(role, businessUnit, ROUTE_PATHS.REPORTS.SALES),
           color: "bg-orange-500",
         },
         {
           label: "Manage Customers",
           icon: Users,
-          path: `/${businessUnit}/${role}/contacts/customer`,
+          path: buildRoutePath(role, businessUnit, ROUTE_PATHS.CUSTOMERS.ROOT),
           color: "bg-pink-500",
         },
         {
           label: "Settings",
           icon: Settings,
-          path: `/${businessUnit}/${role}/settings`,
+          path: buildRoutePath(role, businessUnit, ROUTE_PATHS.COMMON.SETTINGS),
           color: "bg-gray-500",
         },
       ]
@@ -76,7 +78,7 @@ export function QuickActionsWidget({ role }: QuickActionsWidgetProps) {
         {
           label: "Today's Summary",
           icon: FileText,
-          path: `/${businessUnit}/${role}/today`,
+          path: buildRoutePath(role, businessUnit, ROUTE_PATHS.POS.TODAY),
           color: "bg-teal-500",
         },
       ]

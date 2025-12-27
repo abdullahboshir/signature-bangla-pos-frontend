@@ -4,7 +4,7 @@
 import { useState } from "react"
 import { useParams } from "next/navigation"
 import { DashboardGrid } from "@/components/dashboard/DashboardGrid"
-import { useGetAllOutletsQuery } from "@/redux/api/outletApi"
+import { useGetOutletQuery } from "@/redux/api/outletApi"
 import {
   Select,
   SelectContent,
@@ -19,7 +19,7 @@ export default function DashboardPage() {
   const businessUnitId = params["business-unit"] as string
   const [selectedOutletId, setSelectedOutletId] = useState<string>("all")
 
-  const { data: outletData, isLoading } = useGetAllOutletsQuery({
+  const { data: outletData, isLoading } = useGetOutletQuery({
     businessUnit: businessUnitId,
     limit: 100,
   })

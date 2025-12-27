@@ -25,7 +25,7 @@ export const settingsApi = baseApi.injectEndpoints({
 
     getSystemSettings: build.query({
       query: () => ({
-        url: `/system-settings`,
+        url: `/super-admin/system-settings`,
         method: "GET",
       }),
       providesTags: [tagTypes.settings],
@@ -34,7 +34,7 @@ export const settingsApi = baseApi.injectEndpoints({
 
     updateSystemSettings: build.mutation({
       query: (data) => ({
-        url: `/system-settings`,
+        url: `/super-admin/system-settings`,
         method: "PATCH",
         data: data,
       }),

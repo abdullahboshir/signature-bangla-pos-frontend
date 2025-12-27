@@ -109,6 +109,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             };
 
         } catch (err: any) {
+            // Detailed logging for debugging "Empty Error" issue
+            console.error("LOGIN ERROR CAUGHT IN AUTH PROVIDER:", JSON.stringify(err, null, 2));
+
+            // Log raw error if stringify fails/returns empty (e.g. Error object sometimes acts weird)
+            if (Object.keys(err).length === 0) {
+                console.error("LOGIN ERROR (RAW):", err);
+                if (err.message) console.error("LOGIN ERROR MESSAGE:", err.message);
+                if (err.stack) console.error("LOGIN ERROR STACK:", err.stack);
+            }
+
             let errorMessage = "Login failed";
 
             if (err?.status === "FETCH_ERROR") {

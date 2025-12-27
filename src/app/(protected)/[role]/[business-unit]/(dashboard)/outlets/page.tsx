@@ -13,7 +13,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useGetAllOutletsQuery, useDeleteOutletMutation } from "@/redux/api/outletApi";
+import { useDeleteOutletMutation, useGetOutletQuery } from "@/redux/api/outletApi";
 import Swal from "sweetalert2";
 import { DataTable } from "@/components/shared/DataTable";
 import { DataPageLayout } from "@/components/shared/DataPageLayout";
@@ -44,7 +44,7 @@ export default function OutletListPage() {
 
     // RTK Query
     // Assuming backend supports filtering by businessUnit via query params
-    const { data: outletsResult, isLoading, refetch } = useGetAllOutletsQuery({ businessUnit: businessUnit });
+    const { data: outletsResult, isLoading, refetch } = useGetOutletQuery({ businessUnit: businessUnit });
     const [deleteOutlet] = useDeleteOutletMutation();
 
     // Handle data structure (support array or object with data/result property)

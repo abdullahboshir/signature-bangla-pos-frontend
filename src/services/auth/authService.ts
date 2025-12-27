@@ -34,7 +34,7 @@ export const setCookie = (name: string, value: string, days = 7) => {
 export const removeCookie = (name: string) => {
   if (typeof document === "undefined") return;
 
-  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`;
 };
 
 export const setAuthSession = (token: string) => {

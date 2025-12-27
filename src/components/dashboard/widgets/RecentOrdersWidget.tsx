@@ -5,7 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
+import { buildRoutePath } from "@/lib/buildRoutePath"
+import { ROUTE_PATHS } from "@/config/route-paths"
 
 // Mock recent orders data
 const recentOrders = [
@@ -55,6 +57,9 @@ const statusColors = {
 
 export function RecentOrdersWidget() {
   const router = useRouter()
+  const params = useParams()
+  const role = params.role as string
+  const businessUnit = params["business-unit"] as string
 
   return (
     <Card>
@@ -73,7 +78,7 @@ export function RecentOrdersWidget() {
             <div
               key={order.id}
               className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
-              onClick={() => router.push(`/orders/${order.id}`)}
+              onClick={() => router.push(buildRoutePath(role, businessUnit, `${ROUTE_PATHS.SALES.ROOT}/${order.id}`))}
             >
               <div className="space-y-1">
                 <div className="flex items-center space-x-2">
@@ -97,7 +102,7 @@ export function RecentOrdersWidget() {
         <Button
           variant="outline"
           className="w-full mt-4"
-          onClick={() => router.push("/orders")}
+          onClick={() => router.push(buildRoutePath(role, businessUnit, ROUTE_PATHS.SALES.ROOT))}
         >
           View All Orders
         </Button>

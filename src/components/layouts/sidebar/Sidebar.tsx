@@ -8,6 +8,7 @@ import { getSidebarMenu } from "@/config/sidebar-menu"
 import { Input } from "@/components/ui/input"
 import { Search, ChevronLeft, ChevronRight } from "lucide-react"
 
+import { useGetSystemSettingsQuery } from "@/redux/api/settingsApi"
 import { SidebarMenu } from "./SidebarMenu"
 import { SidebarHeader } from "./SidebarHeader"
 import { useAuth } from "@/hooks/useAuth"
@@ -25,8 +26,21 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
   const pathname = usePathname()
   const { user } = useAuth()
 
+  // Fetch System Settings for Feature Toggling
+  const { data: systemSettings } = useGetSystemSettingsQuery(undefined);
+
   // Handle both "business-unit" and "businessUnit" params
-  const businessUnit = (params["business-unit"] || params.businessUnit) as string
+  // Also handle "slug" array for [...slug] routes
+  let businessUnit = (params["business-unit"] || params.businessUnit) as string
+
+  // If we are in super-admin/[slug] route, extracting from slug or path
+  if (!businessUnit && pathname.startsWith('/super-admin/')) {
+    const segments = pathname.split('/');
+    // /super-admin/nokhshangon -> ["", "super-admin", "nokhshangon"]
+    if (segments.length > 2) {
+      businessUnit = segments[2];
+    }
+  }
 
   // Derive role based on path or params
   let role = params.role as string
@@ -36,6 +50,16 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
     } else if (businessUnit) {
       // Default to business-admin for now when inside a BU dashboard
       role = 'business-admin'
+      // BUT: If the user IS super-admin (from auth), we should check that too?
+      // Actually, Sidebar.tsx derives role from URL usually.
+      // If we are super-admin visiting a BU, we want role='super-admin' PASSED to getSidebarMenu,
+      // but getSidebarMenu handles context switching internally if businessUnit is passed.
+      // Wait, let's look at getSidebarMenu Logic:
+      // if (role === 'super-admin' && businessUnit) -> returns business-admin menu.
+
+      // So 'role' here MUST be 'super-admin' if the URL starts with /super-admin.
+      // My logic line 38 sets role = 'super-admin'.
+      // So if businessUnit is found, it will work.
     }
   }
 
@@ -84,6 +108,16 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
     const filterItems = (items: any[]): any[] => {
       try {
         return items.reduce((acc: any[], item: any) => {
+
+          // 0. 🏁 Feature Toggle / Module Check
+          if (item.module && systemSettings?.enabledModules) {
+            const moduleKey = item.module.toLowerCase();
+            // Check if specifically disabled
+            if (systemSettings.enabledModules[moduleKey] === false) { // Strict check for false
+              return acc; // Skip this item
+            }
+          }
+
           // 1. Check direct permission
           let hasAccess = true;
 
@@ -152,7 +186,7 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
 
     return filterItems(rawMenuItems);
 
-  }, [rawMenuItems, user]);
+  }, [rawMenuItems, user, systemSettings]);
 
 
   // 🔍 Search Filter Logic
@@ -200,9 +234,9 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
         className
       )}
     >
-      {/* Sidebar Header */}
+      {/* Sidebar Header - Uncomment if needed to show active unit in sidebar top */}
       {/* <SidebarHeader 
-        businessUnit={businessUnitInfo}
+        businessUnit={businessUnit}
         isCollapsed={isCollapsed}
       /> */}
 

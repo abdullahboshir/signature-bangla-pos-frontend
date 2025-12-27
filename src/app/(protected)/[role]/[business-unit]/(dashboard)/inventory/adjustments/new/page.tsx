@@ -6,7 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useCreateAdjustmentMutation } from "@/redux/api/inventoryApi";
 import { useGetProductsQuery } from "@/redux/api/productApi"; // To select product
-import { useGetAllOutletsQuery } from "@/redux/api/outletApi"; // To select outlet
+import { useGetOutletQuery } from "@/redux/api/outletApi"; // To select outlet
 
 import { Button } from "@/components/ui/button";
 import {
@@ -44,7 +44,7 @@ export default function NewAdjustmentPage() {
     const router = useRouter();
     const [createAdjustment, { isLoading }] = useCreateAdjustmentMutation();
     const { data: products = [] } = useGetProductsQuery({});
-    const { data: outlets = [] } = useGetAllOutletsQuery({});
+    const { data: outlets = [] } = useGetOutletQuery({});
 
     const form = useForm<AdjustmentFormValues>({
         resolver: zodResolver(adjustmentSchema),

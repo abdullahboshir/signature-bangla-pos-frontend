@@ -8,6 +8,7 @@ import { SidebarFooter } from "./sidebar/SidebarFooter";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
+import { ModuleRouteGuard } from "../modules/core/ModuleRouteGuard";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -44,7 +45,11 @@ export function AppLayout({ children, showFooter = true }: AppLayoutProps) {
       <div className="flex-1 flex flex-col min-w-0">
         <DasboardHeader onMenuClick={() => setMobileOpen(true)} />
 
-        <main className="flex-1 overflow-auto px-5 pt-4">{children}</main>
+        <main className="flex-1 overflow-auto px-5 pt-4">
+          <ModuleRouteGuard>
+            {children}
+          </ModuleRouteGuard>
+        </main>
 
         {showFooter && <SidebarFooter />}
       </div>

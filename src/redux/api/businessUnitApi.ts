@@ -36,7 +36,7 @@ export const businessUnitApi = baseApi.injectEndpoints({
         contentType: "application/json",
         data,
       }),
-      invalidatesTags: [tagTypes.businessUnit],
+      invalidatesTags: [tagTypes.businessUnit, tagTypes.auth],
     }),
     updateBusinessUnit: build.mutation({
       query: (data) => ({
@@ -45,14 +45,14 @@ export const businessUnitApi = baseApi.injectEndpoints({
         contentType: "application/json",
         data: data.body,
       }),
-      invalidatesTags: [tagTypes.businessUnit],
+      invalidatesTags: [tagTypes.businessUnit, tagTypes.auth],
     }),
     deleteBusinessUnit: build.mutation({
       query: (id) => ({
         url: `/super-admin/business-unit/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [tagTypes.businessUnit],
+      invalidatesTags: [tagTypes.businessUnit, tagTypes.auth],
     }),
     getBusinessUnitDashboardStats: build.query({
       query: ({ businessUnitId, outletId }: { businessUnitId: string; outletId?: string }) => ({

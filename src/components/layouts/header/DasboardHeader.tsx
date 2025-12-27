@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, usePathname } from "next/navigation";
 import { Bell, Search, Menu, Calculator, MonitorPlay } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -25,11 +25,20 @@ interface HeaderProps {
 export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
   const params = useParams();
   const router = useRouter();
-  // Using usePathname for robust role detection
-  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+  const pathname = usePathname(); // Correct Next.js Hook
 
-  const businessUnitSlug = (params["business-unit"] || params.businessUnit) as string;
+  // Robust Slug Extraction
+  let businessUnitSlug = (params["business-unit"] || params.businessUnit) as string;
   let role = params.role as string;
+
+  // Handle [...slug] case for super-admin routes
+  if (!businessUnitSlug && pathname.startsWith('/super-admin/')) {
+    const segments = pathname.split('/');
+
+    if (segments.length > 2) {
+      businessUnitSlug = segments[2];
+    }
+  }
 
   // Robust Role Derivation (similar to Sidebar)
   if (!role) {
@@ -37,7 +46,7 @@ export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
       role = 'super-admin';
     }
   }
-  const { user, setActiveBusinessUnit } = useAuth(); // Destructure setActiveBusinessUnit
+  const { user, setActiveBusinessUnit } = useAuth();
 
   const [isOpenRegisterOpen, setIsOpenRegisterOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -56,10 +65,6 @@ export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
   // Sync active business unit from URL to Context (for API headers)
   useEffect(() => {
     if (businessUnitSlug) {
-      // Find unit in available list
-      // Note: API might return unit.id as slug or unit.slug. 
-      // User.businessUnits has .id (slug).
-      // Check both .id and .slug properties just in case.
       const unit = availableUnits.find((u: any) => u.id === businessUnitSlug || u.slug === businessUnitSlug);
 
       if (unit && unit._id) {

@@ -32,6 +32,9 @@ export enum tagTypes {
   permissionGroup = "permissionGroup",
   productQA = "productQA",
   productReview = "productReview",
+  blacklist = "blacklist",
+  riskRule = "riskRule",
+  courier = "courier",
 }
 
 export const tagTypesList = Object.values(tagTypes);

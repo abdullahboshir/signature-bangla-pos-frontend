@@ -12,7 +12,7 @@ import { useGetSubCategoriesQuery } from "@/redux/api/subCategoryApi";
 import { useGetChildCategoriesQuery } from "@/redux/api/childCategoryApi";
 import { useGetBrandsQuery } from "@/redux/api/brandApi";
 import { useGetUnitsQuery } from "@/redux/api/unitApi";
-import { useGetTaxesQuery } from "@/redux/api/taxApi";
+import { useGetTaxsQuery } from "@/redux/api/taxApi";
 import { 
     useCreateProductMutation, 
     useUpdateProductMutation, 
@@ -21,7 +21,7 @@ import {
 import { useUploadFileMutation } from "@/redux/api/uploadApi";
 import { useAuth } from "@/hooks/useAuth";
 import { useGetBusinessUnitsQuery, useGetBusinessUnitByIdQuery } from "@/redux/api/businessUnitApi";
-import { useGetAttributeGroupByIdQuery } from "@/redux/api/attributeGroupApi";
+import { useGetAttributeGroupQuery } from "@/redux/api/attributeGroupApi";
 
 export const useProductForm = (initialData?: any) => {
     const router = useRouter();
@@ -135,7 +135,7 @@ export const useProductForm = (initialData?: any) => {
     }, [availableAttributeGroups, selectedAttributeGroupId]);
 
     // Skip query if we have preLoadedGroup
-    const { data: fetchedAttributeGroupData } = useGetAttributeGroupByIdQuery(selectedAttributeGroupId, { 
+    const { data: fetchedAttributeGroupData } = useGetAttributeGroupQuery(selectedAttributeGroupId, { 
         skip: !selectedAttributeGroupId || !!preLoadedGroup
     });
 

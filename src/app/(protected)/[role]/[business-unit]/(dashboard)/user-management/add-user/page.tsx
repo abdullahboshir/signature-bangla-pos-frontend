@@ -13,7 +13,7 @@ import { Loader2 } from "lucide-react"
 import { useGetRolesQuery } from "@/redux/api/roleApi"
 import { useCreateUserMutation } from "@/redux/api/userApi"
 import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi"
-import { useGetAllOutletsQuery } from "@/redux/api/outletApi"
+import { useGetOutletQuery } from "@/redux/api/outletApi"
 
 export default function AddUserPage() {
   const router = useRouter()
@@ -42,7 +42,7 @@ export default function AddUserPage() {
   })
 
   // Dependent Query: Get Outlets for selected BU
-  const { data: outletsData, isLoading: isLoadingOutlets } = useGetAllOutletsQuery(
+  const { data: outletsData, isLoading: isLoadingOutlets } = useGetOutletQuery(
     formData.businessUnit ? { businessUnit: formData.businessUnit } : { businessUnit: 'none' },
     { skip: !formData.businessUnit }
   );
