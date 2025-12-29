@@ -215,6 +215,9 @@ export function RolePermissionManagement() {
     const { data: rolesData, isLoading: isRolesLoading } = useGetRolesQuery({ limit: 1000 });
     const { data: permissionsData, isLoading: isPermsLoading } = useGetPermissionsQuery({ limit: 5000 });
     const { data: groupsData } = useGetPermissionGroupsQuery({ limit: 1000 });
+    console.log("rolesData", rolesData);
+    console.log("permissionsData", permissionsData);
+    console.log("groupsData", groupsData);
 
     // Mutations
     const [createRole] = useCreateRoleMutation();
@@ -297,15 +300,19 @@ export function RolePermissionManagement() {
     const isLoading = isRolesLoading || isPermsLoading;
     const selectedRole = roles.find(r => r._id === selectedRoleId);
 
-    // Group Permissions by Resource
-    const groupedPermissions = permissions.reduce((acc, perm) => {
-        const resource = perm.resource || 'Other';
-        if (!acc[resource]) {
-            acc[resource] = [];
-        }
-        acc[resource].push(perm);
-        return acc;
-    }, {} as Record<string, Permission[]>);
+    // Group Permissions by Resource - Memoized for performance
+    const groupedPermissions = React.useMemo(() => {
+        return permissions.reduce((acc, perm) => {
+            const resource = perm.resource || 'Other';
+            if (!acc[resource]) {
+                acc[resource] = [];
+            }
+            acc[resource].push(perm);
+            return acc;
+        }, {} as Record<string, Permission[]>);
+    }, [permissions]);
+
+
 
     const isSuperAdmin = (role: Role | null | undefined) => {
         if (!role) return false;
@@ -978,87 +985,96 @@ export function RolePermissionManagement() {
                                 })()}
 
                                 <TabsContent value="direct" className="flex-1 overflow-auto p-0 m-0 border-0 bg-muted/10">
-                                    <ScrollArea className="h-full">
+                                    <div className="h-full">
                                         <div className="p-6 space-y-8">
                                             {/* Granular Permissions */}
-                                            {Object.entries(groupedPermissions).map(([resource, perms]) => {
-                                                const ModuleIcon = getResourceIcon(resource);
-                                                // Use _id for checking selection
-                                                // For Super Admin, EVERYTHING is selected
-                                                const isSuper = isSuperAdmin(selectedRole);
-                                                const allSelected = isSuper || perms.every(p => selectedRole?.permissions?.includes(p._id));
+                                            {(() => {
+                                                const entries = Object.entries(groupedPermissions);
+                                                console.log("Direct Permissions Debug:", {
+                                                    entriesCount: entries.length,
+                                                    totalPerms: permissions.length,
+                                                    sample: entries.slice(0, 2)
+                                                });
+                                                return entries.map(([resource, perms]) => {
+                                                    const ModuleIcon = getResourceIcon(resource);
+                                                    // Use _id for checking selection
+                                                    // For Super Admin, EVERYTHING is selected
+                                                    const isSuper = isSuperAdmin(selectedRole);
+                                                    const allSelected = isSuper || perms.every(p => selectedRole?.permissions?.includes(p._id));
 
-                                                return (
-                                                    <div key={resource} className="space-y-3">
-                                                        <div className="flex items-center justify-between pb-2 border-b">
-                                                            <h3 className="font-medium flex items-center gap-2 text-foreground capitalize">
-                                                                <div className="p-1 bg-primary/10 rounded">
-                                                                    <ModuleIcon className="h-4 w-4 text-primary" />
-                                                                </div>
-                                                                {resource} Module
-                                                            </h3>
-                                                            {!isSuper && (
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    className="h-6 text-xs text-muted-foreground hover:text-primary"
-                                                                    onClick={() => handleSelectAll(perms)}
-                                                                >
-                                                                    {allSelected ? 'Deselect All' : 'Select All'}
-                                                                </Button>
-                                                            )}
-                                                        </div>
-                                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                            {perms.map((perm) => {
-                                                                const isSelected = isSuper || selectedRole?.permissions?.includes(perm._id);
-                                                                return (
-                                                                    <div
-                                                                        key={perm._id}
-                                                                        onClick={() => !isSuper && handleTogglePermission(perm._id)}
-                                                                        className={`
+                                                    return (
+                                                        <div key={resource} className="space-y-3">
+                                                            <div className="flex items-center justify-between pb-2 border-b">
+                                                                <h3 className="font-medium flex items-center gap-2 text-foreground capitalize">
+                                                                    <div className="p-1 bg-primary/10 rounded">
+                                                                        <ModuleIcon className="h-4 w-4 text-primary" />
+                                                                    </div>
+                                                                    {resource} Module
+                                                                </h3>
+                                                                {!isSuper && (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        className="h-6 text-xs text-muted-foreground hover:text-primary"
+                                                                        onClick={() => handleSelectAll(perms)}
+                                                                    >
+                                                                        {allSelected ? 'Deselect All' : 'Select All'}
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                                {perms.map((perm) => {
+                                                                    const isSelected = isSuper || selectedRole?.permissions?.includes(perm._id);
+                                                                    return (
+                                                                        <div
+                                                                            key={perm._id}
+                                                                            onClick={() => !isSuper && handleTogglePermission(perm._id)}
+                                                                            className={`
                                                                             flex items-center space-x-3 p-3 rounded-md border text-sm transition-all
                                                                             ${isSelected
-                                                                                ? 'bg-primary/5 border-primary/50'
-                                                                                : 'bg-background hover:border-primary/30'}
+                                                                                    ? 'bg-primary/5 border-primary/50'
+                                                                                    : 'bg-background hover:border-primary/30'}
                                                                             ${isSuper ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'}
                                                                         `}
-                                                                    >
-                                                                        <div className={`
+                                                                        >
+                                                                            <div className={`
                                                                             h-4 w-4 rounded border flex items-center justify-center transition-colors
                                                                             ${isSelected ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground/30'}
                                                                         `}>
-                                                                            {isSelected && <Check className="h-3 w-3" />}
+                                                                                {isSelected && <Check className="h-3 w-3" />}
+                                                                            </div>
+                                                                            <div className="flex flex-col">
+                                                                                <span className={isSelected ? 'font-medium text-foreground' : 'text-muted-foreground'} >
+                                                                                    {perm.action.replace(/_/g, ' ').toUpperCase()}
+                                                                                </span>
+                                                                                <span className="text-[10px] text-muted-foreground/70">{perm.description}</span>
+                                                                                {/* Dynamic Scope Badge */}
+                                                                                {(perm.scope || perm.operator) && (
+                                                                                    <div className="flex flex-wrap gap-1 mt-1">
+                                                                                        {perm.scope && (
+                                                                                            <Badge variant="outline" className="text-[10px] h-4 py-0 px-1 border-blue-200 text-blue-600">
+                                                                                                {perm.scope}
+                                                                                            </Badge>
+                                                                                        )}
+                                                                                        {perm.operator && (
+                                                                                            <Badge variant="outline" className="text-[10px] h-4 py-0 px-1 border-orange-200 text-orange-600">
+                                                                                                {perm.operator}
+                                                                                            </Badge>
+                                                                                        )}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
                                                                         </div>
-                                                                        <div className="flex flex-col">
-                                                                            <span className={isSelected ? 'font-medium text-foreground' : 'text-muted-foreground'} >
-                                                                                {perm.action.replace(/_/g, ' ').toUpperCase()}
-                                                                            </span>
-                                                                            <span className="text-[10px] text-muted-foreground/70">{perm.description}</span>
-                                                                            {/* Dynamic Scope Badge */}
-                                                                            {(perm.scope || perm.operator) && (
-                                                                                <div className="flex flex-wrap gap-1 mt-1">
-                                                                                    {perm.scope && (
-                                                                                        <Badge variant="outline" className="text-[10px] h-4 py-0 px-1 border-blue-200 text-blue-600">
-                                                                                            {perm.scope}
-                                                                                        </Badge>
-                                                                                    )}
-                                                                                    {perm.operator && (
-                                                                                        <Badge variant="outline" className="text-[10px] h-4 py-0 px-1 border-orange-200 text-orange-600">
-                                                                                            {perm.operator}
-                                                                                        </Badge>
-                                                                                    )}
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            })}
+                                                                    );
+                                                                })}
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                );
-                                            })}
+                                                    );
+                                                });
+                                            })()}
+
                                         </div>
-                                    </ScrollArea>
+                                    </div>
                                 </TabsContent>
 
                                 <TabsContent value="groups" className="flex-1 overflow-auto p-0 m-0 border-0 bg-muted/10">

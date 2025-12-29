@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Settings, User, Shield, Store, Palette, Globe, ShoppingCart, MonitorSmartphone } from "lucide-react"
-import { useParams } from "next/navigation"
+import { useParams, useSearchParams } from "next/navigation"
 import { useState, useEffect } from "react"
 import { useThemeSettings } from "@/lib/providers/ThemeSettingsProvider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -24,12 +24,14 @@ import { PERMISSION_KEYS } from "@/config/permission-keys"
 
 export function SettingsInterface() {
     const params = useParams()
+    const searchParams = useSearchParams()
     // Determine context
     const { user } = useAuth();
     const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
 
     // For [role] routes, we have these params. For SA route, we might not.
     const paramBusinessUnit = params?.["business-unit"] as string
+    const outletId = searchParams.get('outlet');
 
     // If SA and in SA route (no param), businessUnit might be undefined.
     // Ideally SA should select a BU or manage "Default/Global" settings.
@@ -155,24 +157,24 @@ export function SettingsInterface() {
             )}
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">{outletId ? "Outlet Settings" : "Settings"}</h1>
                     <p className="text-muted-foreground">
-                        Manage your Outlet configuration and preferences
+                        {outletId ? "Configure settings specific to this outlet" : "Manage your Business Unit configuration and preferences"}
                     </p>
                 </div>
                 <Button onClick={saveSettings} disabled={updateLoading || !localSettings || !hasPermission(PERMISSION_KEYS.SYSTEM.UPDATE)}>
-                    {updateLoading ? "Saving..." : "Save Outlet Configuration"}
+                    {updateLoading ? "Saving..." : (outletId ? "Save Outlet Config" : "Save Configuration")}
                 </Button>
             </div>
 
-            <Tabs defaultValue={businessUnit ? "overview" : "admin"} className="space-y-4">
+            <Tabs defaultValue={outletId ? "outlet-setup" : (businessUnit ? "overview" : "admin")} className="space-y-4">
                 <TabsList>
-                    <TabsTrigger value="overview" disabled={!businessUnit} className="flex items-center gap-2"><Store className="h-4 w-4" /> Overview</TabsTrigger>
+                    {!outletId && <TabsTrigger value="overview" disabled={!businessUnit} className="flex items-center gap-2"><Store className="h-4 w-4" /> Overview</TabsTrigger>}
                     <TabsTrigger value="outlet-setup" disabled={!businessUnit} className="flex items-center gap-2"><Globe className="h-4 w-4" /> Outlet Setup</TabsTrigger>
                     <TabsTrigger value="sales" disabled={!businessUnit} className="flex items-center gap-2"><ShoppingCart className="h-4 w-4" /> Sales & Finance</TabsTrigger>
                     <TabsTrigger value="pos" disabled={!businessUnit} className="flex items-center gap-2"><MonitorSmartphone className="h-4 w-4" /> POS & Loyalty</TabsTrigger>
                     <TabsTrigger value="inventory" disabled={!businessUnit} className="flex items-center gap-2"><Settings className="h-4 w-4" /> Inventory</TabsTrigger>
-                    <TabsTrigger value="admin" className="flex items-center gap-2"><Settings className="h-4 w-4" /> System & Admin</TabsTrigger>
+                    {!outletId && <TabsTrigger value="admin" className="flex items-center gap-2"><Settings className="h-4 w-4" /> System & Admin</TabsTrigger>}
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-4">

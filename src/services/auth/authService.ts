@@ -14,6 +14,7 @@ export type { User };
 export interface LoginResponse {
   success: boolean;
   accessToken?: string;
+  status?: string;
   user?: User;
   redirect?: string;
   message?: string;
@@ -56,13 +57,13 @@ export const getRedirectPath = (token: string, user?: User): string => {
         const decoded = jwtDecode(token) as any;
         // Handle role as array or string
         const roles = Array.isArray(decoded?.role) ? decoded.role : [decoded?.role];
-
+     
         if (roles.includes("customer")) return "/";
         if (roles.includes("super-admin")) return "/super-admin";
-
-        const firstBusinessUnit = user?.businessUnits?.[0];
+        
+        const firstBusinessUnit = decoded?.businessUnits?.[0];
         if (firstBusinessUnit) {
-            const buSlug = firstBusinessUnit.slug || firstBusinessUnit.id || "default";
+          const buSlug = firstBusinessUnit.slug || firstBusinessUnit.id || "default";
             // Determine primary role for this business unit?
             // For now, use the first role in the list as fallback, or specific logic
             // Ideally we find the role for this BU.

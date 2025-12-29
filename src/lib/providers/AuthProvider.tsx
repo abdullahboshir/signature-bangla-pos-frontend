@@ -20,6 +20,7 @@ import {
     useLogoutMutation,
     useGetMeQuery
 } from "@/redux/api/authApi";
+import { jwtDecode } from "jwt-decode";
 
 interface AuthContextType {
     user: User | null;
@@ -62,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refetchOnFocus: false, // Don't aggressive refetch
         refetchOnMountOrArgChange: true // Ensure re-fetch on BU change
     });
-
+    console.log('dddddddddddddddddddd', user)
     const [loginMutation] = useLoginMutation();
     const [logoutMutation] = useLogoutMutation();
 
@@ -97,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             // Set cookie
             setAuthSession(accessToken);
+            const decoded = jwtDecode(accessToken) as any;
 
             // Determine redirect
             const redirect = getRedirectPath(accessToken, userData);
@@ -104,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return {
                 success: true,
                 accessToken,
+                status: decoded?.status,
                 user: userData,
                 redirect,
             };

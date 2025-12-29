@@ -603,7 +603,10 @@ export const sidebarMenuConfig = {
         ]
       },
       MENU_MODULES.SUPPLIERS,
-      MENU_MODULES.STAFF,
+      {
+        ...MENU_MODULES.STAFF,
+        // resource: undefined, // Removed to enforce permission check
+      },
       {
         ...MENU_MODULES.SUPPORT,
         resource: undefined, // Removed
@@ -657,16 +660,127 @@ export const sidebarMenuConfig = {
 }
 
 // Helper function to get menu for role
-export const getSidebarMenu = (role: string, businessUnit: string) => {
+export const getSidebarMenu = (role: string, businessUnit: string, outletId?: string) => {
+  // Determine Base URL for relative paths
+  const baseUrl = businessUnit ? `/${role}/${businessUnit}` : `/${role}`;
+
+  // Helper to prefix relative paths
+  // [FIX] Ensure we don't fix paths that are already absolute or start with base
+  const prefixMenuPaths = (items: any[]): any[] => {
+    return items.map(item => {
+      const newItem = { ...item };
+      
+      if (newItem.path !== undefined) {
+         if (newItem.path === "") {
+             newItem.path = baseUrl;
+         } else if (newItem.path && !newItem.path.startsWith('/') && !newItem.path.startsWith('http')) {
+             // Only prefix if purely relative
+             newItem.path = `${baseUrl}/${newItem.path}`;
+         }
+         // If it starts with '/', we leave it alone.
+         // This assumes manually defined absolute paths (like /marketing/seo) are correct.
+         // If they were meant to be relative to scoped user, they should have been defined without '/'.
+      }
+
+      if (newItem.children) {
+        newItem.children = prefixMenuPaths(newItem.children);
+      }
+      return newItem;
+    });
+  };
+
   const commonMenu = sidebarMenuConfig.common
   const dynamicMenu = sidebarMenuConfig.menus['dynamic'];
-  
+
+  // 0. Outlet Context Logic 🏪
+  // If user is inside an Outlet (URL has outletId), show Outlet-specific menu
+  if (outletId) {
+      const rawOutletMenu = [
+          {
+            title: "Outlet Dashboard",
+            path: `/outlets/${outletId}`, 
+            icon: LayoutDashboard,
+            exact: true,
+          },
+          {
+            title: "POS Terminal",
+            path: ROUTE_PATHS.SALES.POS, 
+            icon: ShoppingCart,
+            badge: "Live"
+          },
+          {
+            title: "Sales History",
+             path: ROUTE_PATHS.SALES.ROOT
+          },
+          {
+              title: "Inventory",
+              icon: Package,
+              children: [
+                  { title: "Stock Levels", path: ROUTE_PATHS.INVENTORY.ROOT },
+                  { title: "Transfer Requests", path: ROUTE_PATHS.INVENTORY.TRANSFERS },
+                  { title: "Low Stock", path: ROUTE_PATHS.INVENTORY.ALERTS },
+              ]
+          },
+          {
+              title: "Cash Management",
+              icon: DollarSign,
+              children: [
+                   { title: "Registers", path: ROUTE_PATHS.POS_CONFIG.REGISTERS },
+                   { title: "Expenses", path: ROUTE_PATHS.ACCOUNTING.EXPENSES },
+              ]
+          },
+          {
+              title: "Customers",
+              path: ROUTE_PATHS.CUSTOMERS.ROOT,
+              icon: Users
+          },
+          {
+              title: "Reports",
+              icon: BarChart3,
+              children: [
+                  { title: "Daily Summary", path: ROUTE_PATHS.REPORTS.SALES }, 
+                  { title: "Z-Report", path: ROUTE_PATHS.REPORTS.SALES } 
+              ]
+          }
+      ];
+
+      // Recursive helper to append outletId to all paths
+      // [UPDATED] Handles Query Params & ensures absolute path first
+      const appendOutletToMenu = (items: any[]): any[] => {
+        return items.map(item => {
+          const newItem = { ...item };
+          
+          if (newItem.path) {
+              const separator = newItem.path.includes('?') ? '&' : '?';
+              if (!newItem.path.includes('outlet=')) {
+                  newItem.path = `${newItem.path}${separator}outlet=${outletId}`;
+              }
+          }
+
+          if (newItem.children) {
+              newItem.children = appendOutletToMenu(newItem.children);
+          }
+          return newItem;
+        });
+      };
+
+      // 1. Prefix relative paths first
+      const prefixedOutletMenu = prefixMenuPaths(rawOutletMenu);
+      const prefixedCommonMenu = prefixMenuPaths(commonMenu);
+
+      // 2. Then append outlet query param
+      const outletMenu = appendOutletToMenu(prefixedOutletMenu);
+      const scopedCommonMenu = appendOutletToMenu(prefixedCommonMenu);
+      
+      return [...outletMenu, ...scopedCommonMenu];
+  }
+
   // 1. Context Isolation Logic 🛡️
   // If Super Admin enters a Business Unit, show ONLY Business Admin menu (Context Switching)
   if (role === 'super-admin' && businessUnit) {
       // Return 'business-admin' menu directly, bypassing 'super-admin' global menu
       const businessAdminMenu = sidebarMenuConfig.menus['business-admin'];
-      return [...businessAdminMenu, ...commonMenu];
+      return prefixMenuPaths([...businessAdminMenu, ...commonMenu]);
   }
 
   // 2. Get the base menu (Specified Role or Default Dynamic)
@@ -693,7 +807,7 @@ export const getSidebarMenu = (role: string, businessUnit: string) => {
     ))
   );
 
-  return [...uniqueMenu, ...commonMenu]
+  return prefixMenuPaths([...uniqueMenu, ...commonMenu]);
 }
 
 

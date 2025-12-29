@@ -45,17 +45,8 @@ export function SidebarItem({
   const hasChildren = item.children && item.children.length > 0
   const Icon = item.icon
 
-
-  let fullPath = '';
-  // Fallback to role-based routing for consistency
-  if (role === 'super-admin' && !businessUnit) {
-    fullPath = `/super-admin${item.path ? `/${item.path}` : ''}`;
-  } else {
-    // Always use /[role]/[unit]/[feature] pattern
-    const targetRole = role || 'super-admin';
-    fullPath = `/${targetRole}/${businessUnit}${item.path ? `/${item.path}` : ''}`;
-  }
-
+  // [FIX] Use the absolute path directly from sidebar-menu.ts
+  const fullPath = item.path || '#';
 
   const isActive = item.exact
     ? currentPath === fullPath
@@ -82,13 +73,8 @@ export function SidebarItem({
             <DropdownMenuLabel>{item.title}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {item.children.map((child: any, index: number) => {
-              let childFullPath = '';
-              if (role === 'super-admin' && !businessUnit) {
-                childFullPath = `/super-admin${child.path ? `/${child.path}` : ''}`;
-              } else {
-                const targetRole = role || 'super-admin';
-                childFullPath = `/${targetRole}/${businessUnit}${child.path ? `/${child.path}` : ''}`;
-              }
+              // [FIX] Use absolute child path directly
+              const childFullPath = child.path || '#';
               const isChildActive = currentPath === childFullPath
 
               return (
@@ -133,13 +119,8 @@ export function SidebarItem({
         <CollapsibleContent>
           <div className="ml-4 mt-1 space-y-1">
             {item.children.map((child: any, index: number) => {
-              let childFullPath = '';
-              if (role === 'super-admin' && !businessUnit) {
-                childFullPath = `/super-admin${child.path ? `/${child.path}` : ''}`;
-              } else {
-                const targetRole = role || 'super-admin';
-                childFullPath = `/${targetRole}/${businessUnit}${child.path ? `/${child.path}` : ''}`;
-              }
+              // [FIX] Use absolute child path directly
+              const childFullPath = child.path || '#';
               const isChildActive = currentPath === childFullPath
 
               return (

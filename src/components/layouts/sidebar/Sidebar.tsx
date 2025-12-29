@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { useParams, usePathname } from "next/navigation"
+import { useParams, usePathname, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { getSidebarMenu } from "@/config/sidebar-menu"
 import { Input } from "@/components/ui/input"
@@ -18,11 +18,11 @@ interface SidebarProps {
   className?: string
   onItemClick?: () => void
 }
-
 export function Sidebar({ className, onItemClick }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const params = useParams()
+  const searchParams = useSearchParams()
   const pathname = usePathname()
   const { user } = useAuth()
 
@@ -33,12 +33,30 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
   // Also handle "slug" array for [...slug] routes
   let businessUnit = (params["business-unit"] || params.businessUnit) as string
 
+  // RESERVED GLOBAL MODULES (Should not be treated as Business Units)
+  const RESERVED_PATHS = [
+    "user-management",
+    "finance",
+    "reports",
+    "support",
+    "system",
+    "logistics",
+    "risk",
+    "business-units",
+    "settings",
+    "profile"
+  ];
+
   // If we are in super-admin/[slug] route, extracting from slug or path
   if (!businessUnit && pathname.startsWith('/super-admin/')) {
     const segments = pathname.split('/');
     // /super-admin/nokhshangon -> ["", "super-admin", "nokhshangon"]
     if (segments.length > 2) {
-      businessUnit = segments[2];
+      const distinctSegment = segments[2];
+      // Only set if NOT a reserved global path
+      if (!RESERVED_PATHS.includes(distinctSegment)) {
+        businessUnit = distinctSegment;
+      }
     }
   }
 
@@ -50,21 +68,13 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
     } else if (businessUnit) {
       // Default to business-admin for now when inside a BU dashboard
       role = 'business-admin'
-      // BUT: If the user IS super-admin (from auth), we should check that too?
-      // Actually, Sidebar.tsx derives role from URL usually.
-      // If we are super-admin visiting a BU, we want role='super-admin' PASSED to getSidebarMenu,
-      // but getSidebarMenu handles context switching internally if businessUnit is passed.
-      // Wait, let's look at getSidebarMenu Logic:
-      // if (role === 'super-admin' && businessUnit) -> returns business-admin menu.
-
-      // So 'role' here MUST be 'super-admin' if the URL starts with /super-admin.
-      // My logic line 38 sets role = 'super-admin'.
-      // So if businessUnit is found, it will work.
     }
   }
 
+  // Resolve Outlet ID from Path or Query Params (for Context Persistence)
+  const outletId = (params.outletId as string) || searchParams.get('outlet');
 
-  const rawMenuItems = getSidebarMenu(role, businessUnit || "")
+  const rawMenuItems = getSidebarMenu(role, businessUnit || "", outletId as string)
 
 
 
@@ -85,24 +95,79 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
     // Flatten permissions from roles
     // Scoped Permissions Logic
     const currentUnitSlug = params["business-unit"] || params.businessUnit;
-    const currentUnitId = user.businessUnits?.find((u: any) => u.id === currentUnitSlug)?._id;
+    const currentUnitId = user.businessUnits?.find((u: any) => u.id === currentUnitSlug || u._id === currentUnitSlug)?._id; // Enhanced matching
+
+    console.log("SIDEBAR DEBUG:", {
+      currentUnitSlug,
+      currentUnitId,
+      userPermissions: user.permissions,
+      userRoles: user.roles,
+      userBUs: user.businessUnits
+    });
+
+    console.log("SIDEBAR ROLE DEBUG:", role);
 
     let aggregatedPermissions: any[] = [];
 
     if (user.permissions && Array.isArray(user.permissions) && user.permissions.length > 0) {
       // New Scoped RBAC
-      const scopedAssignments = user.permissions.filter((p: any) =>
-        p.scopeType === 'global' ||
-        (p.scopeType === 'business-unit' && p.scopeId === currentUnitId)
-      );
+      const scopedAssignments = user.permissions.filter((p: any) => {
+        // Global Assignment: No specific business unit or outlet assigned
+        const isGlobal = !p.businessUnit && !p.outlet;
 
-      aggregatedPermissions = scopedAssignments.flatMap((p: any) => p.role?.permissions || []);
+        // Scoped Assignment: Matches current business unit
+        // We compare ensuring both are strings or matching types
+        const isBUMatch = currentUnitId && p.businessUnit && (
+          String(p.businessUnit) === String(currentUnitId) ||
+          (typeof p.businessUnit === 'object' && String(p.businessUnit._id) === String(currentUnitId))
+        );
+
+        return isGlobal || isBUMatch;
+      });
+
+      console.log("Scoped Assignments:", scopedAssignments);
+
+      aggregatedPermissions = scopedAssignments.flatMap((p: any) => {
+        // Direct permissions from role
+        const directPerms = p.role?.permissions || [];
+
+        // Permissions from role's permission groups
+        const groupPerms = p.role?.permissionGroups?.flatMap((g: any) => {
+          // Handle both populated object and potential ID (though backend should populate now)
+          if (typeof g === 'object' && g.permissions) {
+            return g.permissions;
+          }
+          return [];
+        }) || [];
+
+        // Ensure we are working with arrays
+        const safeDirect = Array.isArray(directPerms) ? directPerms : [];
+        const safeGroup = Array.isArray(groupPerms) ? groupPerms : [];
+
+        return [...safeDirect, ...safeGroup];
+      });
+      console.log("SCOPED PERMISSIONS DEBUG:", { count: aggregatedPermissions.length, sample: aggregatedPermissions[0] });
     } else {
       // Fallback to Legacy Roles
       aggregatedPermissions = user.roles && Array.isArray(user.roles)
-        ? user.roles.flatMap((role: any) => role.permissions || [])
+        ? user.roles.flatMap((role: any) => {
+          const direct = role.permissions || [];
+          const groups = role.permissionGroups?.flatMap((g: any) => {
+            if (typeof g === 'object' && g.permissions) {
+              return g.permissions;
+            }
+            return [];
+          }) || [];
+
+          const safeDirect = Array.isArray(direct) ? direct : [];
+          const safeGroup = Array.isArray(groups) ? groups : [];
+
+          return [...safeDirect, ...safeGroup];
+        })
         : [];
     }
+
+    console.log("Aggregated Permissions:", aggregatedPermissions.length, aggregatedPermissions[0]);
 
     // Recursive filter function that returns new array
     const filterItems = (items: any[]): any[] => {

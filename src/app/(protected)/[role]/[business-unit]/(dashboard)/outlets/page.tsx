@@ -13,7 +13,8 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useDeleteOutletMutation, useGetOutletQuery } from "@/redux/api/outletApi";
+import { useDeleteOutletMutation, useGetOutletQuery, useGetOutletsQuery } from "@/redux/api/outletApi";
+import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
 import Swal from "sweetalert2";
 import { DataTable } from "@/components/shared/DataTable";
 import { DataPageLayout } from "@/components/shared/DataPageLayout";
@@ -44,7 +45,23 @@ export default function OutletListPage() {
 
     // RTK Query
     // Assuming backend supports filtering by businessUnit via query params
-    const { data: outletsResult, isLoading, refetch } = useGetOutletQuery({ businessUnit: businessUnit });
+    // 1. Resolve Slug to ID (Robustness)
+    const { data: bUnitsData } = useGetBusinessUnitsQuery(undefined);
+    const businessUnits = Array.isArray(bUnitsData) ? bUnitsData : (bUnitsData || []);
+
+    // Find matching BU
+    const matchedBU = businessUnits?.find((bu: any) =>
+        bu.id === businessUnit ||
+        bu._id === businessUnit ||
+        bu.slug === businessUnit
+    );
+
+    const resolveBuId = matchedBU?._id || matchedBU?.id || businessUnit;
+
+    const { data: outletsResult, isLoading, refetch } = useGetOutletsQuery(
+        { businessUnit: resolveBuId },
+        { skip: !resolveBuId } // Skip if no ID yet (though slug fallback exists)
+    );
     const [deleteOutlet] = useDeleteOutletMutation();
 
     // Handle data structure (support array or object with data/result property)
@@ -113,7 +130,7 @@ export default function OutletListPage() {
             ),
         },
         {
-            accessorKey: "location",
+            id: "location",
             header: "Location",
             cell: ({ row }) => (
                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -123,7 +140,7 @@ export default function OutletListPage() {
             ),
         },
         {
-            accessorKey: "contact",
+            id: "contact",
             header: "Contact",
             cell: ({ row }) => (
                 <div className="flex flex-col text-sm">
@@ -157,10 +174,12 @@ export default function OutletListPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            {/* Create edit page if needed, for now placeholder or use same New page with ID */}
-                            {/* <DropdownMenuItem onClick={() => router.push(`outlets/${row.original._id}/edit`)}>
-                                <Edit className="mr-2 h-4 w-4" /> Edit Outlet
-                            </DropdownMenuItem> */}
+                            <DropdownMenuItem onClick={() => router.push(`${pathname}/${row.original._id}`)}>
+                                <Store className="mr-2 h-4 w-4" /> Dashboard
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => router.push(`${pathname}/${row.original._id}/edit`)}>
+                                <Edit className="mr-2 h-4 w-4" /> Edit Details
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                                 className="text-destructive focus:text-destructive"
                                 onClick={() => handleDelete(row.original._id)}

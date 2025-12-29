@@ -91,7 +91,7 @@ export function OutletForm({ preSelectedSlug }: OutletFormProps) {
 
             const res: any = await createOutlet(payload).unwrap();
 
-            if (res?.success) {
+            if (res) {
                 Swal.fire({
                     icon: "success",
                     title: "Success",

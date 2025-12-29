@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter, usePathname } from "next/navigation";
-import { Bell, Search, Menu, Calculator, MonitorPlay } from "lucide-react";
+import { useParams, useRouter, usePathname, useSearchParams } from "next/navigation";
+import { Bell, Search, Menu, Calculator, MonitorPlay, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "./UserMenu";
@@ -16,6 +16,7 @@ import { NetworkStatus } from "@/components/shared/NetworkStatus";
 import { OpenRegisterModal } from "@/components/pos/OpenRegisterModal";
 import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
 import { CommandPalette } from "@/components/shared/CommandPalette";
+import { useGetOutletQuery } from "@/redux/api/outletApi";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -24,6 +25,7 @@ interface HeaderProps {
 
 export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
   const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname(); // Correct Next.js Hook
 
@@ -50,6 +52,10 @@ export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
 
   const [isOpenRegisterOpen, setIsOpenRegisterOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  // Determine Outlet Context
+  const outletId = searchParams.get('outlet');
+  const { data: outletData } = useGetOutletQuery(outletId, { skip: !outletId });
 
   // Fetch all units if Super Admin
   const isSuperAdmin = user?.roles?.includes('super-admin') || user?.isSuperAdmin;
@@ -141,6 +147,14 @@ export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
               currentRole={role}
               availableUnits={availableUnits}
             />
+
+            {/* Outlet Badge Indicator */}
+            {outletId && outletData && (
+              <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-full text-xs font-medium border border-primary/20 animate-in fade-in zoom-in-95 duration-200">
+                <MapPin className="h-3.5 w-3.5" />
+                <span>{outletData.name}</span>
+              </div>
+            )}
           </div>
 
           {/* Center: Search (POS Style) */}

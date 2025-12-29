@@ -9,13 +9,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CenteredLoading } from "@/components/shared/CenteredLoading";
 import { useLoadingStore } from "@/store/loadingStore";
 
 import { useUserRegisterMutation } from "@/redux/api/authApi";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 interface LoginModalProps {
     open?: boolean;
@@ -42,6 +41,8 @@ export default function LoginModal({ open = false, onOpenChange }: LoginModalPro
         password: "",
     });
 
+    const [error, setError] = useState<string | null>(null);
+
     // Always stay in login tab when at /auth/login
     useEffect(() => {
         if (isLoginPage) setActiveTab("login");
@@ -50,12 +51,14 @@ export default function LoginModal({ open = false, onOpenChange }: LoginModalPro
     // FORM INPUT HANDLER
     const handleChange = (e: any) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+        setError(null); // Clear error on input change
     };
 
     // FINAL SUBMIT HANDLER
     const handleSubmit = async (e: any) => {
         e.preventDefault();
         setIsLoading(true);
+        setError(null);
 
         try {
             let res;
@@ -85,6 +88,8 @@ export default function LoginModal({ open = false, onOpenChange }: LoginModalPro
                 password: formData.password,
             });
 
+            console.log('userrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr', res)
+
             if (!res?.success) {
                 throw new Error(res?.message || "Invalid credentials");
             }
@@ -92,8 +97,15 @@ export default function LoginModal({ open = false, onOpenChange }: LoginModalPro
                 throw new Error("Invalid response: Missing access token");
             }
 
+            if (res?.status !== "active") {
+                throw new Error(`This user is ${res?.status}`);
+            }
+
             // Show quick success toast
             toast.success("Logged in successfully!");
+
+
+
 
             // Activate global loading for navigation
             setLoading(true, "Loading dashboard...");
@@ -112,11 +124,8 @@ export default function LoginModal({ open = false, onOpenChange }: LoginModalPro
 
             // Global loading will clear when page loads
         } catch (err: any) {
-            Swal.fire({
-                icon: "error",
-                title: "Login failed",
-                text: err?.message || "Something went wrong",
-            });
+            console.error("Login Error:", err);
+            setError(err?.message || "Something went wrong");
             setIsLoading(false); // Only clear loading on error
             setLoading(false); // Clear global loading
         }
@@ -124,14 +133,7 @@ export default function LoginModal({ open = false, onOpenChange }: LoginModalPro
 
     return (
         <>
-            {/* Full screen loading overlay during login/navigation */}
-            {isLoading && (
-                <CenteredLoading
-                    fullScreen
-                    message={activeTab === "login" ? "Logging in..." : "Creating account..."}
-                    size="lg"
-                />
-            )}
+
 
             <Dialog open={isLoginPage ? true : open} onOpenChange={(o) => !isLoginPage && onOpenChange?.(o)}>
                 <DialogContent
@@ -149,7 +151,7 @@ export default function LoginModal({ open = false, onOpenChange }: LoginModalPro
                         </DialogDescription>
                     </DialogHeader>
 
-                    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+                    <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); setError(null); }} className="w-full">
                         <TabsList className="grid grid-cols-2">
                             <TabsTrigger value="login">Login</TabsTrigger>
                             <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -205,8 +207,21 @@ export default function LoginModal({ open = false, onOpenChange }: LoginModalPro
                                     </div>
                                 </div>
 
+                                {error && activeTab === "login" && (
+                                    <div className="text-destructive text-sm font-medium text-center p-2 bg-destructive/10 rounded-md border border-destructive/20">
+                                        {error}
+                                    </div>
+                                )}
+
                                 <Button disabled={isLoading} className="w-full">
-                                    {isLoading ? "Processing..." : "Login"}
+                                    {isLoading ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Processing...
+                                        </>
+                                    ) : (
+                                        "Login"
+                                    )}
                                 </Button>
                             </TabsContent>
 
@@ -217,8 +232,21 @@ export default function LoginModal({ open = false, onOpenChange }: LoginModalPro
                                 <Input name="email" type="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
                                 <Input name="password" type="password" placeholder="Password" value={formData.password} onChange={handleChange} required />
 
+                                {error && activeTab === "signup" && (
+                                    <div className="text-destructive text-sm font-medium text-center p-2 bg-destructive/10 rounded-md border border-destructive/20">
+                                        {error}
+                                    </div>
+                                )}
+
                                 <Button disabled={isLoading} className="w-full">
-                                    {isLoading ? "Processing..." : "Create Account"}
+                                    {isLoading ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Creating Account...
+                                        </>
+                                    ) : (
+                                        "Create Account"
+                                    )}
                                 </Button>
                             </TabsContent>
                         </form>
