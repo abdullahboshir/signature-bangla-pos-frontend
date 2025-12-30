@@ -26,14 +26,14 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit";
-import { useGetProductsQuery } from "@/redux/api/productApi";
-import { useGetAllUsersQuery } from "@/redux/api/userApi";
-import { useCreateOrderMutation } from "@/redux/api/orderApi";
-import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
-import { useGetOutletsQuery } from "@/redux/api/outletApi";
+import { useGetProductsQuery } from "@/redux/api/catalog/productApi";
+import { useGetAllUsersQuery } from "@/redux/api/iam/userApi";
+import { useCreateOrderMutation } from "@/redux/api/sales/orderApi";
+import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi";
+import { useGetOutletsQuery } from "@/redux/api/organization/outletApi";
 import { CreateOrderPayload } from "@/components/modules/sales/order.types";
 import { ReceiptTemplate } from "./ReceiptTemplate";
-import { useGetBusinessUnitSettingsQuery } from "@/redux/api/settingsApi";
+import { useGetBusinessUnitSettingsQuery } from "@/redux/api/system/settingsApi";
 
 // Reusing types is fine, or define locally if simple
 interface Product {
@@ -72,7 +72,7 @@ export default function POSInterface() {
     const router = useRouter();
     const { user } = useAuth();
     const { currentBusinessUnit: paramBusinessUnitObj } = useCurrentBusinessUnit();
-    const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
+    const { isSuperAdmin } = usePermissions();
 
     // SA Business Unit Selection
     const [selectedBusinessUnitId, setSelectedBusinessUnitId] = useState<string>("");
@@ -143,7 +143,7 @@ export default function POSInterface() {
         }
 
         return allUsers.filter((u: any) =>
-            u.roles?.some((r: any) => {
+            checkIsSuperAdmin(u) || u.roles?.some((r: any) => {
                 const roleName = typeof r === 'string' ? r : r.name;
                 return roleName === 'customer';
             })
@@ -536,3 +536,4 @@ export default function POSInterface() {
         </div>
     );
 }
+

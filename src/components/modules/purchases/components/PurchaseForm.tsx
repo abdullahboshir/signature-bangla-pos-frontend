@@ -22,9 +22,9 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PurchaseItemsField } from "./PurchaseItemsField";
-import { useGetSuppliersQuery } from "@/redux/api/supplierApi";
-import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
-import { useGetOutletsQuery } from "@/redux/api/outletApi";
+import { useGetSuppliersQuery } from "@/redux/api/contacts/supplierApi";
+import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi";
+import { useGetOutletsQuery } from "@/redux/api/organization/outletApi";
 import { useAuth } from "@/hooks/useAuth";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
@@ -477,3 +477,4 @@ export const PurchaseForm = ({
         </Form>
     );
 };
+

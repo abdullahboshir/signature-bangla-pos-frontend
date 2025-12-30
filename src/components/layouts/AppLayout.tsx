@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { DasboardHeader } from "./header/DasboardHeader";
+import DasboardHeader from "./header/DasboardHeader";
 import { Sidebar } from "./sidebar/Sidebar";
 import { SidebarFooter } from "./sidebar/SidebarFooter";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";

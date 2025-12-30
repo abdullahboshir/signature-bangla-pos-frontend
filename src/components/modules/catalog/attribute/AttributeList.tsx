@@ -18,7 +18,7 @@ import { StatCard } from "@/components/shared/StatCard";
 import { AutoFormModal } from "@/components/shared/AutoFormModal";
 import { TagInput } from "@/components/shared/TagInput";
 import { ColumnDef } from "@tanstack/react-table";
-import { useCreateAttributeMutation, useDeleteAttributeMutation, useGetAttributesQuery, useUpdateAttributeMutation } from "@/redux/api/attributeApi";
+import { useCreateAttributeMutation, useDeleteAttributeMutation, useGetAttributesQuery, useUpdateAttributeMutation } from "@/redux/api/catalog/attributeApi";
 import { toast } from "sonner";
 import { Controller } from "react-hook-form";
 import { useAuth } from "@/hooks/useAuth";
@@ -35,14 +35,14 @@ interface Attribute {
 }
 
 import { useParams } from "next/navigation";
-import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
+import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi";
 
 export const AttributeList = () => {
     const params = useParams();
     const paramBusinessUnit = params["business-unit"] as string;
     const { user } = useAuth();
     const { hasPermission } = usePermissions();
-    const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
+    const { isSuperAdmin } = usePermissions();
 
     // Attributes usually global. If businessUnit logic needed, can be added here.
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -330,3 +330,4 @@ export const AttributeList = () => {
         </>
     );
 }
+

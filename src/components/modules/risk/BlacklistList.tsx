@@ -8,7 +8,7 @@ import { usePermissions } from "@/hooks/usePermissions"
 import { PERMISSION_KEYS } from "@/config/permission-keys"
 import { ColumnDef } from "@tanstack/react-table"
 import { toast } from "sonner"
-import { useGetAllBlacklistEntriesQuery, useDeleteBlacklistEntryMutation } from "@/redux/api/riskApi"
+import { useGetAllBlacklistEntriesQuery, useDeleteBlacklistEntryMutation } from "@/redux/api/risk/riskApi"
 import { format } from "date-fns"
 
 export default function BlacklistList() {
@@ -96,3 +96,4 @@ export default function BlacklistList() {
         </Card>
     )
 }
+

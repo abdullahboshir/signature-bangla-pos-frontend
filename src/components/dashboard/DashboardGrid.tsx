@@ -9,14 +9,16 @@ import { TopProductsWidget } from "./widgets/TopProductsWidget"
 import { QuickActionsWidget } from "./widgets/QuickActionsWidget"
 import { useParams } from "next/navigation"
 import { TrendingUp, DollarSign, ShoppingCart, Users, Package, TrendingDown } from "lucide-react"
+import { useCurrentRole } from "@/hooks/useCurrentRole";
 
 interface DashboardGridProps {
   outletId?: string;
 }
 
-export function DashboardGrid({ outletId }: DashboardGridProps) {
+export function DashboardGrid() {
   const params = useParams()
-  const role = params.role as string
+  const { currentRole } = useCurrentRole();
+  const role = currentRole as string;
 
   // Mock data - Replace with actual API calls
   const stats = {

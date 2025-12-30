@@ -12,7 +12,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { useGetTaxsQuery, useDeleteTaxMutation, useCreateTaxMutation, useUpdateTaxMutation } from "@/redux/api/taxApi"; // Added update hook if exists?
+import { useGetTaxsQuery, useDeleteTaxMutation, useCreateTaxMutation, useUpdateTaxMutation } from "@/redux/api/finance/taxApi"; // Added update hook if exists?
 import { DataTable } from "@/components/shared/DataTable";
 import { DataPageLayout } from "@/components/shared/DataPageLayout";
 import { StatCard } from "@/components/shared/StatCard";
@@ -33,14 +33,14 @@ interface ITax {
 }
 
 import { useParams } from "next/navigation";
-import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
+import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi";
 
 export const TaxList = () => {
     const params = useParams();
     const paramBusinessUnit = params["business-unit"] as string;
     const { user } = useAuth();
     const { hasPermission } = usePermissions();
-    const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
+    const { isSuperAdmin } = usePermissions();
 
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [editingTax, setEditingTax] = useState<ITax | null>(null);
@@ -309,3 +309,4 @@ export const TaxList = () => {
         </>
     );
 }
+

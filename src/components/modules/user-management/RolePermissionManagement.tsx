@@ -41,7 +41,7 @@ import {
     useCreateRoleMutation,
     useUpdateRoleMutation,
     useDeleteRoleMutation
-} from "@/redux/api/roleApi";
+} from "@/redux/api/iam/roleApi";
 import { usePermissions } from "@/hooks/usePermissions";
 
 // Exported Types
@@ -1248,3 +1248,4 @@ export function RolePermissionManagement() {
         </div>
     );
 }
+

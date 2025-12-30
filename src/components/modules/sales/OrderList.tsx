@@ -16,7 +16,7 @@ import {
     TabsTrigger,
 } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { useGetOrdersQuery, useUpdateOrderMutation } from "@/redux/api/orderApi";
+import { useGetOrdersQuery, useUpdateOrderMutation } from "@/redux/api/sales/orderApi";
 import { IOrder } from "./order.types";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -64,7 +64,7 @@ export default function OrderList({ initialTab = "all" }: OrderListProps) {
     const { user } = useAuth();
     const params = useParams();
     const paramBusinessUnit = params?.["business-unit"] as string;
-    const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
+    const { isSuperAdmin } = usePermissions();
     const { hasPermission } = usePermissions();
 
     // Filter by Business Unit
@@ -346,3 +346,4 @@ export default function OrderList({ initialTab = "all" }: OrderListProps) {
         </>
     );
 }
+

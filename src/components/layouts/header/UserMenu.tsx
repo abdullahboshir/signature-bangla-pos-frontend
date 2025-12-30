@@ -130,7 +130,7 @@ export function UserMenu({ user }: UserMenuProps) {
 
         {roleStr === "super-admin" && (
           <DropdownMenuItem asChild className="cursor-pointer">
-            <Link href="/super-admin">
+            <Link href="/global">
               <Shield className="mr-2 h-4 w-4" />
               <span>Admin Panel</span>
             </Link>

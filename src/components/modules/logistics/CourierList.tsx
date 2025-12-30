@@ -10,7 +10,7 @@ import { Plus, Truck, Settings } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
 import { PERMISSION_KEYS } from "@/config/permission-keys"
 import { ColumnDef } from "@tanstack/react-table"
-import { useGetAllCouriersQuery } from "@/redux/api/logisticsApi"
+import { useGetAllCouriersQuery } from "@/redux/api/logistics/logisticsApi"
 import { Badge } from "@/components/ui/badge"
 
 export default function CourierList() {
@@ -102,3 +102,4 @@ export default function CourierList() {
         </>
     )
 }
+

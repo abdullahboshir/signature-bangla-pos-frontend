@@ -25,9 +25,9 @@ import {
     useCreateUserMutation,
     useUpdateUserMutation,
     useDeleteUserMutation
-} from "@/redux/api/userApi"
-import { useGetRolesQuery } from "@/redux/api/roleApi"
-import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi"
+} from "@/redux/api/iam/userApi"
+import { useGetRolesQuery } from "@/redux/api/iam/roleApi"
+import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi"
 import { useParams } from "next/navigation"
 import { usePermissions } from "@/hooks/usePermissions"
 import { PERMISSION_KEYS } from "@/config/permission-keys"
@@ -37,11 +37,9 @@ export const CustomerList = () => {
     const { user: currentUser } = useAuth();
     const params = useParams();
     const paramBusinessUnit = params?.["business-unit"] as string;
-    const isSuperAdmin = currentUser?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
-
+    const { hasPermission, isSuperAdmin } = usePermissions();
     const { currentBusinessUnit: contextBusinessUnit } = useCurrentBusinessUnit();
     const effectiveBusinessUnitId = isSuperAdmin ? undefined : (contextBusinessUnit?._id || contextBusinessUnit?.id);
-    const { hasPermission } = usePermissions();
 
     // RTK Query Hooks
     const { data: usersData, isLoading: isUsersLoading } = useGetAllUsersQuery({})
@@ -360,3 +358,4 @@ export const CustomerList = () => {
         </DataPageLayout>
     );
 }
+

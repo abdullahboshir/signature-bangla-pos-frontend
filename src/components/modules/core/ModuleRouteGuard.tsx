@@ -1,7 +1,7 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { useGetSystemSettingsQuery } from "@/redux/api/settingsApi"
+import { useGetSystemSettingsQuery } from "@/redux/api/system/settingsApi"
 import { ReactNode } from "react"
 import { ShieldAlert } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -81,3 +81,4 @@ export function ModuleRouteGuard({ children }: { children: ReactNode }) {
 
     return <>{children}</>;
 }
+

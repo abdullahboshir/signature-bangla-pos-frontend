@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { usePermissions } from "@/hooks/usePermissions";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -12,9 +13,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "sonner";
-import { useCreateUserMutation } from "@/redux/api/userApi";
-import { useGetRolesQuery } from "@/redux/api/roleApi";
-import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
+import { useCreateUserMutation } from "@/redux/api/iam/userApi";
+import { useGetRolesQuery } from "@/redux/api/iam/roleApi";
+import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi";
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit";
 import { DataPageLayout } from "@/components/shared/DataPageLayout";
@@ -35,7 +36,7 @@ export default function AddUserForm() {
     const params = useParams();
     const { user: currentUser } = useAuth();
     const { currentBusinessUnit } = useCurrentBusinessUnit();
-    const isSuperAdmin = currentUser?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
+    const { isSuperAdmin } = usePermissions();
 
     const [createUser, { isLoading }] = useCreateUserMutation();
     const { data: rawRoles = [] } = useGetRolesQuery({});
@@ -264,3 +265,4 @@ export default function AddUserForm() {
         </DataPageLayout>
     );
 }
+

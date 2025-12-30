@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
+import { checkIsSuperAdmin } from "@/lib/iam/permissions";
 
 interface SuperAdminGuardProps {
     children: React.ReactNode;
@@ -15,9 +16,7 @@ export function SuperAdminGuard({ children }: SuperAdminGuardProps) {
 
     useEffect(() => {
         if (!isLoading && user) {
-            const isSuperAdmin = user.roles?.some((r: any) =>
-                (typeof r === 'string' ? r : r.name) === 'super-admin'
-            );
+            const isSuperAdmin = checkIsSuperAdmin(user);
 
             if (!isSuperAdmin) {
                 // Not authorized, redirect to home or login
@@ -39,9 +38,7 @@ export function SuperAdminGuard({ children }: SuperAdminGuardProps) {
     }
 
     // Check again for render safety (optional but good for strictness)
-    const isSuperAdmin = user?.roles?.some((r: any) =>
-        (typeof r === 'string' ? r : r.name) === 'super-admin'
-    );
+    const isSuperAdmin = checkIsSuperAdmin(user);
 
     if (!user || !isSuperAdmin) {
         return null; // Don't render children while redirecting

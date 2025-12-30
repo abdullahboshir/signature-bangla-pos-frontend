@@ -7,26 +7,28 @@ import { defaultProductValues, productSchema, ProductFormValues } from "../produ
 
 import { 
     useGetCategoriesQuery, 
-} from "@/redux/api/categoryApi";
-import { useGetSubCategoriesQuery } from "@/redux/api/subCategoryApi";
-import { useGetChildCategoriesQuery } from "@/redux/api/childCategoryApi";
-import { useGetBrandsQuery } from "@/redux/api/brandApi";
-import { useGetUnitsQuery } from "@/redux/api/unitApi";
-import { useGetTaxsQuery } from "@/redux/api/taxApi";
+} from "@/redux/api/catalog/categoryApi";
+
+import { useGetBrandsQuery } from "@/redux/api/catalog/brandApi";
+import { useGetUnitsQuery } from "@/redux/api/catalog/unitApi";
+import { useGetTaxsQuery } from "@/redux/api/finance/taxApi";
 import { 
     useCreateProductMutation, 
     useUpdateProductMutation, 
     useGetProductQuery,
-} from "@/redux/api/productApi";
-import { useUploadFileMutation } from "@/redux/api/uploadApi";
+} from "@/redux/api/catalog/productApi";
+import { useUploadFileMutation } from "@/redux/api/system/uploadApi";
 import { useAuth } from "@/hooks/useAuth";
-import { useGetBusinessUnitsQuery, useGetBusinessUnitByIdQuery } from "@/redux/api/businessUnitApi";
-import { useGetAttributeGroupQuery } from "@/redux/api/attributeGroupApi";
+import { useGetBusinessUnitsQuery, useGetBusinessUnitByIdQuery } from "@/redux/api/organization/businessUnitApi";
+import { useGetAttributeGroupQuery } from "@/redux/api/catalog/attributeGroupApi";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useCurrentRole } from "@/hooks/useCurrentRole";
 
 export const useProductForm = (initialData?: any) => {
     const router = useRouter();
     const params = useParams();
-    const role = params.role as string;
+    const { currentRole } = useCurrentRole();
+    const role = currentRole as string;
     const businessUnit = params["business-unit"] as string;
     // productId is now derived from initialData if available, or params
     const productId = (initialData?._id || params["id"]) as string;
@@ -44,15 +46,7 @@ export const useProductForm = (initialData?: any) => {
         ...(effectiveBusinessUnitId && effectiveBusinessUnitId !== 'global' ? { businessUnit: effectiveBusinessUnitId } : {})
     });
     
-    const { data: subCats = [], isLoading: isSubCatsLoading, isSuccess: isSubCatsSuccess } = useGetSubCategoriesQuery(
-        { limit: 5000 }, 
-        { skip: !isCatsSuccess }
-    );
-    
-    const { data: childCats = [], isLoading: isChildCatsLoading, isSuccess: isChildCatsSuccess } = useGetChildCategoriesQuery(
-        { limit: 5000 }, 
-        { skip: !isSubCatsSuccess }
-    );
+
 
     const { data: brands = [], isLoading: isBrandsLoading, isSuccess: isBrandsSuccess } = useGetBrandsQuery({ limit: 1000 });
     const { data: units = [], isLoading: isUnitsLoading, isSuccess: isUnitsSuccess } = useGetUnitsQuery({ limit: 1000 });
@@ -66,7 +60,7 @@ export const useProductForm = (initialData?: any) => {
     );
 
     // Wait until ALL required data is successfully fetched
-    const isRefDataLoading = !isCatsSuccess || !isSubCatsSuccess || !isChildCatsSuccess || !isBrandsSuccess || !isUnitsSuccess;
+    const isRefDataLoading = !isCatsSuccess || !isBrandsSuccess || !isUnitsSuccess;
 
     // Fetch Attribute Group Data
     // We need to resolve the business unit ID first.
@@ -152,8 +146,6 @@ export const useProductForm = (initialData?: any) => {
     const [uploadFile, { isLoading: isUploadingImage }] = useUploadFileMutation();
 
     const [level1, setLevel1] = useState<string>("");
-    const [level2, setLevel2] = useState<string>("");
-    const [level3, setLevel3] = useState<string>("");
 
     const isLoading = isCreating || isUpdating; // Removed isProductLoading since we pass data
     const isUploading = isUploadingImage;
@@ -202,114 +194,11 @@ export const useProductForm = (initialData?: any) => {
     }, [units, initialData]);
 
 
-    // Smart Build Categories
+    // Simplified Categories (Just return roots or flat list depending on need, for now just cats)
     const categories = useMemo(() => {
         if (isRefDataLoading) return []; 
-        
-        console.log("DEBUG: Building Tree - Layered Approach");
-
-        const getSafeId = (item: any) => {
-            if (!item) return "";
-            if (typeof item === 'string') return item.trim();
-            return String(item._id || item.id || "").trim();
-        };
-
-        // 1. Initialize Roots Map
-        const rootMap = new Map();
-        cats.forEach((c: any) => {
-            const id = getSafeId(c);
-            rootMap.set(id, { ...c, children: [] });
-        });
-
-        // 2. Process SubCategories
-        const subMap = new Map();
-        subCats.forEach((s: any) => {
-            const sId = getSafeId(s);
-            const subNode = { ...s, children: [] };
-            subMap.set(sId, subNode);
-
-            // Link to Root
-            const parentId = getSafeId(s.category);
-            if (parentId && rootMap.has(parentId)) {
-                rootMap.get(parentId).children.push(subNode);
-            }
-        });
-
-        // 3. Process ChildCategories
-        console.log(`DEBUG: Processing ${childCats.length} ChildCategories. SubCats Count: ${subCats.length}`);
-        if (childCats.length > 0) console.log("DEBUG: Sample ChildCat:", childCats[0]);
-        if (subCats.length > 0) console.log("DEBUG: Sample SubCat:", subCats[0]);
-
-        childCats.forEach((ch: any) => {
-            const childNode = { ...ch, children: [] }; // Children of Child is empty
-
-            // Link to SubCategory
-            const parentId = getSafeId(ch.subCategory);
-            if (parentId && subMap.has(parentId)) {
-                subMap.get(parentId).children.push(childNode);
-            } else {
-                 if (childCats.length < 50) {
-                     console.warn(`DEBUG: Orphan ChildCategory: '${ch.name}' ParentID: '${parentId}' foundInSubMap: ${subMap.has(parentId)}`);
-                 }
-            }
-        });
-
-        // 4. Handle Initial Data Injection (if missing from fetched lists)
-        if (initialData) {
-            // Helper to inject correct layer
-            const inject = (item: any, type: 'root' | 'sub' | 'child') => {
-                 if (!item || typeof item !== 'object') return;
-                 const id = getSafeId(item);
-                 
-                 if (type === 'root') {
-                     if (!rootMap.has(id)) {
-                         rootMap.set(id, { ...item, children: [] });
-                     }
-                 }
-                 else if (type === 'sub') {
-                     if (!subMap.has(id)) {
-                         const subNode = { ...item, children: [] };
-                         subMap.set(id, subNode);
-                         // Try to link to parent if exists
-                         const pId = getSafeId(item.category);
-                         if (pId && rootMap.has(pId)) {
-                             rootMap.get(pId).children.push(subNode);
-                         }
-                     }
-                 }
-                 else if (type === 'child') {
-                      // We don't track childMap, just link to sub
-                      const pId = getSafeId(item.subCategory);
-                      if (pId && subMap.has(pId)) {
-                          // Check if already added
-                           const parent = subMap.get(pId);
-                           if (!parent.children.find((x: any) => getSafeId(x) === id)) {
-                               parent.children.push({ ...item, children: [] });
-                           }
-                      }
-                 }
-            };
-
-            inject(initialData.primaryCategory || initialData.category, 'root');
-            inject(initialData.subCategory, 'sub');
-            inject(initialData.childCategory, 'child');
-        }
-
-        const roots = Array.from(rootMap.values());
-        console.log(`DEBUG: Layered Tree Built -> Roots: ${roots.length}`);
-        
-        // Diagnostic sample
-        const sampleRoot = roots.find((r: any) => r.children.length > 0);
-        if (sampleRoot) {
-            console.log(`DEBUG: Sample Root '${sampleRoot.name}' has ${sampleRoot.children.length} subcats`);
-            const sampleSub = sampleRoot.children.find((s: any) => s.children.length > 0);
-             if (sampleSub) {
-                 console.log(`DEBUG: Sample Sub '${sampleSub.name}' has ${sampleSub.children.length} childcats`);
-             }
-        }
-        
-        return roots;
-    }, [cats, subCats, childCats, isRefDataLoading, initialData]);
+        return cats;
+    }, [cats, isRefDataLoading]);
 
 
     // Populate Form when initialData is provided
@@ -323,24 +212,18 @@ export const useProductForm = (initialData?: any) => {
             };
 
             const pCat = getId(initialData.primaryCategory || initialData.category);
-            const sCat = getId(initialData.subCategory);
-            const cCat = getId(initialData.childCategory);
             const unitVal = getId(initialData.unit);
             const businessUnitVal = getId(initialData.businessUnit);
-            
             const brandsVal = initialData.brands?.map((b: any) => getId(b)) || [];
 
             console.log("DEBUG: Form Initialization IDs ->", { 
-                pCat, sCat, cCat, unitVal, businessUnitVal, brandsVal,
+                pCat, unitVal, businessUnitVal, brandsVal,
                 pCatType: typeof pCat, 
-                sCatType: typeof sCat,
                 hasBrands: brandsVal.length 
             });
 
             // Set Local State for UI Cascading
             if (pCat) setLevel1(pCat);
-            if (sCat) setLevel2(sCat);
-            if (cCat) setLevel3(cCat);
 
             // Transform Variants
             const rawVariants = initialData.variants || initialData.variantTemplate?.variants || [];
@@ -394,10 +277,9 @@ export const useProductForm = (initialData?: any) => {
                 unit: unitVal,
                 
                 primaryCategory: pCat,
-                subCategory: sCat,
-                childCategory: cCat,
                 
-                brands: initialData.brands?.map((b: any) => getId(b)) || [],
+                brands: brandsVal,
+                images: initialData.details?.images || [],
                 tags: initialData.tags || [],
                 tagsBangla: initialData.tagsBangla || [],
                 
@@ -457,12 +339,12 @@ export const useProductForm = (initialData?: any) => {
                 variants: transformedVariants,
                 hasVariants: (transformedVariants.length > 0 || initialData.hasVariants || false),
                 isBundle: initialData.isBundle || false,
-                categories: [pCat, sCat, cCat].filter(Boolean), 
+                categories: [pCat].filter(Boolean), 
                 warranty: initialData.warranty || defaultProductValues.warranty,
             };    
             
             // Hard Reset to ensure defaultValues are replaced
-            console.log("DEBUG: executing form.reset()", { pCat, sCat, cCat });
+            console.log("DEBUG: executing form.reset()", { pCat });
             form.reset(formValues);
 
             // Removed harmful setTimeout that was overwriting values
@@ -602,7 +484,7 @@ export const useProductForm = (initialData?: any) => {
 
             // Cleanup payload: Remove empty strings for optional ObjectId fields
             // This prevents "Invalid ObjectId" errors if backend sanitation fails or Zod validation handles strict strings.
-            const optionalObjectIds = ['childCategory', 'subCategory', 'primaryCategory', 'unit', 'outlet'];
+            const optionalObjectIds = ['primaryCategory', 'unit', 'outlet'];
             optionalObjectIds.forEach(field => {
                 if (payload[field] === "") {
                     delete payload[field];
@@ -645,8 +527,6 @@ export const useProductForm = (initialData?: any) => {
         units: mergedUnits,
         businessUnits: busUnits, // Return businessUnits
         level1, setLevel1,
-        level2, setLevel2,
-        level3, setLevel3,
         handleImageUpload,
         removeImage,
         appendImage,

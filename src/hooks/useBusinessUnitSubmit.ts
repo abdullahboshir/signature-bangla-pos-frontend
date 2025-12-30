@@ -1,6 +1,7 @@
 import { useParams } from "next/navigation";
-import { useAuth } from "./useAuth";
-import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
+import { useAuth } from "@/hooks/useAuth";
+import { checkIsSuperAdmin } from "@/lib/iam/permissions";
+import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi";
 
 /**
  * Hook for handling Business Unit logic in CRUD forms
@@ -22,9 +23,7 @@ export const useBusinessUnitSubmit = () => {
   const { user } = useAuth();
   const { data: businessUnits = [] } = useGetBusinessUnitsQuery({ limit: 0 });
 
-  const isSuperAdmin = user?.roles?.some(
-    (r: any) => (typeof r === "string" ? r : r.name) === "super-admin"
-  );
+  const isSuperAdmin = checkIsSuperAdmin(user);
   const paramBusinessUnit = params["business-unit"] as string;
 
   /**
@@ -129,3 +128,4 @@ export const useBusinessUnitSubmit = () => {
     businessUnits,
   };
 };
+

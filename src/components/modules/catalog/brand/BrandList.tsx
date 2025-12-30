@@ -21,9 +21,9 @@ import { DataPageLayout } from "@/components/shared/DataPageLayout";
 import { StatCard } from "@/components/shared/StatCard";
 import { AutoFormModal } from "@/components/shared/AutoFormModal";
 
-import { useCreateBrandMutation, useDeleteBrandMutation, useGetBrandsQuery, useUpdateBrandMutation } from "@/redux/api/brandApi";
+import { useCreateBrandMutation, useDeleteBrandMutation, useGetBrandsQuery, useUpdateBrandMutation } from "@/redux/api/catalog/brandApi";
 import { useAuth } from "@/hooks/useAuth";
-import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
+import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSION_KEYS } from "@/config/permission-keys";
 
@@ -42,7 +42,7 @@ export const BrandList = () => {
     const paramBusinessUnit = params["business-unit"] as string;
     const { user } = useAuth();
     const { hasPermission } = usePermissions();
-    const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
+    const { isSuperAdmin } = usePermissions();
 
     const businessUnit = isSuperAdmin ? undefined : paramBusinessUnit;
 
@@ -311,3 +311,4 @@ export const BrandList = () => {
         </>
     );
 }
+

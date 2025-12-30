@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
-import { useGetOutletsQuery } from "@/redux/api/outletApi";
+import { useGetOutletsQuery } from "@/redux/api/organization/outletApi";
 import { useState, useEffect } from "react";
 import { Store } from "lucide-react";
 
@@ -50,9 +50,8 @@ export function BusinessUnitSwitcher({ currentBusinessUnit, currentRole, availab
 
       // Redirect
       const targetSlug = unit.slug || unit.id;
-      const targetRole = currentRole || 'business-admin'; // Fallback
-
-      router.push(`/${targetRole}/${targetSlug}`);
+      // [UPDATED] Removed role prefix
+      router.push(`/${targetSlug}/overview`);
     }
   };
 

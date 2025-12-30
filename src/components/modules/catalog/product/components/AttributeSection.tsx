@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VariantGenerator } from "./VariantGenerator";
 import { ProductFormValues } from "../product.schema";
-import { useUploadFileMutation } from "@/redux/api/uploadApi";
+import { useUploadFileMutation } from "@/redux/api/system/uploadApi";
 import { getImageUrl } from "@/lib/utils";
 import { ImagePreview } from "./ImagePreview";
 
@@ -265,3 +265,4 @@ export const AttributeSection = ({ form, variantFields, appendVariant, removeVar
         </Card>
     );
 };
+

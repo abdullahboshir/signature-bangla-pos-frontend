@@ -1,0 +1,139 @@
+.next/types/validator.ts(24,44): error TS2344: Type 'Route' does not satisfy the constraint 'LayoutRoutes'.
+  Type 'import("E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/.next/types/routes").LayoutRoutes' is not assignable to type 'import("E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/.next/dev/types/routes").LayoutRoutes'.
+    Type '"/super-admin"' is not assignable to type 'LayoutRoutes'.
+.next/types/validator.ts(24,75): error TS2344: Type 'Route' does not satisfy the constraint 'LayoutRoutes'.
+  Type 'import("E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/.next/types/routes").LayoutRoutes' is not assignable to type 'import("E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/.next/dev/types/routes").LayoutRoutes'.
+    Type '"/super-admin"' is not assignable to type 'LayoutRoutes'.
+.next/types/validator.ts(393,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/catalog/attribute/page.js' or its corresponding type declarations.
+.next/types/validator.ts(402,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/catalog/brand/[id]/edit/page.js' or its corresponding type declarations.
+.next/types/validator.ts(411,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/catalog/brand/add/page.js' or its corresponding type declarations.
+.next/types/validator.ts(420,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/catalog/brand/page.js' or its corresponding type declarations.
+.next/types/validator.ts(429,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/catalog/category/page.js' or its corresponding type declarations.
+.next/types/validator.ts(438,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/catalog/child-category/page.js' or its corresponding type declarations.
+.next/types/validator.ts(447,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/catalog/product/add/page.js' or its corresponding type declarations.
+.next/types/validator.ts(456,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/catalog/product/edit/[id]/page.js' or its corresponding type declarations.
+.next/types/validator.ts(465,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/catalog/product/page.js' or its corresponding type declarations.
+.next/types/validator.ts(474,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/catalog/sub-category/page.js' or its corresponding type declarations.
+.next/types/validator.ts(483,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/catalog/tax/[id]/edit/page.js' or its corresponding type declarations.
+.next/types/validator.ts(492,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/catalog/tax/add/page.js' or its corresponding type declarations.
+.next/types/validator.ts(501,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/catalog/tax/page.js' or its corresponding type declarations.
+.next/types/validator.ts(510,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/catalog/unit/[id]/edit/page.js' or its corresponding type declarations.
+.next/types/validator.ts(519,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/catalog/unit/add/page.js' or its corresponding type declarations.
+.next/types/validator.ts(528,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/catalog/unit/page.js' or its corresponding type declarations.
+.next/types/validator.ts(537,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/inventory/purchase/create/page.js' or its corresponding type declarations.
+.next/types/validator.ts(546,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/inventory/purchase/page.js' or its corresponding type declarations.
+.next/types/validator.ts(555,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/online-store/pages/page.js' or its corresponding type declarations.
+.next/types/validator.ts(564,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/online-store/settings/page.js' or its corresponding type declarations.
+.next/types/validator.ts(573,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/online-store/ui-builder/page.js' or its corresponding type declarations.
+.next/types/validator.ts(618,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/analytics/page.js' or its corresponding type declarations.
+.next/types/validator.ts(627,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/business-units/new/page.js' or its corresponding type declarations.
+.next/types/validator.ts(636,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/business-units/page.js' or its corresponding type declarations.
+.next/types/validator.ts(645,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/catalog/attribute-groups/[id]/page.js' or its corresponding type declarations.
+.next/types/validator.ts(654,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/catalog/attribute-groups/new/page.js' or its corresponding type declarations.
+.next/types/validator.ts(663,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/catalog/attribute-groups/page.js' or its corresponding type declarations.
+.next/types/validator.ts(672,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/catalog/attribute/page.js' or its corresponding type declarations.
+.next/types/validator.ts(681,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/catalog/brand/page.js' or its corresponding type declarations.
+.next/types/validator.ts(690,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/catalog/category/page.js' or its corresponding type declarations.
+.next/types/validator.ts(699,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/catalog/child-category/page.js' or its corresponding type declarations.
+.next/types/validator.ts(708,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/catalog/product/add/page.js' or its corresponding type declarations.
+.next/types/validator.ts(717,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/catalog/product/edit/[id]/page.js' or its corresponding type declarations.
+.next/types/validator.ts(726,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/catalog/product/page.js' or its corresponding type declarations.
+.next/types/validator.ts(735,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/catalog/sub-category/page.js' or its corresponding type declarations.
+.next/types/validator.ts(744,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/catalog/tax/page.js' or its corresponding type declarations.
+.next/types/validator.ts(753,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/catalog/unit/page.js' or its corresponding type declarations.
+.next/types/validator.ts(762,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/customers/page.js' or its corresponding type declarations.
+.next/types/validator.ts(771,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/financial/page.js' or its corresponding type declarations.
+.next/types/validator.ts(780,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/inventory/page.js' or its corresponding type declarations.
+.next/types/validator.ts(789,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/outlets/new/page.js' or its corresponding type declarations.
+.next/types/validator.ts(798,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/outlets/page.js' or its corresponding type declarations.
+.next/types/validator.ts(807,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/page.js' or its corresponding type declarations.
+.next/types/validator.ts(816,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/pos/page.js' or its corresponding type declarations.
+.next/types/validator.ts(825,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/purchases/page.js' or its corresponding type declarations.
+.next/types/validator.ts(834,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/reports/page.js' or its corresponding type declarations.
+.next/types/validator.ts(843,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/roles/page.js' or its corresponding type declarations.
+.next/types/validator.ts(852,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/sales/create/page.js' or its corresponding type declarations.
+.next/types/validator.ts(861,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/sales/page.js' or its corresponding type declarations.
+.next/types/validator.ts(870,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/settings/page.js' or its corresponding type declarations.
+.next/types/validator.ts(879,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/suppliers/page.js' or its corresponding type declarations.
+.next/types/validator.ts(888,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/user-management/add-user/page.js' or its corresponding type declarations.
+.next/types/validator.ts(897,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/user-management/all-users/page.js' or its corresponding type declarations.
+.next/types/validator.ts(906,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/user-management/page.js' or its corresponding type declarations.
+.next/types/validator.ts(915,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/user-management/roles-permissions/page.js' or its corresponding type declarations.
+.next/types/validator.ts(1011,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/catalog/layout.js' or its corresponding type declarations.
+.next/types/validator.ts(1029,39): error TS2307: Cannot find module '../../src/app/(protected)/[role]/[business-unit]/online-store/layout.js' or its corresponding type declarations.
+.next/types/validator.ts(1065,39): error TS2307: Cannot find module '../../src/app/(protected)/super-admin/layout.js' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/business-units/[id]/edit/page.tsx(33,76): error TS2307: Cannot find module '@/redux/api/businessUnitApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/business-units/[id]/edit/page.tsx(34,44): error TS2307: Cannot find module '@/redux/api/attributeGroupApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/business-units/[id]/page.tsx(10,45): error TS2307: Cannot find module '@/redux/api/businessUnitApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/business-units/new/page.tsx(13,47): error TS2307: Cannot find module '@/redux/api/businessUnitApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/business-units/page.tsx(16,73): error TS2307: Cannot find module '@/redux/api/businessUnitApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/business-units/page.tsx(91,40): error TS7006: Parameter 'u' implicitly has an 'any' type.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/business-units/page.tsx(98,57): error TS7006: Parameter 'u' implicitly has an 'any' type.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/business-units/page.tsx(99,59): error TS7006: Parameter 'u' implicitly has an 'any' type.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/business-units/page.tsx(209,53): error TS7006: Parameter 'u' implicitly has an 'any' type.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/business-units/page.tsx(214,53): error TS7006: Parameter 'u' implicitly has an 'any' type.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/catalog/attribute-groups/page.tsx(1,10): error TS2614: Module '"@/components/modules/catalog/attribute/AttributeGroupList"' has no exported member 'AttributeGroupList'. Did you mean to use 'import AttributeGroupList from "@/components/modules/catalog/attribute/AttributeGroupList"' instead?
+src/app/(protected)/[role]/[business-unit]/(dashboard)/contacts/customer/page.tsx(10,37): error TS2307: Cannot find module '@/redux/api/userApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/inventory/adjustments/new/page.tsx(7,45): error TS2307: Cannot find module '@/redux/api/inventoryApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/inventory/adjustments/new/page.tsx(8,37): error TS2307: Cannot find module '@/redux/api/productApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/inventory/adjustments/new/page.tsx(9,35): error TS2307: Cannot find module '@/redux/api/outletApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/inventory/ledger/page.tsx(3,35): error TS2307: Cannot find module '@/redux/api/inventoryApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/outlets/[outletId]/page.tsx(6,40): error TS2307: Cannot find module '@/redux/api/outletApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/outlets/page.tsx(16,80): error TS2307: Cannot find module '@/redux/api/outletApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/outlets/page.tsx(17,42): error TS2307: Cannot find module '@/redux/api/businessUnitApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/overview/page.tsx(8,36): error TS2307: Cannot find module '@/redux/api/outletApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/overview/page.tsx(9,84): error TS2307: Cannot find module '@/redux/api/businessUnitApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/page.tsx(7,35): error TS2307: Cannot find module '@/redux/api/outletApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/purchases/[id]/edit/page.tsx(3,64): error TS2307: Cannot find module '@/redux/api/purchaseApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/purchases/[id]/edit/page.tsx(8,42): error TS2307: Cannot find module '@/redux/api/businessUnitApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/purchases/_components/PurchaseItemsField.tsx(8,37): error TS2307: Cannot find module '@/redux/api/productApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/purchases/create/page.tsx(5,43): error TS2307: Cannot find module '@/redux/api/purchaseApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/purchases/create/page.tsx(6,42): error TS2307: Cannot find module '@/redux/api/businessUnitApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/user-management/add-user/page.tsx(13,34): error TS2307: Cannot find module '@/redux/api/roleApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/user-management/add-user/page.tsx(14,39): error TS2307: Cannot find module '@/redux/api/userApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/user-management/add-user/page.tsx(15,42): error TS2307: Cannot find module '@/redux/api/businessUnitApi' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/user-management/add-user/page.tsx(16,35): error TS2307: Cannot find module '@/redux/api/outletApi' or its corresponding type declarations.
+src/app/(protected)/[role]/inventory/purchase/[id]/edit/page.tsx(3,64): error TS2307: Cannot find module '@/redux/api/purchaseApi' or its corresponding type declarations.
+src/app/(protected)/[role]/inventory/purchase/[id]/edit/page.tsx(8,42): error TS2307: Cannot find module '@/redux/api/businessUnitApi' or its corresponding type declarations.
+src/app/(protected)/[role]/inventory/purchase/create/page.tsx(4,43): error TS2307: Cannot find module '@/redux/api/purchaseApi' or its corresponding type declarations.
+src/app/(protected)/[role]/inventory/purchase/create/page.tsx(5,42): error TS2307: Cannot find module '@/redux/api/businessUnitApi' or its corresponding type declarations.
+src/app/(protected)/[role]/page.tsx(4,43): error TS2307: Cannot find module '@/redux/api/adminApi' or its corresponding type declarations.
+src/app/(public)/shop/[businessUnitId]/[...slug]/StorefrontPageClient.tsx(4,62): error TS2307: Cannot find module '@/redux/api/storefrontApi' or its corresponding type declarations.
+src/components/data-display/table-cells/ActionCell.tsx(38,7): error TS2322: Type '{ label: string; icon: ReactNode; onClick: (item: T) => void; }[]' is not assignable to type 'CustomAction[]'.
+  Property 'id' is missing in type '{ label: string; icon: ReactNode; onClick: (item: T) => void; }' but required in type 'CustomAction'.
+src/components/data-display/table-cells/DateCell.tsx(76,7): error TS2741: Property 'custom' is missing in type '{ local: number; utc: number; 'asia/dhaka': number; }' but required in type 'Record<TimezoneType, number>'.
+src/components/data-display/tables/TableConfig.tsx(154,3): error TS2353: Object literal may only specify known properties, and 'default' does not exist in type 'Record<DataType, TableConfig>'.
+src/components/data-display/tables/TableFilters.tsx(269,13): error TS2322: Type '{ from?: Date | undefined; to?: Date | undefined; }' is not assignable to type 'DateRange'.
+  Property 'from' is optional in type '{ from?: Date | undefined; to?: Date | undefined; }' but required in type 'DateRange'.
+src/components/features/outlet/OutletForm.tsx(30,29): error TS2339: Property 'data' does not exist on type 'never'.
+src/components/modules/catalog/product/hooks/useProductForm.ts(387,19): error TS2741: Property 'images' is missing in type '{ name: any; nameBangla: any; slug: any; sku: any; businessUnit: any; unit: any; primaryCategory: any; subCategory: any; childCategory: any; brands: any; tags: any; tagsBangla: any; pricing: { costPrice: any; ... 4 more ...; currency: any; }; ... 10 more ...; warranty: any; }' but required in type '{ name: string; categories: string[]; primaryCategory: string; images: string[]; unit: string; pricing: { basePrice: number; currency: "BDT" | "USD"; costPrice: number; profitMargin: number; profitMarginType: "percentage" | "fixed"; ... 4 more ...; wholesaleTiers?: { ...; }[] | undefined; }; ... 28 more ...; statusI...'.
+src/components/modules/catalog/product/ProductForm.tsx(1091,115): error TS2304: Cannot find name 'uploadImage'.
+src/components/modules/catalog/product/ProductForm.tsx(1162,61): error TS2322: Type '`variants.${number}.barcode`' is not assignable to type '"subCategory" | "childCategory" | "unit" | "businessUnit" | "outlet" | "inventory" | "name" | "nameBangla" | "slug" | "sku" | "barcode" | "categories" | "primaryCategory" | "crossSellProducts" | ... 141 more ... | "statusInfo.status"'.
+src/components/modules/sales/OrderDetails.tsx(26,28): error TS2724: '"@/redux/api/sales/orderApi"' has no exported member named 'useUpdateOrderStatusMutation'. Did you mean 'useUpdateOrderMutation'?
+src/components/shared/UserProfileForm.tsx(60,102): error TS2339: Property 'data' does not exist on type 'never'.
+src/components/ui/navigation-menu.tsx(2,42): error TS2307: Cannot find module '@radix-ui/react-navigation-menu' or its corresponding type declarations.
+src/lib/data-table/utils.ts(201,15): error TS2322: Type 'string' is not assignable to type 'T[keyof T]'.
+  'string' is assignable to the constraint of type 'T[keyof T]', but 'T[keyof T]' could be instantiated with a different subtype of constraint 'any'.
+src/lib/data-table/utils.ts(205,15): error TS2322: Type 'string' is not assignable to type 'T[keyof T]'.
+  'string' is assignable to the constraint of type 'T[keyof T]', but 'T[keyof T]' could be instantiated with a different subtype of constraint 'any'.
+    Type 'string' is not assignable to type 'T[keyof T]'.
+      'string' is assignable to the constraint of type 'T[keyof T]', but 'T[keyof T]' could be instantiated with a different subtype of constraint 'any'.
+src/redux/api/catalog/productQAApi.ts(12,34): error TS2551: Property 'ProductQA' does not exist on type 'typeof tagTypes'. Did you mean 'productQA'?
+src/redux/api/catalog/productQAApi.ts(21,31): error TS2551: Property 'ProductQA' does not exist on type 'typeof tagTypes'. Did you mean 'productQA'?
+src/redux/api/catalog/productQAApi.ts(30,31): error TS2551: Property 'ProductQA' does not exist on type 'typeof tagTypes'. Did you mean 'productQA'?
+src/redux/api/catalog/productQAApi.ts(39,34): error TS2551: Property 'ProductQA' does not exist on type 'typeof tagTypes'. Did you mean 'productQA'?
+src/redux/api/catalog/productQAApi.ts(48,34): error TS2551: Property 'ProductQA' does not exist on type 'typeof tagTypes'. Did you mean 'productQA'?
+src/redux/api/catalog/productQAApi.ts(56,34): error TS2551: Property 'ProductQA' does not exist on type 'typeof tagTypes'. Did you mean 'productQA'?
+src/redux/api/catalog/productReviewApi.ts(12,34): error TS2551: Property 'ProductReview' does not exist on type 'typeof tagTypes'. Did you mean 'productReview'?
+src/redux/api/catalog/productReviewApi.ts(21,31): error TS2551: Property 'ProductReview' does not exist on type 'typeof tagTypes'. Did you mean 'productReview'?
+src/redux/api/catalog/productReviewApi.ts(30,31): error TS2551: Property 'ProductReview' does not exist on type 'typeof tagTypes'. Did you mean 'productReview'?
+src/redux/api/catalog/productReviewApi.ts(39,34): error TS2551: Property 'ProductReview' does not exist on type 'typeof tagTypes'. Did you mean 'productReview'?
+src/redux/api/catalog/productReviewApi.ts(48,34): error TS2551: Property 'ProductReview' does not exist on type 'typeof tagTypes'. Did you mean 'productReview'?
+src/redux/api/catalog/productReviewApi.ts(56,34): error TS2551: Property 'ProductReview' does not exist on type 'typeof tagTypes'. Did you mean 'productReview'?
+src/redux/api/storefront/storefrontApi.ts(12,37): error TS2551: Property 'StorefrontConfig' does not exist on type 'typeof tagTypes'. Did you mean 'storefrontConfig'?
+src/redux/api/storefront/storefrontApi.ts(20,37): error TS2551: Property 'StorePage' does not exist on type 'typeof tagTypes'. Did you mean 'storePage'?
+src/redux/api/storefront/storefrontApi.ts(38,40): error TS2551: Property 'StorefrontConfig' does not exist on type 'typeof tagTypes'. Did you mean 'storefrontConfig'?
+src/redux/api/storefront/storefrontApi.ts(45,37): error TS2551: Property 'StorePageList' does not exist on type 'typeof tagTypes'. Did you mean 'storePageList'?
+src/redux/api/storefront/storefrontApi.ts(53,40): error TS2551: Property 'StorePage' does not exist on type 'typeof tagTypes'. Did you mean 'storePage'?
+src/redux/api/storefront/storefrontApi.ts(53,60): error TS2551: Property 'StorePageList' does not exist on type 'typeof tagTypes'. Did you mean 'storePageList'?
+src/redux/api/storefront/storefrontApi.ts(60,40): error TS2551: Property 'StorePageList' does not exist on type 'typeof tagTypes'. Did you mean 'storePageList'?

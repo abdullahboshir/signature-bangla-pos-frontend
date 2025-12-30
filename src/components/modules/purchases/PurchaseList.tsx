@@ -29,13 +29,13 @@ import {
     useCreatePurchaseMutation,
     useUpdatePurchaseMutation,
     useDeletePurchaseMutation
-} from "@/redux/api/purchaseApi";
-import { useGetSuppliersQuery } from "@/redux/api/supplierApi";
+} from "@/redux/api/inventory/purchaseApi";
+import { useGetSuppliersQuery } from "@/redux/api/contacts/supplierApi";
 import { toast } from "sonner";
 import { PurchaseItemsField } from "./components/PurchaseItemsField";
 import { useAuth } from "@/hooks/useAuth";
-import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
-import { useGetOutletsQuery } from "@/redux/api/outletApi";
+import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi";
+import { useGetOutletsQuery } from "@/redux/api/organization/outletApi";
 import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSION_KEYS } from "@/config/permission-keys";
@@ -51,10 +51,9 @@ const statusColors = {
 export const PurchaseList = () => {
     // Auth & Context
     const { user } = useAuth();
-    const { hasPermission } = usePermissions();
+    const { hasPermission, isSuperAdmin } = usePermissions();
     const params = useParams();
     const paramBusinessUnit = params?.["business-unit"] as string;
-    const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
 
     const { currentBusinessUnit: contextBusinessUnit } = useCurrentBusinessUnit();
     // Fetch BUs for SA form AND for resolving ID from slug
@@ -502,3 +501,4 @@ export const PurchaseList = () => {
         </DataPageLayout>
     );
 }
+

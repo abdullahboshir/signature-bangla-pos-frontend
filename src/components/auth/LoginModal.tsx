@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLoadingStore } from "@/store/loadingStore";
 
-import { useUserRegisterMutation } from "@/redux/api/authApi";
+import { useUserRegisterMutation } from "@/redux/api/iam/authApi";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
@@ -274,3 +274,4 @@ export default function LoginModal({ open = false, onOpenChange }: LoginModalPro
         </>
     );
 }
+

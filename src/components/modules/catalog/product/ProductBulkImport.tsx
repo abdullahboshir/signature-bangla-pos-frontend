@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
 import { BulkImportModal } from "@/components/shared/BulkImportModal";
 import { PRODUCT_IMPORT_TEMPLATE } from "@/utils/csv-templates";
-import { useGetCategoriesQuery } from "@/redux/api/categoryApi";
-import { useGetBrandsQuery } from "@/redux/api/brandApi";
-import { useGetUnitsQuery } from "@/redux/api/unitApi";
-import { useCreateProductMutation } from "@/redux/api/productApi";
+import { useGetCategoriesQuery } from "@/redux/api/catalog/categoryApi";
+import { useGetBrandsQuery } from "@/redux/api/catalog/brandApi";
+import { useGetUnitsQuery } from "@/redux/api/catalog/unitApi";
+import { useCreateProductMutation } from "@/redux/api/catalog/productApi";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -142,3 +142,4 @@ export function ProductBulkImport({ buttonVariant = "outline" }: { buttonVariant
         />
     );
 }
+

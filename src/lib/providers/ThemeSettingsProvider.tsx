@@ -11,7 +11,7 @@ import {
 import {
   useGetSettingsQuery,
   useUpdateSettingsMutation,
-} from "@/redux/api/userApi";
+} from "@/redux/api/iam/userApi";
 
 type ThemeSettings = {
   primary?: string;
@@ -197,5 +197,6 @@ export function useThemeSettings() {
   }
   return ctx;
 }
+
 
 

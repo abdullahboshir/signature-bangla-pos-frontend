@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { useParams } from "next/navigation";
-import { useGetStoreProductsQuery } from "@/redux/api/storefrontApi";
+import { useGetStoreProductsQuery } from "@/redux/api/storefront/storefrontApi";
 
 // ============================================================================
 // 1. HERO SLIDER
@@ -244,4 +244,5 @@ export const CountdownBlock = ({ data }: { data: any }) => {
         </div>
     );
 };
+
 

@@ -59,21 +59,22 @@ export const getRedirectPath = (token: string, user?: User): string => {
         const roles = Array.isArray(decoded?.role) ? decoded.role : [decoded?.role];
      
         if (roles.includes("customer")) return "/";
-        if (roles.includes("super-admin")) return "/super-admin";
         
-        const firstBusinessUnit = decoded?.businessUnits?.[0];
-        if (firstBusinessUnit) {
-          const buSlug = firstBusinessUnit.slug || firstBusinessUnit.id || "default";
-            // Determine primary role for this business unit?
-            // For now, use the first role in the list as fallback, or specific logic
-            // Ideally we find the role for this BU.
-            // But decoded token might not have per-bu role info nicely structure for easy pick without user permissions.
-            // Just pick first available role for now.
-            const primaryRole = roles[0] || 'staff';
-            return `/${primaryRole}/${buSlug}`;
+        // Super Admin goes to /global (no longer /super-admin after URL refactor)
+        if (roles.includes("super-admin") || decoded?.isSuperAdmin) {
+            return "/global/business-units"; // Or /global/overview
         }
         
-        return "/super-admin"; // Fallback
+        // For business unit users, redirect to their first business unit
+        const firstBusinessUnit = decoded?.businessUnits?.[0];
+        if (firstBusinessUnit) {
+            const buSlug = firstBusinessUnit.slug || firstBusinessUnit.id || "default";
+            // New structure: /[business-unit]/overview (no role in URL)
+            return `/${buSlug}/overview`;
+        }
+        
+        // Fallback to global if no business unit
+        return "/global/business-units";
     } catch (error) {
         return "/";
     }

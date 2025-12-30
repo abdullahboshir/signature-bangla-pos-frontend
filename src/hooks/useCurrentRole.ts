@@ -5,63 +5,65 @@ import { useAuth } from "./useAuth";
 
 interface UseCurrentRoleResult {
   currentRole?: string;
-  userRole: string[];
+  userRoles: string[];
   hasRoleAccess: boolean;
   isLoading: boolean;
 }
 
+/**
+ * Hook to get current user's role
+ * UPDATED: No longer depends on URL params
+ * Role is derived from authenticated user's data
+ */
 export function useCurrentRole(): UseCurrentRoleResult {
-  const params = useParams();
   const { user, isLoading } = useAuth();
-  const currentRole =
-  (params.role || params["roles"]) as string | undefined;
   
   if (isLoading) {
     return {
-      currentRole,
-      userRole: [],
+      currentRole: undefined,
+      userRoles: [],
       hasRoleAccess: false,
       isLoading: true,
     };
   }
   
-  
   if (!user) {
     return {
-      currentRole,
-      userRole: [],
+      currentRole: undefined,
+      userRoles: [],
       hasRoleAccess: false,
       isLoading: false,
     };
   }
-  
-  console.log('useCurrentRole', user, isLoading)
 
-  // Robustly derive user roles
-  // Backend provides `role` (string[]) and `roles` (object[])
+  // Derive user roles from auth data
   const userAny = user as any;
-  const userRole = 
+  const userRoles = 
     (userAny?.role && Array.isArray(userAny.role)) 
       ? userAny.role 
       : Array.isArray(user?.roles) 
-        ? user.roles.map((role: any) => role.name) 
+        ? user.roles.map((role: any) => role.name || role.slug || role) 
         : [];
 
-  // Safe safe access check
-  const hasRoleAccess =
-    currentRole && userRole.length > 0
-      ? userRole.includes(currentRole)
-      : false;
-
-  console.log(
-    "useCurrentRole →",
-    { currentRole, userRole, hasRoleAccess }
-  );
+  // Primary role is the first one (or "super-admin" if present)
+  const currentRole = userRoles.includes('super-admin') 
+    ? 'super-admin' 
+    : userRoles[0];
 
   return {
     currentRole,
-    userRole,
-    hasRoleAccess,
+    userRoles,
+    hasRoleAccess: userRoles.length > 0,
     isLoading: false,
   };
 }
+
+/**
+ * Legacy hook for components that still expect params
+ * @deprecated Use useCurrentRole() instead
+ */
+export function useRoleFromParams(): string | undefined {
+  const params = useParams();
+  return (params.role || params["roles"]) as string | undefined;
+}
+

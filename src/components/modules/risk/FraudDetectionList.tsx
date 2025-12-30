@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { ShieldAlert, Search, CheckCircle, AlertTriangle } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
 import { PERMISSION_KEYS } from "@/config/permission-keys"
-import { useCheckFraudMutation } from "@/redux/api/riskApi"
+import { useCheckFraudMutation } from "@/redux/api/risk/riskApi"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export default function FraudDetectionList() {
@@ -95,3 +95,4 @@ export default function FraudDetectionList() {
         </div>
     )
 }
+

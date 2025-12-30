@@ -18,9 +18,9 @@ import {
     useUpdateUserMutation,
     useGetProfileQuery,
     useUpdateProfileMutation
-} from "@/redux/api/userApi";
-import { useGetRolesQuery } from "@/redux/api/roleApi";
-import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
+} from "@/redux/api/iam/userApi";
+import { useGetRolesQuery } from "@/redux/api/iam/roleApi";
+import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -303,3 +303,4 @@ export function UserProfileForm({ userId }: UserProfileFormProps) {
         </div>
     );
 }
+

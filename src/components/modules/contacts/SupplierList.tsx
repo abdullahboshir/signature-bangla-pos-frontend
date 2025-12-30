@@ -39,12 +39,12 @@ import {
     useCreateSupplierMutation,
     useUpdateSupplierMutation,
     useDeleteSupplierMutation
-} from "@/redux/api/supplierApi";
+} from "@/redux/api/contacts/supplierApi";
 import { toast } from "sonner";
 import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit";
 import { useAuth } from "@/hooks/useAuth";
 import { useParams } from "next/navigation";
-import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
+import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi";
 import { Badge } from "@/components/ui/badge";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSION_KEYS } from "@/config/permission-keys";
@@ -52,14 +52,13 @@ import { PERMISSION_KEYS } from "@/config/permission-keys";
 export const SupplierList = () => {
     // Auth & Context
     const { user: currentUser } = useAuth();
+    const { hasPermission, isSuperAdmin } = usePermissions();
     const params = useParams();
     const paramBusinessUnit = params?.["business-unit"] as string;
-    const isSuperAdmin = currentUser?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
 
     const { currentBusinessUnit: contextBusinessUnit } = useCurrentBusinessUnit();
     const contextBUId = contextBusinessUnit?._id || contextBusinessUnit?.id;
     const isScoped = !!paramBusinessUnit;
-    const { hasPermission } = usePermissions();
 
     // Fallback for non-super admins or explicit scoping
     const effectiveBusinessUnitId = isSuperAdmin ? undefined : contextBUId;
@@ -595,3 +594,4 @@ const MultiSelectInput = ({ options, value, onChange, disabled }: { options: { l
         </Popover>
     );
 };
+

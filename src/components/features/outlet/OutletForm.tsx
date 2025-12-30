@@ -11,8 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Swal from "sweetalert2";
-import { useCreateOutletMutation } from "@/redux/api/outletApi";
-import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
+import { useCreateOutletMutation } from "@/redux/api/organization/outletApi";
+import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi";
 
 interface OutletFormProps {
     preSelectedSlug?: string;
@@ -265,3 +265,4 @@ export function OutletForm({ preSelectedSlug }: OutletFormProps) {
         </div>
     );
 }
+

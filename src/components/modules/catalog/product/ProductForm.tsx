@@ -8,20 +8,19 @@ import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Loader2, Upload, X, Trash2, Plus } from "lucide-react";
 
-import { useGetCategoriesQuery } from "@/redux/api/categoryApi";
-import { useGetSubCategoriesQuery, useGetSubCategoriesByParentQuery } from "@/redux/api/subCategoryApi";
-import { useGetChildCategoriesQuery, useGetChildCategoriesByParentQuery } from "@/redux/api/childCategoryApi";
-import { useGetBrandsQuery } from "@/redux/api/brandApi";
-import { useUploadFileMutation } from "@/redux/api/uploadApi";
-import { useGetUnitsQuery } from "@/redux/api/unitApi";
-import { useGetTaxsQuery } from "@/redux/api/taxApi";
+import { useGetCategoriesQuery } from "@/redux/api/catalog/categoryApi";
+
+import { useGetBrandsQuery } from "@/redux/api/catalog/brandApi";
+import { useUploadFileMutation } from "@/redux/api/system/uploadApi";
+import { useGetUnitsQuery } from "@/redux/api/catalog/unitApi";
+import { useGetTaxsQuery } from "@/redux/api/finance/taxApi";
 
 import {
     useCreateProductMutation,
     useUpdateProductMutation,
-} from "@/redux/api/productApi";
-import { useGetBusinessUnitByIdQuery } from "@/redux/api/businessUnitApi";
-import { useGetAttributeGroupQuery } from "@/redux/api/attributeGroupApi";
+} from "@/redux/api/catalog/productApi";
+import { useGetBusinessUnitByIdQuery } from "@/redux/api/organization/businessUnitApi";
+import { useGetAttributeGroupQuery } from "@/redux/api/catalog/attributeGroupApi";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -97,8 +96,6 @@ export default function ProductForm({ initialData }: ProductFormProps) {
         ...initialData,
         // Handle populated fields by extracting _id if they are objects
         primaryCategory: initialData.primaryCategory?._id || initialData.primaryCategory,
-        subCategory: initialData.subCategory?._id || initialData.subCategory,
-        childCategory: initialData.childCategory?._id || initialData.childCategory,
         unit: initialData.unit?._id || initialData.unit,
         businessUnit: initialData.businessUnit?._id || initialData.businessUnit,
         brands: initialData.brands?.map((b: any) => b._id || b) || [],
@@ -151,21 +148,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
 
 
 
-    // Cascading Effects
-    const selectedPrimary = form.watch("primaryCategory");
-    const selectedSub = form.watch("subCategory") as string;
 
-    // Fetch Sub/Child based on selection
-    // Note: We use 'skip' to prevent fetching when no parent is selected.
-    const { data: subCategories = [] } = useGetSubCategoriesByParentQuery(
-        selectedPrimary,
-        { skip: !selectedPrimary }
-    );
-
-    const { data: childCategories = [] } = useGetChildCategoriesByParentQuery(
-        selectedSub,
-        { skip: !selectedSub }
-    );
 
     // Calculation Logic (Moved to proper scope)
     const { fields: variantFields, append: appendVariant, remove: removeVariant, replace: replaceVariants } = useFieldArray({
@@ -242,9 +225,6 @@ export default function ProductForm({ initialData }: ProductFormProps) {
             // Remove warranty from payload if it's default/invalid to preserve backend reference or avoid error
             const payload: any = { ...data, businessUnit };
             // Cleanup payload: Remove empty strings for optional ObjectId fields
-            if (!payload.childCategory || payload.childCategory === "") delete payload.childCategory;
-            if (!payload.subCategory || payload.subCategory === "") delete payload.subCategory;
-            if (!payload.unit || payload.unit === "") delete payload.unit;
             if (!payload.primaryCategory || payload.primaryCategory === "") delete payload.primaryCategory;
             // primaryCategory is likely required, but good to be safe if schema allows optional. 
             // In backend validation it says primaryCategory is optional in 'productBodySchema' (line 175).
@@ -357,8 +337,6 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                                 <Select onValueChange={(val) => {
                                                     field.onChange(val);
                                                     form.setValue("categories", [val]); // Reset categories array to just this one + sub/child can verify later
-                                                    form.setValue("subCategory", ""); // Reset sub
-                                                    form.setValue("childCategory", ""); // Reset child
                                                 }} value={field.value}>
                                                     <FormControl><SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger></FormControl>
                                                     <SelectContent>
@@ -371,56 +349,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                             </FormItem>
                                         )}
                                     />
-                                    <FormField
-                                        control={form.control}
-                                        name="subCategory"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Sub-Category</FormLabel>
-                                                <Select onValueChange={(val) => {
-                                                    field.onChange(val);
-                                                    form.setValue("childCategory", ""); // Reset child
-                                                    // Update categories array to include this [primary, sub]
-                                                    const primary = form.getValues("primaryCategory");
-                                                    form.setValue("categories", [primary, val]);
-                                                }} value={field.value} disabled={!subCategories.length}>
-                                                    <FormControl><SelectTrigger><SelectValue placeholder="Select Sub-Category" /></SelectTrigger></FormControl>
-                                                    <SelectContent>
-                                                        {subCategories.map((c: any) => (
-                                                            <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="childCategory"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Child-Category</FormLabel>
-                                                <Select onValueChange={(val) => {
-                                                    field.onChange(val);
-                                                    // Update categories array to include this [primary, sub, child]
-                                                    const primary = form.getValues("primaryCategory");
-                                                    const sub = form.getValues("subCategory");
-                                                    // Filter out undefined if sub is somehow missing (shouldn't be)
-                                                    const cats = [primary, sub, val].filter(Boolean) as string[];
-                                                    form.setValue("categories", cats);
-                                                }} value={field.value} disabled={!childCategories.length}>
-                                                    <FormControl><SelectTrigger><SelectValue placeholder="Select Child-Category" /></SelectTrigger></FormControl>
-                                                    <SelectContent>
-                                                        {childCategories.map((c: any) => (
-                                                            <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+
                                     <FormField
                                         control={form.control}
                                         name="unit"
@@ -1159,7 +1088,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                                     <div className="col-span-1">
                                                         <FormField
                                                             control={form.control}
-                                                            name={`variants.${index}.barcode`}
+                                                            name={`variants.${index}.barcode` as any}
                                                             render={({ field }) => (
                                                                 <FormItem className="space-y-0"><FormControl><Input placeholder="Barcode" className="h-8 text-xs" {...field} /></FormControl></FormItem>
                                                             )}
@@ -1250,3 +1179,4 @@ export default function ProductForm({ initialData }: ProductFormProps) {
         </Form>
     );
 }
+

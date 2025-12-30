@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
+import { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Users, User, Search, MoreHorizontal, Edit, Trash2, ShieldCheck, MapPin, Smartphone, CheckCircle, RefreshCw, Download, Check, X, Building, Layers } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit"
 import { useAuth } from "@/hooks/useAuth"
 import { usePermissions } from "@/hooks/usePermissions"
+import { useCurrentRole } from "@/hooks/useCurrentRole"
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner"
 import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
@@ -26,13 +27,15 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { AutoFormModal } from "@/components/shared/AutoFormModal"
 import { useParams, useRouter } from "next/navigation"
-import { useGetAllUsersQuery, useCreateUserMutation, useUpdateUserMutation, useDeleteUserMutation } from "@/redux/api/userApi"
-import { useGetRolesQuery } from "@/redux/api/roleApi"
-import { useGetOutletsQuery } from "@/redux/api/outletApi"
+import { useGetAllUsersQuery, useCreateUserMutation, useUpdateUserMutation, useDeleteUserMutation } from "@/redux/api/iam/userApi"
+
 import Swal from "sweetalert2"
 
-import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi"
+
 import { PERMISSION_KEYS } from "@/config/permission-keys"
+import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi"
+import { useGetRolesQuery } from "@/redux/api/iam/roleApi"
+import { useGetOutletsQuery } from "@/redux/api/organization/outletApi"
 
 const USER_STATUS = {
     ACTIVE: 'active',
@@ -158,13 +161,15 @@ export function UserManagementTable() {
         return Array.isArray(rawBusinessUnits) ? rawBusinessUnits : [];
     }, [rawBusinessUnits]);
 
+    const { currentRole } = useCurrentRole();
+
     const handleCreate = () => {
-        // Redirect to dedicated Add User page for better UX and Scope/Outlet selection
-        if (params["business-unit"] && params["role"]) {
-            router.push(`/${params.role}/${params["business-unit"]}/user-management/add-user`);
+        // Redirect to dedicated Add User page
+        if (params["business-unit"]) {
+            router.push(`/${params["business-unit"]}/user-management/add-user`);
         } else {
-            // Assume Global Super Admin
-            router.push('/super-admin/user-management/add-user');
+            // Global routes
+            router.push('/global/user-management/add-user');
         }
     }
 
@@ -475,11 +480,11 @@ export function UserManagementTable() {
                             */}
                             {hasPermission(PERMISSION_KEYS.USER.READ) && (
                                 <DropdownMenuItem onClick={() => {
-                                    // If super admin path
+                                    // Navigate to user profile
                                     if (isSuperAdmin) {
-                                        router.push(`/super-admin/users/${row.original._id || row.original.id}`)
-                                    } else if (params.role) {
-                                        router.push(`/${params.role}/${params["business-unit"]}/user-management/users/${row.original._id || row.original.id}`)
+                                        router.push(`/global/user-management/users/${row.original._id || row.original.id}`)
+                                    } else if (params["business-unit"]) {
+                                        router.push(`/${params["business-unit"]}/user-management/users/${row.original._id || row.original.id}`)
                                     }
                                 }}>
                                     <User className="mr-2 h-4 w-4" /> View Profile

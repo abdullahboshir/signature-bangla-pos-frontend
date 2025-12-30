@@ -1,0 +1,110 @@
+node_modules/next/dist/build/templates/app-page.d.ts(3,25): error TS2307: Cannot find module 'VAR_MODULE_GLOBAL_ERROR' or its corresponding type declarations.
+node_modules/next/dist/build/webpack-config.d.ts(10,104): error TS2694: Namespace '"E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/next/dist/compiled/webpack/webpack".webpack' has no exported member 'RuleSetUseItem'.
+node_modules/next/dist/build/webpack/loaders/next-app-loader/index.d.ts(1,13): error TS2613: Module '"E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/next/dist/compiled/webpack/webpack"' has no default export. Did you mean to use 'import { webpack } from "E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/next/dist/compiled/webpack/webpack"' instead?
+node_modules/next/dist/client/components/error-boundary.d.ts(1,8): error TS1259: Module '"E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/client/components/http-access-fallback/error-boundary.d.ts(11,8): error TS1259: Module '"E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/client/components/layout-router.d.ts(2,8): error TS1259: Module '"E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/client/with-router.d.ts(1,8): error TS1259: Module '"E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/lib/metadata/metadata.d.ts(1,8): error TS1259: Module '"E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/next-devtools/userspace/pages/pages-dev-overlay-setup.d.ts(1,8): error TS1259: Module '"E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/server/app-render/entry-base.d.ts(1,114): error TS2307: Cannot find module 'react-server-dom-webpack/server' or its corresponding type declarations.
+node_modules/next/dist/server/app-render/entry-base.d.ts(2,27): error TS2307: Cannot find module 'react-server-dom-webpack/static' or its corresponding type declarations.
+node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(39,16): error TS2304: Cannot find name 'HeadersIterator'.
+node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(40,13): error TS2304: Cannot find name 'HeadersIterator'.
+node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(41,15): error TS2304: Cannot find name 'HeadersIterator'.
+node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(42,26): error TS2304: Cannot find name 'HeadersIterator'.
+node_modules/next/dist/shared/lib/app-router-context.shared-runtime.d.ts(4,8): error TS1259: Module '"E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/app-router-types.d.ts(8,13): error TS1259: Module '"E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/head-manager-context.shared-runtime.d.ts(1,8): error TS1259: Module '"E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/image-config-context.shared-runtime.d.ts(1,8): error TS1259: Module '"E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/loadable-context.shared-runtime.d.ts(1,8): error TS1259: Module '"E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/loadable.shared-runtime.d.ts(21,8): error TS1259: Module '"E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/router-context.shared-runtime.d.ts(1,8): error TS1259: Module '"E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/server-inserted-html.shared-runtime.d.ts(1,8): error TS1259: Module '"E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/utils.d.ts(10,13): error TS1192: Module '"fs"' has no default export.
+node_modules/recharts/types/state/selectors/axisSelectors.d.ts(146,74): error TS2694: Namespace '"E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/redux/dist/redux"' has no exported member 'EmptyObject'.
+node_modules/recharts/types/state/selectors/axisSelectors.d.ts(214,74): error TS2694: Namespace '"E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/redux/dist/redux"' has no exported member 'EmptyObject'.
+node_modules/recharts/types/state/selectors/axisSelectors.d.ts(310,72): error TS2694: Namespace '"E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/redux/dist/redux"' has no exported member 'EmptyObject'.
+node_modules/recharts/types/state/selectors/axisSelectors.d.ts(385,100): error TS2694: Namespace '"E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/redux/dist/redux"' has no exported member 'EmptyObject'.
+node_modules/recharts/types/state/selectors/axisSelectors.d.ts(459,69): error TS2694: Namespace '"E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/redux/dist/redux"' has no exported member 'EmptyObject'.
+node_modules/recharts/types/state/store.d.ts(2,68): error TS2694: Namespace '"E:/WEB-DEVELOPMENT/PROJECTS/Mern/signature-bangla/pos/signature-bangla-primary/signature-bangla-pos-frontend/node_modules/redux/dist/redux"' has no exported member 'CombinedState'.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/overview/page.tsx(3,30): error TS2307: Cannot find module '@/components/modules/dashboard/overview/BusinessOverview' or its corresponding type declarations.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/overview/page.tsx(7,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/app/(protected)/[role]/[business-unit]/(dashboard)/overview/page.tsx(8,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(5,75): error TS2307: Cannot find module '@/components/ui/card' or its corresponding type declarations.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(8,36): error TS2307: Cannot find module '@/redux/api/organization/outletApi' or its corresponding type declarations.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(9,84): error TS2307: Cannot find module '@/redux/api/organization/businessUnitApi' or its corresponding type declarations.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(16,8): error TS2307: Cannot find module '@/components/ui/select' or its corresponding type declarations.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(60,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(61,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(62,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(63,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(64,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(69,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(70,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(75,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(76,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(78,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(79,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(81,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(90,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(91,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(92,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(93,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(94,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(96,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(97,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(98,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(101,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(102,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(103,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(104,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(106,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(107,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(108,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(111,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(112,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(113,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(114,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(116,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(117,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(118,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(121,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(122,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(123,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(124,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(126,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(127,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(128,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(133,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(134,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(135,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(136,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(138,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(139,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(140,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(141,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(148,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(155,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(156,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(161,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(162,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(163,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(164,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(168,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(169,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(170,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(171,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(172,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(173,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(175,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(177,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(178,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(179,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(180,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(182,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(184,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(185,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(186,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(187,37): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/components/modules/dashboard/overview/BusinessOverview.tsx(189,33): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.

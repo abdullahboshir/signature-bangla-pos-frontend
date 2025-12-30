@@ -7,7 +7,7 @@ import {
     useUpdatePermissionGroupMutation,
     useDeletePermissionGroupMutation,
     useGetPermissionsQuery
-} from '@/redux/api/roleApi';
+} from '@/redux/api/iam/roleApi';
 import {
     Table,
     TableBody,
@@ -336,3 +336,4 @@ export default function PermissionGroupManagement() {
         </div>
     );
 }
+

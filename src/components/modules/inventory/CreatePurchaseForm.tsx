@@ -54,11 +54,12 @@ import {
 import { toast } from "sonner";
 
 
-import { useCreatePurchaseMutation } from "@/redux/api/purchaseApi";
-import { useGetSuppliersQuery } from "@/redux/api/supplierApi";
-import { useGetOutletsQuery } from "@/redux/api/outletApi";
-import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
-import { useGetProductsQuery } from "@/redux/api/productApi";
+import { useCreatePurchaseMutation } from "@/redux/api/inventory/purchaseApi";
+import { useGetSuppliersQuery } from "@/redux/api/contacts/supplierApi";
+import { useGetOutletsQuery } from "@/redux/api/organization/outletApi";
+import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi";
+import { useGetProductsQuery } from "@/redux/api/catalog/productApi";
+import { usePermissions } from "@/hooks/usePermissions";
 
 // Schema
 const purchaseSchema = z.object({
@@ -99,7 +100,8 @@ export function CreatePurchaseForm() {
     const businessUnitParam = params["business-unit"] as string;
     const role = params["role"] as string;
 
-    const isGlobal = businessUnitParam === 'inventory' || !businessUnitParam || role === 'super-admin' && businessUnitParam === undefined;
+    const { isSuperAdmin } = usePermissions();
+    const isGlobal = businessUnitParam === 'inventory' || !businessUnitParam || isSuperAdmin && businessUnitParam === undefined;
 
     // Queries
     const { data: businessUnitData } = useGetBusinessUnitsQuery({});
@@ -734,3 +736,4 @@ export function CreatePurchaseForm() {
         </Form>
     );
 }
+

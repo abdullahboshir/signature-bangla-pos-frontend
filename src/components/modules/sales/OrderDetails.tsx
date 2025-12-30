@@ -23,7 +23,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { useGetOrderQuery, useUpdateOrderStatusMutation } from "@/redux/api/orderApi";
+import { useGetOrderQuery, useUpdateOrderStatusMutation } from "@/redux/api/sales/orderApi";
 import { IOrder } from "./order.types";
 import { InvoicePrint } from "./InvoicePrint";
 
@@ -292,3 +292,4 @@ export default function OrderDetails() {
         </>
     );
 }
+

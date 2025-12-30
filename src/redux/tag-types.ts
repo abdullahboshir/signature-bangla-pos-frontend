@@ -7,8 +7,7 @@ export enum tagTypes {
   customer = "customer",
   department = "department",
   category = "category",
-  subCategory = "subCategory",
-  childCategory = "childCategory",
+
   product = "product",
   order = "order",
   brand = "brand",

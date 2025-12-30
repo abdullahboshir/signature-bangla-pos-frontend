@@ -34,12 +34,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { CreateOrderPayload } from "./order.types";
 import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit";
-import { useGetProductsQuery } from "@/redux/api/productApi";
-import { useGetAllUsersQuery } from "@/redux/api/userApi";
-import { useCreateOrderMutation } from "@/redux/api/orderApi";
+import { useGetProductsQuery } from "@/redux/api/catalog/productApi";
+import { useGetAllUsersQuery } from "@/redux/api/iam/userApi";
+import { useCreateOrderMutation } from "@/redux/api/sales/orderApi";
 import { useAuth } from "@/hooks/useAuth";
-import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
-import { useGetOutletsQuery } from "@/redux/api/outletApi";
+import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi";
+import { useGetOutletsQuery } from "@/redux/api/organization/outletApi";
+import { usePermissions } from "@/hooks/usePermissions";
 
 // Types for POS
 interface Product {
@@ -72,7 +73,7 @@ export default function CreateOrder() {
     const router = useRouter();
     const { user } = useAuth();
     const { currentBusinessUnit: paramBusinessUnitObj } = useCurrentBusinessUnit();
-    const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
+    const { isSuperAdmin } = usePermissions();
 
     // SA Business Unit Selection
     const [selectedBusinessUnitId, setSelectedBusinessUnitId] = useState<string>("");
@@ -610,3 +611,4 @@ export default function CreateOrder() {
         </div>
     );
 }
+

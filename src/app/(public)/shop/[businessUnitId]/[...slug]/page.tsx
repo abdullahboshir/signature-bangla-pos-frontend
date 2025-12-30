@@ -1,6 +1,6 @@
 import { BlockRenderer } from "@/components/storefront/Renderer";
 import StorefrontPageClient from "./StorefrontPageClient";
-// import { useGetStoreConfigQuery, useGetStorePageQuery } from "@/redux/api/storefrontApi";
+// import { useGetStoreConfigQuery, useGetStorePageQuery } from "@/redux/api/storefront/storefrontApi";
 // Note: We cannot use hooks directly in server component if we want SSR, but assuming client-side fetching for now for simplicity in this dashboard app context.
 // Actually, let's make it a client component wrapper.
 

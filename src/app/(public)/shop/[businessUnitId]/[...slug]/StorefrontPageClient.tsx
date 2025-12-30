@@ -1,7 +1,7 @@
 "use client";
 
 import { BlockRenderer } from "@/components/storefront/Renderer";
-import { useGetStoreConfigQuery, useGetStorePageQuery } from "@/redux/api/storefrontApi";
+import { useGetStoreConfigQuery, useGetStorePageQuery } from "@/redux/api/storefront/storefrontApi";
 import { Loader2 } from "lucide-react";
 
 export default function StorefrontPageClient({ businessUnitId, slug }: { businessUnitId: string, slug: string }) {

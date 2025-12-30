@@ -18,9 +18,9 @@ import { DataPageLayout } from "@/components/shared/DataPageLayout";
 import { StatCard } from "@/components/shared/StatCard";
 import { ColumnDef } from "@tanstack/react-table";
 import { AutoFormModal } from "@/components/shared/AutoFormModal";
-import { useCreateUnitMutation, useDeleteUnitMutation, useGetUnitsQuery, useUpdateUnitMutation } from "@/redux/api/unitApi";
+import { useCreateUnitMutation, useDeleteUnitMutation, useGetUnitsQuery, useUpdateUnitMutation } from "@/redux/api/catalog/unitApi";
 import { toast } from "sonner";
-import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi"; // Using consistent API
+import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi"; // Using consistent API
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSION_KEYS } from "@/config/permission-keys";
@@ -37,7 +37,7 @@ export const UnitList = () => {
     const paramBusinessUnit = params["business-unit"] as string;
     const { user } = useAuth();
     const { hasPermission } = usePermissions();
-    const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
+    const { isSuperAdmin } = usePermissions();
 
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
@@ -291,3 +291,4 @@ export const UnitList = () => {
         </>
     );
 }
+

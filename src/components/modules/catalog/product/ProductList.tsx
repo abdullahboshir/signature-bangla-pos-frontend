@@ -41,7 +41,7 @@ import {
     useGetProductsQuery,
     useDeleteProductMutation,
     useUpdateProductMutation
-} from "@/redux/api/productApi";
+} from "@/redux/api/catalog/productApi";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSION_KEYS } from "@/config/permission-keys";
 
@@ -51,9 +51,8 @@ export function ProductList() {
     const businessUnit = params["business-unit"] as string;
     const role = params["role"] as string;
     const { user } = useAuth();
-    const isSuperAdmin = user?.roles?.some((r: any) =>
-        (typeof r === 'string' ? r : r.name) === 'super-admin'
-    );
+    const { isSuperAdmin } = usePermissions();
+
     const { hasPermission } = usePermissions();
 
     // Date Filter State
@@ -614,3 +613,4 @@ export function ProductList() {
         </DataPageLayout>
     );
 }
+

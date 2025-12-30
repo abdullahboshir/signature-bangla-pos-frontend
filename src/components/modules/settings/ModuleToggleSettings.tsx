@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { useGetSystemSettingsQuery, useUpdateSystemSettingsMutation } from "@/redux/api/settingsApi"
+import { useGetSystemSettingsQuery, useUpdateSystemSettingsMutation } from "@/redux/api/system/settingsApi"
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { Loader2, Save, Key, ShieldCheck } from "lucide-react"
@@ -168,3 +168,4 @@ function ModuleSwitch({ label, description, checked, onCheckedChange }: { label:
         </div>
     )
 }
+

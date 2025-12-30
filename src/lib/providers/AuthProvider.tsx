@@ -19,7 +19,7 @@ import {
     useLoginMutation,
     useLogoutMutation,
     useGetMeQuery
-} from "@/redux/api/authApi";
+} from "@/redux/api/iam/authApi";
 import { jwtDecode } from "jwt-decode";
 
 interface AuthContextType {
@@ -194,3 +194,4 @@ export function useAuthContext() {
     }
     return context;
 }
+

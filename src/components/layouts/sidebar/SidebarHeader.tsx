@@ -13,6 +13,7 @@ import { Notifications } from "../header/Notifications"
 
 import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit"
 import { useAuth } from "@/hooks/useAuth"
+import { useCurrentRole } from "@/hooks/useCurrentRole";
 
 interface HeaderProps {
   onMenuClick?: () => void
@@ -20,8 +21,8 @@ interface HeaderProps {
 }
 
 export function SidebarHeader({ onMenuClick, className }: HeaderProps) {
-  const params = useParams()
-  const role = params.role as string // note: this might need better derivation similar to Sidebar.tsx
+  const { currentRole } = useCurrentRole();
+  const role = currentRole as string;
 
   const { user } = useAuth()
   const { currentBusinessUnit, userBusinessUnits } = useCurrentBusinessUnit()

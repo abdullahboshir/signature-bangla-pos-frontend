@@ -31,7 +31,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { useCreateCourierMutation, useUpdateCourierMutation } from "@/redux/api/logisticsApi"
+import { useCreateCourierMutation, useUpdateCourierMutation } from "@/redux/api/logistics/logisticsApi"
 import { toast } from "sonner"
 import { Eye, EyeOff } from "lucide-react"
 
@@ -265,3 +265,4 @@ export function CourierDialog({ open, onOpenChange, courier }: CourierDialogProp
         </Dialog>
     )
 }
+

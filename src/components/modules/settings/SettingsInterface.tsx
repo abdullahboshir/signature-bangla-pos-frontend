@@ -15,8 +15,7 @@ import { PosSettings } from "@/components/modules/settings/PosSettings"
 import { SystemSettings } from "@/components/modules/settings/SystemSettings"
 import { InventorySettings } from "@/components/modules/settings/InventorySettings"
 import { ModuleToggleSettings } from "@/components/modules/settings/ModuleToggleSettings"
-import { GlobalDataRetentionSettings } from "./GlobalDataRetentionSettings"
-import { useGetBusinessUnitSettingsQuery, useUpdateBusinessUnitSettingsMutation, useGetSystemSettingsQuery, useUpdateSystemSettingsMutation } from "@/redux/api/settingsApi"
+import { useGetBusinessUnitSettingsQuery, useUpdateBusinessUnitSettingsMutation, useGetSystemSettingsQuery, useUpdateSystemSettingsMutation } from "@/redux/api/system/settingsApi"
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/useAuth"
 import { usePermissions } from "@/hooks/usePermissions"
@@ -27,7 +26,7 @@ export function SettingsInterface() {
     const searchParams = useSearchParams()
     // Determine context
     const { user } = useAuth();
-    const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
+    const { isSuperAdmin } = usePermissions();
 
     // For [role] routes, we have these params. For SA route, we might not.
     const paramBusinessUnit = params?.["business-unit"] as string
@@ -251,7 +250,6 @@ export function SettingsInterface() {
                     {isSuperAdmin && (
                         <div className="mt-6 space-y-6">
                             <ModuleToggleSettings />
-                            <GlobalDataRetentionSettings />
                         </div>
                     )}
 
@@ -480,3 +478,4 @@ export function SettingsInterface() {
         </div>
     )
 }
+

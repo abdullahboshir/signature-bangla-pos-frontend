@@ -23,7 +23,7 @@ import { DataPageLayout } from "@/components/shared/DataPageLayout";
 import { StatCard } from "@/components/shared/StatCard";
 // import { AutoFormModal } from "@/components/shared/AutoFormModal"; // Re-enable if we want quick edit
 
-import { useGetInventorysQuery } from "@/redux/api/inventoryApi"; // CHANGED
+import { useGetInventorysQuery } from "@/redux/api/inventory/inventoryApi"; // CHANGED
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSION_KEYS } from "@/config/permission-keys";
@@ -32,8 +32,7 @@ export const InventoryList = () => {
     const params = useParams();
     const paramBusinessUnit = params?.["business-unit"] as string;
     const { user } = useAuth();
-    const { hasPermission } = usePermissions();
-    const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
+    const { hasPermission, isSuperAdmin } = usePermissions();
     const businessUnit = isSuperAdmin ? undefined : paramBusinessUnit;
 
     const [searchTerm, setSearchTerm] = useState("");
@@ -169,3 +168,4 @@ export const InventoryList = () => {
         </DataPageLayout>
     );
 };
+

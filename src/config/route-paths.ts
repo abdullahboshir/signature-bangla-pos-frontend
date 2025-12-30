@@ -36,6 +36,7 @@ export const ROUTE_PATHS = {
     PRODUCT: {
       ROOT: "catalog/product",
       ADD: "catalog/product/add",
+      EDIT: "catalog/product/edit",
     },
     CATEGORY: "catalog/category",
     SUB_CATEGORY: "catalog/sub-category",
@@ -45,10 +46,12 @@ export const ROUTE_PATHS = {
     ATTRIBUTE: "catalog/attribute",
     ATTRIBUTE_GROUP: "catalog/attribute-groups",
     TAX: "catalog/tax",
+    WARRANTY: "catalog/warranties", // Added warranty path
   },
   INVENTORY: {
     ROOT: "inventory",
     PURCHASE: "inventory/purchase",
+    PURCHASE_NEW: "inventory/purchase/new",
     ADJUSTMENTS: "inventory/adjustments",
     LEDGER: "inventory/ledger",
     WAREHOUSES: "inventory/warehouses",
@@ -63,7 +66,7 @@ export const ROUTE_PATHS = {
     POS: "pos",
     TODAY: "sales/today",
     SHIPPING: "sales/shipping",
-    DELIVERY: "sales/delivery",
+    DELIVERY: "sales/deliveries",
     RETURNS: "sales/returns",
     INVOICES: "sales/invoices",
   },

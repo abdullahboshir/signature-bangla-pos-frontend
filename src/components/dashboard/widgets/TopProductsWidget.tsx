@@ -6,6 +6,7 @@ import { Package, TrendingUp } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useRouter, useParams } from "next/navigation"
+import { useCurrentRole } from "@/hooks/useCurrentRole"
 
 // Mock top products data
 const topProducts = [
@@ -49,7 +50,8 @@ const topProducts = [
 export function TopProductsWidget() {
   const router = useRouter()
   const params = useParams()
-  const role = params.role as string
+  const { currentRole } = useCurrentRole()
+  const role = currentRole as string
   const businessUnit = (params["business-unit"] || params.businessUnit) as string
 
   const baseUrl = `/${role}/${businessUnit}/catalog/product`

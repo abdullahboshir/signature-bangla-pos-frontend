@@ -3,7 +3,7 @@ import { Plus, Trash2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useCreateAttributeMutation, useGetAttributesQuery } from "@/redux/api/attributeApi";
+import { useCreateAttributeMutation, useGetAttributesQuery } from "@/redux/api/catalog/attributeApi";
 import { AutoFormModal } from "@/components/shared/AutoFormModal";
 import { TagInput } from "@/components/shared/TagInput";
 import { Controller } from "react-hook-form";
@@ -22,47 +22,24 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { useVariantGenerator } from "../hooks/useVariantGenerator";
 
 export function VariantGenerator({ onGenerate }: { onGenerate: (variants: any[]) => void }) {
     const { data: globalAttributes = [] } = useGetAttributesQuery({ limit: 100, status: 'active' });
     const [createAttribute, { isLoading: isCreating }] = useCreateAttributeMutation();
     const [isCreateAttributeOpen, setIsCreateAttributeOpen] = useState(false);
 
-    const [attributes, setAttributes] = useState<{ name: string; values: string[] }[]>([
-        { name: "Size", values: [] },
-        { name: "Color", values: [] }
-    ]);
-
-    const addAttribute = () => {
-        setAttributes([...attributes, { name: "", values: [] }]);
-    };
-
-    const removeAttribute = (index: number) => {
-        const newAttrs = [...attributes];
-        newAttrs.splice(index, 1);
-        setAttributes(newAttrs);
-    };
-
-    const updateAttributeName = (index: number, name: string) => {
-        const newAttrs = [...attributes];
-        newAttrs[index].name = name;
-        setAttributes(newAttrs);
-    };
-
-    const addValue = (index: number, value: string) => {
-        if (!value.trim()) return;
-        const newAttrs = [...attributes];
-        if (!newAttrs[index].values.includes(value)) {
-            newAttrs[index].values.push(value);
-        }
-        setAttributes(newAttrs);
-    };
-
-    const removeValue = (attrIndex: number, valIndex: number) => {
-        const newAttrs = [...attributes];
-        newAttrs[attrIndex].values.splice(valIndex, 1);
-        setAttributes(newAttrs);
-    };
+    // Use Custom Hook for Business Logic
+    const {
+        attributes,
+        addAttribute,
+        removeAttribute,
+        updateAttributeName,
+        addValue,
+        removeValue,
+        setValues,
+        generateVariants
+    } = useVariantGenerator();
 
     // Helper to find global values for a given attribute name
     const getGlobalValuesRaw = (attrName: string) => {
@@ -71,48 +48,13 @@ export function VariantGenerator({ onGenerate }: { onGenerate: (variants: any[])
     };
 
     const handleGenerate = () => {
-        // Cartesian Product Logic
-        const validAttributes = attributes.filter(a => a.name && a.values.length > 0);
-
-        if (validAttributes.length === 0) {
-            toast.error("Please add values (e.g., S, M) to your attributes before generating variants.");
-            return;
+        const result = generateVariants();
+        if (result.success) {
+            onGenerate(result.variants);
+            toast.success(`Generated ${result.variants.length} variants!`);
+        } else {
+            toast.error(result.error);
         }
-
-        const cartesian = (args: any[][]) => {
-            const r: any[] = [];
-            const max = args.length - 1;
-            function helper(arr: any[], i: number) {
-                for (let j = 0, l = args[i].length; j < l; j++) {
-                    const a = arr.slice(0); // clone arr
-                    a.push(args[i][j]);
-                    if (i === max)
-                        r.push(a);
-                    else
-                        helper(a, i + 1);
-                }
-            }
-            helper([], 0);
-            return r;
-        };
-
-        const combinations = cartesian(validAttributes.map(a => a.values.map(v => ({ name: a.name, value: v }))));
-
-        const generatedVariants = combinations.map(combo => {
-            const name = combo.map((c: any) => c.value).join(" - "); // e.g. "Small - Red"
-            return {
-                name: name,
-                sku: "", // User to fill or auto-generate
-                price: 0,
-                stock: 0,
-                images: [],
-                options: combo, // [{name: 'Size', value: 'Small'}, {name: 'Color', value: 'Red'}]
-                isDefault: false
-            };
-        });
-
-        onGenerate(generatedVariants);
-        toast.success(`Generated ${generatedVariants.length} variants!`);
     };
 
     const handleCreateAttribute = async (data: any) => {
@@ -240,13 +182,14 @@ export function VariantGenerator({ onGenerate }: { onGenerate: (variants: any[])
                                                         variant="outline"
                                                         className="cursor-pointer hover:bg-primary hover:text-primary-foreground text-[10px] font-normal transition-colors px-1.5 py-0 border-dashed"
                                                         onClick={() => {
-                                                            const newAttrs = [...attributes];
+                                                            const currentValues = attr.values;
+                                                            const newValues = [...currentValues];
                                                             suggestedValues.forEach((v: string) => {
-                                                                if (!newAttrs[idx].values.includes(v)) {
-                                                                    newAttrs[idx].values.push(v);
+                                                                if (!newValues.includes(v)) {
+                                                                    newValues.push(v);
                                                                 }
                                                             });
-                                                            setAttributes(newAttrs);
+                                                            setValues(idx, newValues);
                                                         }}
                                                     >
                                                         + Add All
@@ -338,3 +281,4 @@ export function VariantGenerator({ onGenerate }: { onGenerate: (variants: any[])
         </>
     );
 }
+

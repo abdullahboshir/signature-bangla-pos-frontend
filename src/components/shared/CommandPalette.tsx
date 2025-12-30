@@ -20,7 +20,8 @@ import {
     Shield
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useGetProductsQuery } from "@/redux/api/productApi"
+import { useGetProductsQuery } from "@/redux/api/catalog/productApi"
+import { useCurrentRole } from "@/hooks/useCurrentRole";
 
 interface CommandPaletteProps {
     open: boolean
@@ -33,10 +34,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     const pathname = usePathname()
     const [search, setSearch] = useState("")
     const [selectedIndex, setSelectedIndex] = useState(0)
+    const [isMounted, setIsMounted] = useState(false);
+    const { currentRole } = useCurrentRole();
 
     // Extract role and businessUnit from params OR pathname
     let businessUnit = params["business-unit"] as string
-    let role = params.role as string
+    let role = currentRole as string
 
     // Fallback: Extract from pathname if params are undefined
     if (!role || !businessUnit) {
@@ -72,77 +75,77 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 {
                     title: "Super Admin Dashboard",
                     icon: Hash,
-                    path: `/super-admin`,
+                    path: `/global`,
                     description: "Main dashboard"
                 },
                 {
                     title: "All Business Units",
                     icon: Package,
-                    path: `/super-admin/business-units`,
+                    path: `/global/business-units`,
                     description: "Manage all business units"
                 },
                 {
                     title: "All Outlets",
                     icon: Package,
-                    path: `/super-admin/outlets`,
+                    path: `/global/outlets`,
                     description: "View all outlets across units"
                 },
                 {
                     title: "All Products",
                     icon: Package,
-                    path: `/super-admin/products`,
+                    path: `/global/products`, // Verify if this global route exists or needs adjustment
                     description: "Global product catalog"
                 },
                 {
                     title: "User Management",
                     icon: Users,
-                    path: `/super-admin/users`,
+                    path: `/global/user-management`,
                     description: "Manage system users"
                 },
                 {
                     title: "Roles & Permissions",
                     icon: Shield,
-                    path: `/super-admin/roles`,
+                    path: `/global/user-management/roles-permissions`,
                     description: "Configure access control"
                 }
             )
-        } else if (role && businessUnit) {
+        } else if (businessUnit) {
             // Business Unit Scoped Routes
             routes.push(
                 {
                     title: "Dashboard",
                     icon: Hash,
-                    path: `/${role}/${businessUnit}`,
+                    path: `/${businessUnit}/overview`,
                     description: "Go to main dashboard"
                 },
                 {
                     title: "All Products",
                     icon: Package,
-                    path: `/${role}/${businessUnit}/catalog/product`,
+                    path: `/${businessUnit}/catalog/product`,
                     description: "Manage products"
                 },
                 {
                     title: "Create Product",
                     icon: Package,
-                    path: `/${role}/${businessUnit}/catalog/product/new`,
+                    path: `/${businessUnit}/catalog/product/new`,
                     description: "Add new product"
                 },
                 {
                     title: "Orders",
                     icon: ShoppingCart,
-                    path: `/${role}/${businessUnit}/orders`,
+                    path: `/${businessUnit}/sales`,
                     description: "View all orders"
                 },
                 {
                     title: "Customers",
                     icon: Users,
-                    path: `/${role}/${businessUnit}/customers`,
+                    path: `/${businessUnit}/customers`,
                     description: "Manage customers"
                 },
                 {
                     title: "Sales",
                     icon: FileText,
-                    path: `/${role}/${businessUnit}/sales`,
+                    path: `/${businessUnit}/sales`,
                     description: "View sales reports"
                 }
             )
@@ -209,7 +212,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 items: products.slice(0, 5).map((product: any) => ({
                     title: product.name,
                     icon: Package,
-                    path: `/${role}/${businessUnit}/catalog/product/${product._id}`,
+                    path: `/${businessUnit}/catalog/product/${product._id}`,
                     description: `SKU: ${product.sku || 'N/A'} • Stock: ${product.stock || 0}`,
                     image: product.media?.[0]?.url
                 }))
@@ -362,3 +365,4 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         </Dialog>
     )
 }
+

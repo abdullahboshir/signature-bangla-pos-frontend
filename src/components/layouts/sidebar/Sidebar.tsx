@@ -8,10 +8,12 @@ import { getSidebarMenu } from "@/config/sidebar-menu"
 import { Input } from "@/components/ui/input"
 import { Search, ChevronLeft, ChevronRight } from "lucide-react"
 
-import { useGetSystemSettingsQuery } from "@/redux/api/settingsApi"
+import { useGetSystemSettingsQuery } from "@/redux/api/system/settingsApi"
 import { SidebarMenu } from "./SidebarMenu"
 import { SidebarHeader } from "./SidebarHeader"
 import { useAuth } from "@/hooks/useAuth"
+import { useCurrentRole } from "@/hooks/useCurrentRole"
+import { checkIsSuperAdmin } from "@/lib/iam/permissions";
 // import { SidebarFooter } from "./SidebarFooter"
 
 interface SidebarProps {
@@ -25,6 +27,7 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
   const searchParams = useSearchParams()
   const pathname = usePathname()
   const { user } = useAuth()
+  const { currentRole } = useCurrentRole();
 
   // Fetch System Settings for Feature Toggling
   const { data: systemSettings } = useGetSystemSettingsQuery(undefined);
@@ -60,14 +63,18 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
     }
   }
 
-  // Derive role based on path or params
-  let role = params.role as string
+  // Derive role based on current auth state (Priority 1)
+  let role = currentRole as string;
+
+  // Fallback to params or path (Priority 2)
   if (!role) {
-    if (pathname.startsWith('/super-admin')) {
-      role = 'super-admin'
+    if (params.role) {
+      role = params.role as string;
+    } else if (pathname.startsWith('/super-admin')) {
+      role = 'super-admin';
     } else if (businessUnit) {
-      // Default to business-admin for now when inside a BU dashboard
-      role = 'business-admin'
+      // Default to business-admin for now when inside
+      role = 'business-admin';
     }
   }
 
@@ -82,15 +89,7 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
   const menuItems = useMemo(() => {
     if (!user) return [];
 
-    const isSuperAdmin =
-      user.isSuperAdmin ||
-      user.roles?.some((r: any) =>
-        (typeof r === 'string' && r === 'super-admin') ||
-        (r?.name === 'super-admin') ||
-        (r?.slug === 'super-admin')
-      ) ||
-      (Array.isArray(user.role) && user.role.some((r: any) => typeof r === 'string' && r.toLowerCase() === 'super-admin')) ||
-      (typeof user.role === 'string' && (user.role as string).toLowerCase() === 'super-admin');
+    const isSuperAdmin = checkIsSuperAdmin(user);
 
     // Flatten permissions from roles
     // Scoped Permissions Logic

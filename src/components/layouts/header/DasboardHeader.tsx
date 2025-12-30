@@ -14,24 +14,26 @@ import { useAuth } from "@/hooks/useAuth";
 import { Clock } from "@/components/shared/Clock";
 import { NetworkStatus } from "@/components/shared/NetworkStatus";
 import { OpenRegisterModal } from "@/components/pos/OpenRegisterModal";
-import { useGetBusinessUnitsQuery } from "@/redux/api/businessUnitApi";
+import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi";
 import { CommandPalette } from "@/components/shared/CommandPalette";
-import { useGetOutletQuery } from "@/redux/api/outletApi";
+import { useGetOutletQuery } from "@/redux/api/organization/outletApi";
+import { useCurrentRole } from "@/hooks/useCurrentRole";
 
-interface HeaderProps {
+interface DashboardHeaderProps {
   onMenuClick?: () => void;
-  className?: string;
 }
 
-export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
+export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = {}) {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const pathname = usePathname(); // Correct Next.js Hook
+  const pathname = usePathname();
+
+  const { currentRole } = useCurrentRole();
 
   // Robust Slug Extraction
   let businessUnitSlug = (params["business-unit"] || params.businessUnit) as string;
-  let role = params.role as string;
+  let role = currentRole as string;
 
   // Handle [...slug] case for super-admin routes
   if (!businessUnitSlug && pathname.startsWith('/super-admin/')) {
@@ -111,12 +113,13 @@ export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
   const handleNewSale = () => {
     // If we have a scoped business unit, use it.
     if (businessUnitSlug) {
-      router.push(`/${role}/${businessUnitSlug}/sales/create`);
+      router.push(`/${businessUnitSlug}/sales/create`);
     } else {
-      // If Global Super Admin context, route to global sales create
-      // Assuming /super-admin/sales/create is a valid route
-      const targetRole = role || 'super-admin'; // Fallback
-      router.push(`/${targetRole}/sales/create`);
+      // If Global Super Admin context, route to global sales create or picking a unit
+      // Since 'sales' is usually BU-scoped, redirecting to BU selection might be better, 
+      // or if there's a global sales view.
+      // For now, let's assume they want to go to a default unit or remain global if supported.
+      router.push(`/global/sales/create`); // Or handle appropriate fallback
     }
   };
 
@@ -124,8 +127,7 @@ export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
     <>
       <header
         className={cn(
-          "sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b",
-          className
+          "sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b"
         )}
       >
         <div className="flex h-16 items-center px-4 gap-4">
@@ -210,3 +212,4 @@ export function DasboardHeader({ onMenuClick, className }: HeaderProps) {
     </>
   );
 }
+

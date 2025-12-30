@@ -55,10 +55,13 @@ const statusColors = {
   cancelled: "bg-red-500/10 text-red-500 border-red-500/20",
 }
 
+import { useCurrentRole } from "@/hooks/useCurrentRole";
+
 export function RecentOrdersWidget() {
   const router = useRouter()
   const params = useParams()
-  const role = params.role as string
+  const { currentRole } = useCurrentRole();
+  const role = currentRole as string;
   const businessUnit = params["business-unit"] as string
 
   return (
