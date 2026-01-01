@@ -209,7 +209,11 @@ const getResourceIcon = (resource: string) => {
     }
 };
 
-export function RolePermissionManagement() {
+interface RolePermissionManagementProps {
+    viewScope?: 'platform' | 'business' | 'all';
+}
+
+export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionManagementProps) {
     const { hasPermission } = usePermissions();
     // RTK Query Hooks
     const { data: rolesData, isLoading: isRolesLoading } = useGetRolesQuery({ limit: 1000 });
@@ -277,6 +281,19 @@ export function RolePermissionManagement() {
                     isDefault: role.isDefault || false
                 };
             });
+
+            // Filter Roles based on View Scope
+            if (viewScope === 'platform') {
+                fetchedRoles = fetchedRoles.filter(r =>
+                    r.id === 'super-admin' ||
+                    (r.isSystemRole && r.name !== 'Store Manager') // Assume some system roles like Store Manager are Business facing
+                    // Simplified: Platform only shows Super Admin and core system roles
+                );
+            } else if (viewScope === 'business') {
+                fetchedRoles = fetchedRoles.filter(r =>
+                    r.id !== 'super-admin' // Exclude Super Admin from Business Roles list 
+                );
+            }
 
             setRoles(fetchedRoles);
 
@@ -466,6 +483,7 @@ export function RolePermissionManagement() {
     const handleSave = async () => {
         if (!selectedRole || isSuperAdmin(selectedRole) || !hasPermission(PERMISSION_KEYS.ROLE.UPDATE)) return;
         try {
+            console.log("Saving permissions for role:", selectedRole.name, selectedRole._id);
             const payload = {
                 permissions: selectedRole.permissions,
                 permissionGroups: selectedRole.permissionGroups,
@@ -473,10 +491,12 @@ export function RolePermissionManagement() {
             };
             await updateRole({ id: selectedRole._id, ...payload }).unwrap();
 
-            Swal.fire({
+            console.log("Save successful, showing success modal");
+
+            await Swal.fire({
                 icon: 'success',
                 title: 'Permissions Updated',
-                text: `Permissions for ${selectedRole.name} saved.`,
+                text: `Permissions for ${selectedRole.name} saved successfully.`,
                 timer: 1500,
                 showConfirmButton: false,
             });

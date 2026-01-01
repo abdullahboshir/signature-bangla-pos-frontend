@@ -52,7 +52,7 @@ export const clearAuthSession = () => {
 // -----------------------------
 // Redirect Logic
 // -----------------------------
-export const getRedirectPath = (token: string, user?: User): string => {
+export const getRedirectPath = (token: string): string => {
     try {
         const decoded = jwtDecode(token) as any;
         // Handle role as array or string
@@ -62,7 +62,7 @@ export const getRedirectPath = (token: string, user?: User): string => {
         
         // Super Admin goes to /global (no longer /super-admin after URL refactor)
         if (roles.includes("super-admin") || decoded?.isSuperAdmin) {
-            return "/global/business-units"; // Or /global/overview
+            return "/global/dashboard"; // Or /global/overview
         }
         
         // For business unit users, redirect to their first business unit
@@ -74,7 +74,7 @@ export const getRedirectPath = (token: string, user?: User): string => {
         }
         
         // Fallback to global if no business unit
-        return "/global/business-units";
+        return "/global/dashboard";
     } catch (error) {
         return "/";
     }

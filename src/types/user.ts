@@ -16,10 +16,14 @@ export interface User {
   fullName?: string; // Virtual property often coming from backend
   phone?: string;
   
-  // Auth & Roles
-  role: string[]; // Legacy: array of role names
-  roles: any[];   // Legacy: populated role objects
-  permissions: IPermissionAssignment[]; // New Scoped Permissions
+  // Enterprise Access Model
+  globalRoles?: any[]; // Global Roles
+  businessAccess?: any[]; // Scoped Access
+  
+  // Auth & Roles (Legacy Compatibility)
+  role: string[]; 
+  roles: any[];
+  permissions: any[]; // Legacy or simple strings
   isSuperAdmin?: boolean;
   
   // Organization
@@ -27,8 +31,8 @@ export interface User {
   branches?: string[];
   
   // User Details
-  designation?: string; // Often added in frontend for UI
-  profileImg?: string; // Avatar URL
+  designation?: string;
+  profileImg?: string;
   avatar?: string;
   
   // Status
@@ -38,6 +42,7 @@ export interface User {
   
   // Authorization Context (Effective Permissions)
   hierarchyLevel?: number;
+  dataScope?: string; // e.g. 'global', 'business', 'outlet', 'own'
   maxDataAccess?: {
     products: number;
     orders: number;

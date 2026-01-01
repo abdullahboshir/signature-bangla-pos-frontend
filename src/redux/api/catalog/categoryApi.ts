@@ -7,7 +7,7 @@ const categoryApi = baseApi.injectEndpoints({
       query: (data: any) => ({
         url: "/super-admin/categories/create",
         method: "POST",
-        contentType: "application/json",
+        // Don't set contentType - let browser set multipart/form-data for FormData
         data,
       }),
       invalidatesTags: [tagTypes.category],
@@ -18,7 +18,11 @@ const categoryApi = baseApi.injectEndpoints({
         method: "GET",
         params,
       }),
-      transformResponse: (response: any) => response.data?.data?.result || response.data?.data || response.data?.result || response.data || [],
+      // ApiResponse format: { success, statusCode, message, data, pagination?, timestamp }
+      transformResponse: (response: any) => {
+        // Extract data from ApiResponse wrapper
+        return response?.data || [];
+      },
       providesTags: [tagTypes.category],
     }),
     getCategory: build.query({
@@ -33,7 +37,7 @@ const categoryApi = baseApi.injectEndpoints({
       query: (data: { id: string; body: any }) => ({
         url: `/super-admin/categories/${data.id}`,
         method: "PATCH",
-        contentType: "application/json",
+        // Don't set contentType for FormData
         data: data.body,
       }),
       invalidatesTags: [tagTypes.category],

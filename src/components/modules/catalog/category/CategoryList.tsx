@@ -135,13 +135,23 @@ export const CategoryList = () => {
             accessorKey: "name",
             header: "Name",
             cell: ({ row }) => (
-                <div className="flex items-center" style={{ paddingLeft: `${row.original.depth * 24}px` }}>
+                <div
+                    className={cn(
+                        "flex items-center cursor-pointer hover:bg-muted/50 -mx-4 px-4 py-2 rounded-md transition-colors",
+                        row.original.hasChildren && "font-medium"
+                    )}
+                    style={{ paddingLeft: `${row.original.depth * 24 + 16}px` }}
+                    onClick={() => row.original.hasChildren && toggleExpand(row.original._id)}
+                >
                     {row.original.hasChildren ? (
-                        <Button variant="ghost" size="icon" className="h-6 w-6 p-0 mr-2" onClick={() => toggleExpand(row.original._id)}>
-                            {expanded.has(row.original._id) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                        </Button>
+                        <div className="h-6 w-6 flex items-center justify-center mr-2">
+                            {expanded.has(row.original._id) ?
+                                <ChevronDown className="h-4 w-4 text-muted-foreground" /> :
+                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            }
+                        </div>
                     ) : (
-                        <div className="w-8 mr-2" /> // Spacer
+                        <div className="w-6 mr-2" /> // Spacer
                     )}
 
                     <Avatar className="h-8 w-8 rounded-lg border mr-3">
@@ -221,7 +231,7 @@ export const CategoryList = () => {
                 label: "Parent Category",
                 type: "select",
                 placeholder: "Select Parent (Optional)",
-                options: [{ label: "No Parent (Root)", value: "" }, ...getParentOptions()]
+                options: [{ label: "No Parent (Root)", value: "null" }, ...getParentOptions()]
             },
             { name: "description", label: "Description", type: "textarea", placeholder: "Category Description" },
             { name: "image", label: "Category Image", type: "file", placeholder: "Upload Image", accept: "image/*" },
@@ -273,14 +283,14 @@ export const CategoryList = () => {
                 description: editingCategory.description,
                 isActive: editingCategory.isActive ? "true" : "false",
                 image: editingCategory.image,
-                parentId: (editingCategory.parentId as any)?._id || editingCategory.parentId || "",
+                parentId: (editingCategory.parentId as any)?._id || editingCategory.parentId || "null",
                 businessUnit: (editingCategory.businessUnit as any)?.id || (editingCategory.businessUnit as any)?._id || editingCategory.businessUnit || defaultBUValue
             };
         }
 
         return {
             isActive: "true",
-            parentId: "",
+            parentId: "null",
             businessUnit: isSuperAdmin ? defaultBUValue : paramBusinessUnit
         };
     };
@@ -326,7 +336,10 @@ export const CategoryList = () => {
                         formData.append("name", data.name);
                         formData.append("description", data.description || "");
                         formData.append("isActive", data.isActive === "true" ? "true" : "false");
-                        if (data.parentId) formData.append("parentId", data.parentId);
+                        // Don't append parentId if it's "null" string (means no parent/root)
+                        if (data.parentId && data.parentId !== "null") {
+                            formData.append("parentId", data.parentId);
+                        }
 
                         // BU Logic
                         let targetBU = "";

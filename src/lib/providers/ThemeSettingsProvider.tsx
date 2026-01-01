@@ -13,6 +13,8 @@ import {
   useUpdateSettingsMutation,
 } from "@/redux/api/iam/userApi";
 
+import { authKey } from "@/constant/authKey";
+
 type ThemeSettings = {
   primary?: string;
   secondary?: string;
@@ -78,12 +80,21 @@ function applyThemeToDocument(theme: ThemeSettings) {
   }
 }
 
+import { usePathname } from "next/navigation";
+
 export function ThemeSettingsProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const isAuthPage = pathname?.includes("/auth");
+  const hasToken = typeof window !== 'undefined' ? document.cookie.includes(authKey) : false;
+
+  const shouldSkip = !hasToken || isAuthPage;
+
   const {
     data,
     isLoading: loadingSettings,
   } = useGetSettingsQuery(undefined, {
     refetchOnMountOrArgChange: true,
+    skip: shouldSkip,
   });
   const [updateSettings, { isLoading: saving }] = useUpdateSettingsMutation();
 

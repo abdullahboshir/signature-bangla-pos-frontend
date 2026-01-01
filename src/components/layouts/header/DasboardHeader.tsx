@@ -60,15 +60,33 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
   const { data: outletData } = useGetOutletQuery(outletId, { skip: !outletId });
 
   // Fetch all units if Super Admin
-  const isSuperAdmin = user?.roles?.includes('super-admin') || user?.isSuperAdmin;
+  const isSuperAdmin = user?.isSuperAdmin || (user?.globalRoles || []).some((r: any) => {
+    const rName = (typeof r === 'string' ? r : r.name).toLowerCase();
+    return rName === 'super-admin' || rName === 'super_admin';
+  });
+
   const { data: allBusinessUnits } = useGetBusinessUnitsQuery(undefined, {
     skip: !isSuperAdmin
   });
 
+  // Extract BUs from new Consumer Access Model
+  const userBusinessUnits = (user?.businessAccess || [])
+    .map((acc: any) => acc.businessUnit)
+    .filter((bu: any) => bu);
+
+  const uniqueUserBUs = [...new Map(userBusinessUnits.map((bu: any) => [bu._id || bu.id, bu])).values()];
+
   // Combine or select appropriate source of units
   const availableUnits = isSuperAdmin
     ? (allBusinessUnits || [])
-    : (user?.businessUnits || []);
+    : (uniqueUserBUs || []);
+
+  console.log('HEADER DEBUG:', {
+    isSuperAdmin,
+    globalRoles: user?.globalRoles,
+    businessAccessCount: user?.businessAccess?.length,
+    availableUnitsCount: availableUnits?.length,
+  });
 
   // Sync active business unit from URL to Context (for API headers)
   useEffect(() => {
@@ -100,12 +118,16 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const globalRoleNames = (user?.globalRoles || []).map((r: any) => typeof r === 'string' ? r : r.name);
+  const scopedRoleNames = (user?.businessAccess || []).map((acc: any) => acc.role?.name).filter(Boolean);
+  const allRoleNames = [...new Set([...globalRoleNames, ...scopedRoleNames])].join(", ");
+
   const userData: any = {
     fullName: typeof user?.name === 'string' ? user.name : (user?.name?.firstName ? `${user.name.firstName} ${user.name.lastName}` : (user?.fullName || "Staff")),
     profileImg: user?.profileImg || user?.avatar || "/avatars/01.png",
-    designation: user?.designation || (user?.roles?.map((role: any) => typeof role === 'string' ? role : role.name).filter(Boolean).join(", ") || "Staff"),
-    role: user?.roles?.map((role: any) => typeof role === 'string' ? role : role.name).filter(Boolean).join(", ") || "Staff",
-    businessUnit: user?.businessUnits?.map((u: any) => u.name) || [],
+    designation: user?.designation || allRoleNames || "Staff",
+    role: allRoleNames || "Staff",
+    businessUnit: uniqueUserBUs.map((u: any) => u.name) || [],
   };
 
   const businessUnitName = businessUnitSlug ? businessUnitSlug.replace("-", " ") : "Dashboard";

@@ -23,7 +23,10 @@ const setAuthCookie = (token: string) => {
 // REQUEST INTERCEPTOR
 axiosInstance.interceptors.request.use((config) => {
   const token = getToken();
-  if (token) {
+  // Don't attach token for login/register endpoints to avoid backend conflict
+  const isPublicAuth = config.url?.includes("/login") || config.url?.includes("/register");
+  
+  if (token && !isPublicAuth) {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
@@ -42,6 +45,27 @@ axiosInstance.interceptors.request.use((config) => {
   return config;
 });
 
+// Refresh Token Queue Mechanism
+interface PendingRequest {
+  resolve: (token: string) => void;
+  reject: (error: any) => void;
+}
+
+let isRefreshing = false;
+let failedQueue: PendingRequest[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token as string);
+    }
+  });
+
+  failedQueue = [];
+};
+
 // RESPONSE INTERCEPTOR
 axiosInstance.interceptors.response.use(
   (response) => {
@@ -58,7 +82,22 @@ axiosInstance.interceptors.response.use(
         return Promise.reject(error);
       }
 
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({
+            resolve: (token: string) => {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              resolve(axiosInstance(originalRequest));
+            },
+            reject: (err) => {
+              reject(err);
+            },
+          });
+        });
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
 
       try {
         // Direct refresh call to avoid circular dependency
@@ -71,12 +110,21 @@ axiosInstance.interceptors.response.use(
         const newToken = refreshRes?.data?.data?.accessToken;
 
         if (newToken) {
-            setAuthCookie(newToken); // Update client cookie
-            originalRequest.headers.Authorization = `Bearer ${newToken}`;
-            return axiosInstance(originalRequest);
+          setAuthCookie(newToken); // Update client cookie
+          axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
+          processQueue(null, newToken);
+          
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return axiosInstance(originalRequest);
+        } else {
+           processQueue(new Error("No token returned"), null);
+           return Promise.reject(error);
         }
       } catch (refreshError) {
+        processQueue(refreshError, null);
         return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
 

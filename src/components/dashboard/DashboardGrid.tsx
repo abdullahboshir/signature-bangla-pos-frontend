@@ -15,7 +15,7 @@ interface DashboardGridProps {
   outletId?: string;
 }
 
-export function DashboardGrid() {
+export function DashboardGrid({ outletId }: DashboardGridProps) {
   const params = useParams()
   const { currentRole } = useCurrentRole();
   const role = currentRole as string;

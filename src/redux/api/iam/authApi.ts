@@ -43,7 +43,13 @@ const authApi = baseApi.injectEndpoints({
                 params
             }),
             providesTags: [tagTypes.auth],
-            transformResponse: (response: any) => response.data || response.data?.data
+            // ApiResponse format: { success, statusCode, message, data, timestamp }
+            transformResponse: (response: any) => {
+                console.log("GetMe Raw Response:", response);
+                const result = response?.data || response;
+                console.log("GetMe Transformed Data:", result);
+                return result;
+            }
         }),
     }),
 });

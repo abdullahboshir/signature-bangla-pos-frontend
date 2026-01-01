@@ -4,10 +4,9 @@ import {
     createContext,
     useContext,
     ReactNode,
-    useState,
-    useEffect
+    useState
 } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
     User,
     LoginResponse,
@@ -21,6 +20,7 @@ import {
     useGetMeQuery
 } from "@/redux/api/iam/authApi";
 import { jwtDecode } from "jwt-decode";
+import { authKey } from "@/constant/authKey";
 
 interface AuthContextType {
     user: User | null;
@@ -39,20 +39,22 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
     const router = useRouter();
 
-    const [activeBusinessUnit, setActiveBusinessUnitState] = useState<string | null>(null);
-
-    // Initialize from localStorage on mount
-    useEffect(() => {
-        const stored = localStorage.getItem('active-business-unit');
-        if (stored) {
-            setActiveBusinessUnitState(stored);
+    const [activeBusinessUnit, setActiveBusinessUnitState] = useState<string | null>(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('active-business-unit');
         }
-    }, []);
+        return null;
+    });
 
     const queryParams = activeBusinessUnit ? { businessUnitId: activeBusinessUnit } : undefined;
 
-    // RTK Query Hooks
-    // useGetMeQuery handles initial load, session restoration, and acts as the source of truth for 'user'
+    const pathname = usePathname();
+    const isAuthPage = pathname?.includes("/auth");
+
+    const hasToken = typeof window !== 'undefined' ? document.cookie.includes(authKey) : false;
+
+    const shouldSkip = !hasToken || isAuthPage;
+
     const {
         data: user,
         isLoading: isUserLoading,
@@ -60,10 +62,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isError
     } = useGetMeQuery(queryParams, {
         pollingInterval: 0,
-        refetchOnFocus: false, // Don't aggressive refetch
-        refetchOnMountOrArgChange: true // Ensure re-fetch on BU change
+        refetchOnFocus: false,
+        refetchOnMountOrArgChange: true,
+        skip: shouldSkip
     });
-    console.log('dddddddddddddddddddd', user)
+
     const [loginMutation] = useLoginMutation();
     const [logoutMutation] = useLogoutMutation();
 
@@ -80,17 +83,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             const res: any = await loginMutation(formData).unwrap();
 
-            // Debugging login response structure
             console.log("LOGIN RESPONSE DEBUG:", res);
-
-            // Adjust based on actual API response structure. 
-            // authApi transformResponse typically returns res.data or res.data.data from baseApi
-            // But mutation returns exactly what backend sends usually unless transformed.
-            // Let's assume standard response: { success, data: { accessToken, user } }
 
             const data = res.data || res;
             const accessToken = data?.accessToken;
-            const userData = data?.user;
 
             if (!accessToken) {
                 return { success: false, message: "Invalid login response" };
@@ -101,21 +97,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const decoded = jwtDecode(accessToken) as any;
 
             // Determine redirect
-            const redirect = getRedirectPath(accessToken, userData);
+            const redirect = getRedirectPath(accessToken);
 
             return {
                 success: true,
                 accessToken,
                 status: decoded?.status,
-                user: userData,
                 redirect,
             };
 
         } catch (err: any) {
-            // Detailed logging for debugging "Empty Error" issue
             console.error("LOGIN ERROR CAUGHT IN AUTH PROVIDER:", JSON.stringify(err, null, 2));
 
-            // Log raw error if stringify fails/returns empty (e.g. Error object sometimes acts weird)
             if (Object.keys(err).length === 0) {
                 console.error("LOGIN ERROR (RAW):", err);
                 if (err.message) console.error("LOGIN ERROR MESSAGE:", err.message);
@@ -151,12 +144,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         clearAuthCookies();
-        localStorage.removeItem('active-business-unit'); // Clear context
-        // Force hard reload to clear all states and prevent protected layout loops
+        localStorage.removeItem('active-business-unit');
         window.location.href = "/auth/login";
-        // router.push("/auth/login");
-        // We can manually reset api state if needed, but invalidation should handle it
-        // dispatch(baseApi.util.resetApiState()); // Optional if full clear required
     };
 
     const refreshSession = async (): Promise<boolean> => {

@@ -19,6 +19,7 @@ import {
   Warehouse,
   Globe,
   ShieldAlert,
+  Plug,
 } from "lucide-react"
 import { RESOURCE_KEYS, ACTION_KEYS, PLATFORM_PERMISSIONS, BUSINESS_PERMISSIONS } from "./permission-keys"
 
@@ -44,7 +45,7 @@ export interface AppModule {
 export const APP_MODULES: Record<string, AppModule> = {
   DASHBOARD: {
     title: "Dashboard",
-    path: "",
+    path: "dashboard",
     icon: LayoutDashboard,
     exact: true,
     // resource: RESOURCE_KEYS.SYSTEM // OLD
@@ -278,18 +279,61 @@ export const APP_MODULES: Record<string, AppModule> = {
     icon: Settings,
     resource: PLATFORM_PERMISSIONS.MANAGE_SYSTEM, // NEW
     children: [
-      { title: "Audit Logs", path: "system/audit-logs", resource: PLATFORM_PERMISSIONS.VIEW_AUDIT_LOGS },
-      { title: "Notifications", path: "system/notifications", resource: RESOURCE_KEYS.NOTIFICATION },
-      { title: "Settings", path: "settings", resource: RESOURCE_KEYS.SYSTEM },
+      { title: "General Settings", path: "system", resource: RESOURCE_KEYS.SYSTEM },
+      { title: "Module Toggles", path: "system/modules", resource: PLATFORM_PERMISSIONS.MANAGE_SYSTEM },
+      { title: "Email Templates", path: "system/email-templates", resource: RESOURCE_KEYS.EMAIL_TEMPLATE },
+      { title: "SMS Templates", path: "system/sms-templates", resource: RESOURCE_KEYS.SMS_TEMPLATE },
       { title: "Languages", path: "system/languages", resource: RESOURCE_KEYS.LANGUAGE },
       { title: "Currencies", path: "system/currencies", resource: RESOURCE_KEYS.CURRENCY },
       { title: "Zones & Locations", path: "system/zones", resource: RESOURCE_KEYS.ZONE },
       { title: "Backups", path: "system/backups", resource: PLATFORM_PERMISSIONS.MANAGE_BACKUPS },
-      { title: "API Keys", path: "system/api-keys", resource: PLATFORM_PERMISSIONS.MANAGE_API_KEYS },
-      { title: "Webhooks", path: "system/webhooks", resource: PLATFORM_PERMISSIONS.MANAGE_WEBHOOKS },
-      { title: "Email Templates", path: "system/email-templates", resource: RESOURCE_KEYS.EMAIL_TEMPLATE },
-      { title: "SMS Templates", path: "system/sms-templates", resource: RESOURCE_KEYS.SMS_TEMPLATE },
-      { title: "Data Retention", path: "system/data-retention", resource: RESOURCE_KEYS.SYSTEM },
+    ]
+  },
+
+  // 📦 PACKAGES & LICENSING - SaaS subscription management
+  PACKAGES: {
+    title: "Packages & Plans",
+    path: "packages",
+    icon: Package,
+    resource: PLATFORM_PERMISSIONS.MANAGE_PACKAGES,
+    badge: "SaaS",
+    children: [
+      { title: "All Packages", path: "packages" },
+      { title: "Create Package", path: "packages/new", action: ACTION_KEYS.CREATE },
+      { title: "Feature Flags", path: "packages/features", resource: PLATFORM_PERMISSIONS.MANAGE_FEATURES },
+      { title: "License Keys", path: "licenses", resource: PLATFORM_PERMISSIONS.MANAGE_LICENSES },
+      { title: "Trials", path: "packages/trials", resource: PLATFORM_PERMISSIONS.MANAGE_PACKAGES },
+    ]
+  },
+
+  // 🔔 NOTIFICATIONS - Platform-wide alert center
+  NOTIFICATIONS: {
+    title: "Notifications",
+    path: "notifications",
+    icon: Bell,
+    resource: PLATFORM_PERMISSIONS.MANAGE_NOTIFICATIONS,
+    badge: "New",
+    children: [
+      { title: "Alert Center", path: "notifications" },
+      { title: "Announcements", path: "notifications/announcements", action: ACTION_KEYS.CREATE },
+      { title: "Alert Settings", path: "notifications/settings", action: ACTION_KEYS.UPDATE },
+    ]
+  },
+
+  // 🔌 INTEGRATIONS - Third-party service management
+  INTEGRATIONS: {
+    title: "Integrations",
+    path: "integrations",
+    icon: Plug,
+    resource: PLATFORM_PERMISSIONS.MANAGE_INTEGRATIONS,
+    badge: "New",
+    children: [
+      { title: "All Integrations", path: "integrations" },
+      { title: "Payment Gateways", path: "integrations/payment", resource: PLATFORM_PERMISSIONS.MANAGE_INTEGRATIONS },
+      { title: "Shipping Providers", path: "integrations/shipping", resource: PLATFORM_PERMISSIONS.MANAGE_INTEGRATIONS },
+      { title: "Email & SMS", path: "integrations/communication", resource: PLATFORM_PERMISSIONS.MANAGE_INTEGRATIONS },
+      { title: "Webhooks", path: "integrations/webhooks", resource: PLATFORM_PERMISSIONS.MANAGE_WEBHOOKS },
+      { title: "API Keys", path: "integrations/api-keys", resource: PLATFORM_PERMISSIONS.MANAGE_API_KEYS },
     ]
   },
 
@@ -415,7 +459,7 @@ export const APP_MODULES: Record<string, AppModule> = {
 // ========================================
 // This derived constant ensures ROUTE_PATHS always matches APP_MODULES
 export const ROUTE_PATHS = {
-  DASHBOARD: { ROOT: "" },
+  DASHBOARD: { ROOT: "dashboard" },
   BUSINESS_UNITS: {
     ROOT: "business-units",
     NEW: "business-units/new",

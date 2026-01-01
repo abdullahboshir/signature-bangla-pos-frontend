@@ -31,7 +31,11 @@ const userFormSchema = z.object({
     status: z.string(), // Removed .default("active") to align types, use defaultValues instead
 });
 
-export default function AddUserForm() {
+interface AddUserFormProps {
+    isPlatformUser?: boolean;
+}
+
+export default function AddUserForm({ isPlatformUser = false }: AddUserFormProps) {
     const router = useRouter();
     const params = useParams();
     const { user: currentUser } = useAuth();
@@ -224,8 +228,8 @@ export default function AddUserForm() {
                                 />
                             </div>
 
-                            {/* Business Unit Selection for Super Admin */}
-                            {isSuperAdmin && (
+                            {/* Business Unit Selection for Super Admin (Hidden for Platform Users) */}
+                            {(isSuperAdmin && !isPlatformUser) && (
                                 <FormField
                                     control={form.control}
                                     name="businessUnit"

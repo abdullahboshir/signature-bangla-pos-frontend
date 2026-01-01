@@ -10,6 +10,7 @@ export interface ICategory extends IBaseEntity {
     slug: string;
     description?: string;
     businessUnit: string; // ID
+    parentId?: string;
     image?: string;
     children?: ISubCategory[]; // For tree view if needed
 }

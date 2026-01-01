@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
-import { UserMenu } from "@/components/layouts/header/UserMenu";
+import { CenteredLoading } from "@/components/shared/CenteredLoading";
 import { LoadingClearer } from "@/components/shared/LoadingClearer";
 
 interface ProtectedLayoutProps {
@@ -43,13 +42,8 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
             let roleSlug = pathParts[0];
             let buSlug = pathParts[1];
 
-            // Fallback if path is invalid (e.g. root) and we need to construct from user data
+
             if (!roleSlug || !buSlug) {
-              // Try to get from user
-              // Note: user.roles is ObjectId or populated object. 
-              // This simple logic assumes standard path structure is maintained or valid defaults exist.
-              // If we can't determine, we might just let it be or redirect to a known safe route if feasible.
-              // But usually standard login redirects to /[role]/[bu]/...
               return;
             }
 
@@ -73,7 +67,7 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
 
   // Handle loading state
   if (!mounted || authLoading) {
-    return <LoadingSpinner />;
+    return <CenteredLoading fullScreen message="Loading..." size="lg" />;
   }
 
   // If not authenticated, the AuthProvider/useAuth should handle redirect, 

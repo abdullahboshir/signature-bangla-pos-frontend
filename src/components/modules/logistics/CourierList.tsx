@@ -63,7 +63,12 @@ export default function CourierList() {
         }
     ];
 
-    if (!hasPermission(PERMISSION_KEYS.COURIER.READ)) {
+    console.log("hasPermission(PERMISSION_KEYS.COURIER.READ)", PERMISSION_KEYS.COURIER.READ, hasPermission(PERMISSION_KEYS.COURIER.READ));
+    console.log("hasPermission(PERMISSION_KEYS.COURIER.MANAGE)", hasPermission(PERMISSION_KEYS.COURIER.MANAGE));
+
+    const canView = hasPermission(PERMISSION_KEYS.COURIER.READ) || hasPermission(PERMISSION_KEYS.COURIER.MANAGE);
+
+    if (!canView) {
         return <div className="p-4 text-center text-muted-foreground">You do not have permission to view couriers.</div>
     }
 

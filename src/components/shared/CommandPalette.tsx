@@ -52,7 +52,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     }
 
     // Debug logging
-    console.log('CommandPalette - role:', role, 'businessUnit:', businessUnit, 'pathname:', pathname)
 
     // Fetch products for search
     const { data: productsData } = useGetProductsQuery(
@@ -68,6 +67,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
         // Check if we're in super-admin context (no business unit)
         const isSuperAdminContext = role === 'super-admin' && !businessUnit
+        console.log('CommandPaletteeeeeeeeeeeeeeeeeee - role:', role, 'businessUnit:', businessUnit, 'pathname:', pathname, isSuperAdminContext)
 
         if (isSuperAdminContext) {
             // Super Admin Routes - Global Access

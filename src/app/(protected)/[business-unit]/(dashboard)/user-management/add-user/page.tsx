@@ -14,6 +14,12 @@ import { useGetRolesQuery } from "@/redux/api/iam/roleApi"
 import { useCreateUserMutation } from "@/redux/api/iam/userApi"
 import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi"
 import { useGetOutletQuery } from "@/redux/api/organization/outletApi"
+import { useGetPermissionsQuery } from "@/redux/api/iam/roleApi"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Plus } from "lucide-react"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Checkbox } from "@/components/ui/checkbox"
+import { RoleAssignmentRow } from "@/components/modules/user-management/RoleAssignmentRow"
 
 export default function AddUserPage() {
   const router = useRouter()
@@ -36,26 +42,36 @@ export default function AddUserPage() {
     email: "",
     phone: "",
     password: "",
-    role: "",
-    businessUnit: "", // Will be ID
-    outlet: ""       // Will be ID
   })
 
-  // Dependent Query: Get Outlets for selected BU
-  const { data: outletsData, isLoading: isLoadingOutlets } = useGetOutletQuery(
-    formData.businessUnit ? { businessUnit: formData.businessUnit } : { businessUnit: 'none' },
-    { skip: !formData.businessUnit }
+  // Role Assignments State
+  const [roleAssignments, setRoleAssignments] = useState<{
+    role: string;
+    businessUnit: string;
+    outlet: string | null;
+    tempId: string;
+  }[]>([]);
+
+  // Direct Permissions State
+  const [directPermissions, setDirectPermissions] = useState<string[]>([]);
+  const [permSearch, setPermSearch] = useState("");
+
+  const { data: permissionsData, isLoading: isLoadingPerms } = useGetPermissionsQuery({ limit: 1000 });
+  const allPermissions = Array.isArray(permissionsData) ? permissionsData : (permissionsData?.data || []);
+
+  const filteredPermissions = allPermissions.filter((p: any) =>
+    p.id.toLowerCase().includes(permSearch.toLowerCase()) ||
+    p.description?.toLowerCase().includes(permSearch.toLowerCase())
   );
 
-  const outlets = Array.isArray(outletsData) ? outletsData : (outletsData?.data || []);
+  // Dependent Query: Get Outlets for selected BU - Removed top-level dependency
 
   const [createUser, { isLoading: isCreating }] = useCreateUserMutation()
 
-  // Initialize Business Unit logic
+  // Initialize Business Unit logic - If needed to auto-add a row for the current BU
   useEffect(() => {
-    if (paramBusinessUnit && businessUnits.length > 0) {
-      // Scoped Context: Lock BU
-      // Try precise match first
+    if (paramBusinessUnit && businessUnits.length > 0 && roleAssignments.length === 0) {
+      // Auto-add a row for this BU context
       const matched = businessUnits.find((b: any) =>
         (b.slug && b.slug.toLowerCase() === paramBusinessUnit.toLowerCase()) ||
         b.id === paramBusinessUnit ||
@@ -63,57 +79,86 @@ export default function AddUserPage() {
       );
 
       if (matched) {
-        setFormData(prev => ({ ...prev, businessUnit: matched._id || matched.id }));
-      } else {
-        // Fallback (though rare if everything loaded)
-        setFormData(prev => ({ ...prev, businessUnit: paramBusinessUnit }));
+        setRoleAssignments([{
+          role: "",
+          businessUnit: matched._id || matched.id,
+          outlet: null,
+          tempId: Math.random().toString(36).substr(2, 9)
+        }]);
       }
     }
-  }, [paramBusinessUnit, businessUnits])
+  }, [paramBusinessUnit, businessUnits, roleAssignments.length])
 
+
+  // Handlers for Role Assignments
+  const addRoleAssignment = () => {
+    setRoleAssignments(prev => [
+      ...prev,
+      { role: "", businessUnit: "", outlet: null, tempId: Math.random().toString(36).substr(2, 9) }
+    ]);
+  };
+
+  const removeRoleAssignment = (tempId: string) => {
+    setRoleAssignments(prev => prev.filter(r => r.tempId !== tempId));
+  };
+
+  const updateRoleAssignment = (tempId: string, field: string, value: any) => {
+    setRoleAssignments(prev => prev.map(r => r.tempId === tempId ? { ...r, [field]: value } : r));
+  };
+
+  const toggleDirectPermission = (id: string) => {
+    setDirectPermissions(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
+  };
 
   const handleChange = (field: string, value: string) => {
-    setFormData(prev => {
-      // If BU changes, clear outlet
-      if (field === 'businessUnit') {
-        return { ...prev, [field]: value, outlet: "" };
-      }
-      return { ...prev, [field]: value };
-    })
+    setFormData(prev => ({ ...prev, [field]: value }));
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     // Basic validation
-    if (!formData.firstName || !formData.email || !formData.role) {
+    if (!formData.firstName || !formData.email) {
       toast.error("Please fill all required fields")
       return
     }
 
-    if (!formData.businessUnit) {
-      toast.error("Please select a Business Unit")
+    if (roleAssignments.length === 0) {
+      toast.error("Please assign at least one role");
+      return;
+    }
+
+    // Validate that all assignments have a role and business unit
+    const invalidAssignment = roleAssignments.find(r => !r.role || !r.businessUnit);
+    if (invalidAssignment) {
+      toast.error("All role assignments must have a Role and a Business Unit selected.");
       return;
     }
 
     try {
       // Construct Payload aligned with create-user.controller.ts
+      // Transform local roleAssignments to backend structure
+      const permissionsPayload = roleAssignments.map(r => ({
+        role: r.role,
+        businessUnit: r.businessUnit || null, // Global if empty
+        outlet: r.outlet || null
+      }));
+
       const payload = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
         phone: formData.phone,
         password: formData.password,
-        role: formData.role, // Root level for controller detection
-        businessUnit: formData.businessUnit, // Root level for Staff Service
-        outlet: formData.outlet === "remove-selection" ? "" : formData.outlet,
 
-        // Optional: Send strict permissions structure if backend evolves to use it
-        permissions: [{
-          role: formData.role,
-          businessUnit: formData.businessUnit,
-          outlet: formData.outlet === "remove-selection" ? null : formData.outlet
-        }],
+        // New Structure
+        permissions: permissionsPayload,
+        directPermissions: directPermissions,
+
+        // Legacy/Root fields for backward compatibility (optional but good for safety)
+        // We pick the first assignment as primary if needed, or leave blank
+        role: permissionsPayload.length > 0 ? permissionsPayload[0].role : null,
+        businessUnit: permissionsPayload.length > 0 ? permissionsPayload[0].businessUnit : null,
 
         status: "active"
       };
@@ -123,7 +168,7 @@ export default function AddUserPage() {
       const res: any = await createUser(payload).unwrap();
 
       toast.success("User created successfully!")
-      router.back() // Go back to where they came from (All Users list usually)
+      router.back()
 
     } catch (error: any) {
       console.error("User creation error:", error)
@@ -132,7 +177,7 @@ export default function AddUserPage() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6 max-w-2xl">
+    <div className="container mx-auto py-6 space-y-6 max-w-4xl">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Add New User</h1>
         <p className="text-muted-foreground">
@@ -149,62 +194,8 @@ export default function AddUserPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Scope Selection */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="businessUnit">Business Unit *</Label>
-                <Select
-                  value={formData.businessUnit}
-                  onValueChange={(val) => handleChange("businessUnit", val)}
-                  disabled={!!paramBusinessUnit} // Lock if scoped
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Business Unit" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {isLoadingBUs ? (
-                      <div className="p-2 text-sm text-gray-500">Loading...</div>
-                    ) : (
-                      businessUnits.map((bu: any) => (
-                        <SelectItem key={bu._id || bu.id} value={bu._id || bu.id}>
-                          {bu.name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="outlet">Outlet (Optional)</Label>
-                <Select
-                  value={formData.outlet}
-                  onValueChange={(val) => handleChange("outlet", val)}
-                  disabled={!formData.businessUnit || isLoadingOutlets}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Outlet (Optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {/* Option to clear outlet */}
-                    {formData.businessUnit && <SelectItem value="remove-selection">- No Outlet (Business Unit Level) -</SelectItem>}
-
-                    {isLoadingOutlets ? (
-                      <div className="p-2 text-sm text-gray-500">Loading Outlets...</div>
-                    ) : outlets.length === 0 ? (
-                      <div className="p-2 text-sm text-gray-500">No outlets found for BU</div>
-                    ) : (
-                      outlets.map((outlet: any) => (
-                        <SelectItem key={outlet._id} value={outlet._id}>
-                          {outlet.name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">Select if user is specific to one branch.</p>
-              </div>
-            </div>
+            {/* Scope Selection - REPLACED BY ROLE ASSIGNMENTS TABLE */}
+            {/* The previous Business Unit and Outlet selectors are now handled per-row in Role Assignments */}
 
             <Separator className="my-2" />
 
@@ -230,61 +221,132 @@ export default function AddUserPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address *</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="john.doe@example.com"
-                value={formData.email}
-                onChange={(e) => handleChange("email", e.target.value)}
-                required
-              />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="john.doe@example.com"
+                  value={formData.email}
+                  onChange={(e) => handleChange("email", e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  placeholder="+880 1XXX XXXXXX"
+                  value={formData.phone}
+                  onChange={(e) => handleChange("phone", e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password (Optional)</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Leave empty for default"
+                  value={formData.password}
+                  onChange={(e) => handleChange("password", e.target.value)}
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                placeholder="+880 1XXX XXXXXX"
-                value={formData.phone}
-                onChange={(e) => handleChange("phone", e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password (Optional)</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Leave empty for default"
-                value={formData.password}
-                onChange={(e) => handleChange("password", e.target.value)}
-              />
-            </div>
-
+            {/* ==================== ROLE ASSIGNMENTS (Scoped) ==================== */}
             <Separator className="my-4" />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium">Role Assignments</h3>
+                  <p className="text-sm text-muted-foreground">Assign roles to specific Business Units or globally.</p>
+                </div>
+                <Button type="button" size="sm" onClick={addRoleAssignment}>
+                  <Plus className="mr-2 h-4 w-4" /> Add Assignment
+                </Button>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="role">Assign Role *</Label>
-              <Select value={formData.role} onValueChange={(val) => handleChange("role", val)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {isLoadingRoles ? (
-                    <div className="p-2 text-sm text-gray-500">Loading roles...</div>
-                  ) : roles.length === 0 ? (
-                    <div className="p-2 text-sm text-gray-500">No roles found</div>
+              <div className="border rounded-md">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Business Unit (Scope)</TableHead>
+                      <TableHead>Outlet (Optional)</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {roleAssignments.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                          No roles assigned. Click "Add Assignment" to grant access.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      roleAssignments.map((assignment) => (
+                        <RoleAssignmentRow
+                          key={assignment.tempId}
+                          assignment={assignment}
+                          roles={roles}
+                          businessUnits={businessUnits}
+                          onUpdate={updateRoleAssignment}
+                          onRemove={removeRoleAssignment}
+                        />
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            {/* ==================== DIRECT PERMISSIONS (Overrides) ==================== */}
+            <Separator className="my-4" />
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-medium">Direct Permission Overrides</h3>
+                <p className="text-sm text-muted-foreground">Grant specific exceptional permissions to this user.</p>
+              </div>
+
+              <div className="border p-4 rounded-md space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Search permissions..."
+                    value={permSearch}
+                    onChange={(e) => setPermSearch(e.target.value)}
+                  />
+                </div>
+
+                <ScrollArea className="h-[200px] border rounded-md p-2">
+                  {isLoadingPerms ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">Loading permissions...</div>
                   ) : (
-                    roles.map((role: any) => (
-                      <SelectItem key={role._id} value={role._id}>
-                        {role.name}
-                      </SelectItem>
-                    ))
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {filteredPermissions.map((perm: any) => (
+                        <div key={perm._id} className="flex items-start space-x-2 p-1 hover:bg-muted/50 rounded">
+                          <Checkbox
+                            id={`perm-${perm._id}`}
+                            checked={directPermissions.includes(perm._id)}
+                            onCheckedChange={() => toggleDirectPermission(perm._id)}
+                          />
+                          <div className="grid gap-1.5 leading-none">
+                            <Label htmlFor={`perm-${perm._id}`} className="text-sm font-normal cursor-pointer">
+                              {perm.id}
+                            </Label>
+                            <span className="text-[10px] text-muted-foreground">{perm.description}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
-                </SelectContent>
-              </Select>
+                </ScrollArea>
+                <div className="text-xs text-muted-foreground">
+                  Selected: {directPermissions.length} permissions
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-4">

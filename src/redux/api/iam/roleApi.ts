@@ -34,7 +34,7 @@ export const roleApi = baseApi.injectEndpoints({
         method: "PATCH",
         data,
       }),
-      invalidatesTags: (result, error, arg) => [{ type: tagTypes.role, id: arg.id }],
+      invalidatesTags: [tagTypes.role],
     }),
     deleteRole: build.mutation({
       query: (id: string) => ({

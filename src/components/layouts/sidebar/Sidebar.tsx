@@ -63,6 +63,12 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
     }
   }
 
+  // FORCE GLOBAL CONTEXT if path starts with /global
+  // This prevents accidental Business Unit Context leakage
+  if (pathname.startsWith('/global')) {
+    businessUnit = "";
+  }
+
   // Derive role based on current auth state (Priority 1)
   let role = currentRole as string;
 
@@ -93,10 +99,14 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
 
     // Flatten permissions from roles
     // Scoped Permissions Logic
+    // Scoped Permissions Logic
     const currentUnitSlug = params["business-unit"] || params.businessUnit;
-    const currentUnitId = user.businessUnits?.find((u: any) => u.id === currentUnitSlug || u._id === currentUnitSlug)?._id; // Enhanced matching
+    const currentUnitId = (user.businessAccess || [])
+      .map((acc: any) => acc.businessUnit)
+      .find((u: any) => u && (u.id === currentUnitSlug || u.slug === currentUnitSlug || u._id === currentUnitSlug))?._id;
 
-    console.log("SIDEBAR DEBUG:", {
+    console.log("SIDEBAR DEBUGgggggggggggg:", {
+      user,
       currentUnitSlug,
       currentUnitId,
       userPermissions: user.permissions,
@@ -108,63 +118,16 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
 
     let aggregatedPermissions: any[] = [];
 
-    if (user.permissions && Array.isArray(user.permissions) && user.permissions.length > 0) {
-      // New Scoped RBAC
-      const scopedAssignments = user.permissions.filter((p: any) => {
-        // Global Assignment: No specific business unit or outlet assigned
-        const isGlobal = !p.businessUnit && !p.outlet;
-
-        // Scoped Assignment: Matches current business unit
-        // We compare ensuring both are strings or matching types
-        const isBUMatch = currentUnitId && p.businessUnit && (
-          String(p.businessUnit) === String(currentUnitId) ||
-          (typeof p.businessUnit === 'object' && String(p.businessUnit._id) === String(currentUnitId))
-        );
-
-        return isGlobal || isBUMatch;
-      });
-
-      console.log("Scoped Assignments:", scopedAssignments);
-
-      aggregatedPermissions = scopedAssignments.flatMap((p: any) => {
-        // Direct permissions from role
-        const directPerms = p.role?.permissions || [];
-
-        // Permissions from role's permission groups
-        const groupPerms = p.role?.permissionGroups?.flatMap((g: any) => {
-          // Handle both populated object and potential ID (though backend should populate now)
-          if (typeof g === 'object' && g.permissions) {
-            return g.permissions;
-          }
-          return [];
-        }) || [];
-
-        // Ensure we are working with arrays
-        const safeDirect = Array.isArray(directPerms) ? directPerms : [];
-        const safeGroup = Array.isArray(groupPerms) ? groupPerms : [];
-
-        return [...safeDirect, ...safeGroup];
-      });
-      console.log("SCOPED PERMISSIONS DEBUG:", { count: aggregatedPermissions.length, sample: aggregatedPermissions[0] });
-    } else {
-      // Fallback to Legacy Roles
-      aggregatedPermissions = user.roles && Array.isArray(user.roles)
-        ? user.roles.flatMap((role: any) => {
-          const direct = role.permissions || [];
-          const groups = role.permissionGroups?.flatMap((g: any) => {
-            if (typeof g === 'object' && g.permissions) {
-              return g.permissions;
-            }
-            return [];
-          }) || [];
-
-          const safeDirect = Array.isArray(direct) ? direct : [];
-          const safeGroup = Array.isArray(groups) ? groups : [];
-
-          return [...safeDirect, ...safeGroup];
-        })
-        : [];
+    // 1. Use Effective Permissions from Backend (Performance & Accuracy)
+    if (user.effectivePermissions && Array.isArray(user.effectivePermissions)) {
+      aggregatedPermissions = user.effectivePermissions;
+    } else if (user.permissions && Array.isArray(user.permissions) && typeof user.permissions[0] === 'string') {
+      // Fallback to legacy string array if present
+      aggregatedPermissions = user.permissions;
     }
+
+    // Legacy fallback handled by Backend now, so complex manual merging removed.
+
 
     console.log("Aggregated Permissions:", aggregatedPermissions.length, aggregatedPermissions[0]);
 
@@ -193,9 +156,17 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
               if (!p) return false;
               // Support both string IDs (legacy) and Object permissions
               if (typeof p === 'string') {
-                const resource = item.resource.toUpperCase();
-                const action = item.action ? item.action.toUpperCase() : null;
-                return action ? p === `${resource}_${action}` : p.startsWith(`${resource}_`);
+                const resource = item.resource.toLowerCase(); // item resource is lower case usually
+                const action = item.action ? item.action.toLowerCase() : null;
+                const pStr = p.toLowerCase();
+
+                // Check for colon separator (New Backend Standard) "resource:action"
+                if (action) {
+                  return pStr === `${resource}:${action}` || pStr === `${resource}_${action}` || pStr === `*`;
+                }
+
+                // If no action required for menu, match prefix OR exact resource
+                return pStr.startsWith(`${resource}:`) || pStr.startsWith(`${resource}_`) || pStr === resource;
               }
 
               // Support Object Structure { resource, action }
@@ -272,10 +243,6 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
         if (matchesTitle || matchingChildren.length > 0) {
           acc.push({
             ...item,
-            // If parent matches but children don't, show original children? 
-            // Usually we show what matched. If parent matched, strict search implies showing children?
-            // Let's keep children that matched. If parent matches, maybe show all children? 
-            // For now, simpler: Show matched hierarchy.
             children: matchingChildren.length > 0 ? matchingChildren : (matchesTitle ? item.children : [])
           });
         }
@@ -298,13 +265,7 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
         className
       )}
     >
-      {/* Sidebar Header - Uncomment if needed to show active unit in sidebar top */}
-      {/* <SidebarHeader 
-        businessUnit={businessUnit}
-        isCollapsed={isCollapsed}
-      /> */}
 
-      {/* Search Input Area */}
       {!isCollapsed && (
         <div className="p-3 border-b">
           <div className="relative">

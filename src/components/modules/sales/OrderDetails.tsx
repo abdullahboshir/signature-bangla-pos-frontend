@@ -23,7 +23,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { useGetOrderQuery, useUpdateOrderStatusMutation } from "@/redux/api/sales/orderApi";
+import { useGetOrderQuery, useUpdateOrderMutation } from "@/redux/api/sales/orderApi";
 import { IOrder } from "./order.types";
 import { InvoicePrint } from "./InvoicePrint";
 
@@ -45,7 +45,7 @@ export default function OrderDetails() {
         skip: !params.id
     });
 
-    const [updateStatus, { isLoading: updating }] = useUpdateOrderStatusMutation();
+    const [updateStatus, { isLoading: updating }] = useUpdateOrderMutation();
 
     useEffect(() => {
         if (orderData) {

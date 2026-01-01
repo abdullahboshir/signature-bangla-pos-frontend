@@ -2,8 +2,8 @@
 
 import { RolePermissionManagement } from '@/components/modules/user-management/RolePermissionManagement';
 
-export default function RolesPermissionsPage() {
+export default function PlatformRolesPage() {
     return (
-        <RolePermissionManagement />
+        <RolePermissionManagement viewScope="platform" />
     );
 }

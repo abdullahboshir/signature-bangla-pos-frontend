@@ -134,41 +134,41 @@ export const RESOURCE_KEYS = {
 } as const;
 
 export const ACTION_KEYS = {
-  CREATE: "CREATE",
-  READ: "READ",
-  UPDATE: "UPDATE",
-  DELETE: "DELETE",
-  IMPORT: "IMPORT",
-  EXPORT: "EXPORT",
-  MANAGE: "MANAGE",
-  VIEW: "VIEW", // Backend match
-  BLOCK: "BLOCK",
-  RESTRICT: "RESTRICT",
-  ADJUST: "ADJUST",
-  TRACK: "TRACK",
+  CREATE: "create",
+  READ: "read",
+  UPDATE: "update",
+  DELETE: "delete",
+  IMPORT: "import",
+  EXPORT: "export",
+  MANAGE: "manage",
+  VIEW: "view", 
+  BLOCK: "block",
+  RESTRICT: "restrict",
+  ADJUST: "adjust",
+  TRACK: "track",
   
   // Workflow Actions
-  APPROVE: "APPROVE",
-  REJECT: "REJECT",
-  CANCEL: "CANCEL",
-  VERIFY: "VERIFY",
-  ESCALATE: "ESCALATE",
+  APPROVE: "approve",
+  REJECT: "reject",
+  CANCEL: "cancel",
+  VERIFY: "verify",
+  ESCALATE: "escalate",
   
   // Fulfillment
-  SHIP: "SHIP",
-  DISPATCH: "DISPATCH",
-  DELIVER: "DELIVER", // Backend doesn't have DELIVER action, but has DELIVERY resource. Backend has 'ship', 'dispatch', 'refund'.
-  REFUND: "REFUND",
+  SHIP: "ship",
+  DISPATCH: "dispatch",
+  DELIVER: "deliver", 
+  REFUND: "refund",
   
   // Content/System
-  PUBLISH: "PUBLISH",
-  UNPUBLISH: "UNPUBLISH",
-  SYNC: "SYNC",
-  SCHEDULE: "SCHEDULE",
-  ASSIGN: "ASSIGN",
-  PRINT: "PRINT",
-  DOWNLOAD: "DOWNLOAD",
-  REPLY: "REPLY",
+  PUBLISH: "publish",
+  UNPUBLISH: "unpublish",
+  SYNC: "sync",
+  SCHEDULE: "schedule",
+  ASSIGN: "assign",
+  PRINT: "print",
+  DOWNLOAD: "download",
+  REPLY: "reply",
 } as const;
 
 // Helper to generate permission codes (e.g., USER.CREATE -> "USER_CREATE")
@@ -178,7 +178,7 @@ export const PERMISSION_KEYS = Object.fromEntries(
     Object.fromEntries(
       Object.entries(ACTION_KEYS).map(([actionKey, actionValue]) => [
         actionKey,
-        `${resourceValue.toUpperCase()}_${actionValue}`
+        `${resourceValue}:${actionValue.toLowerCase()}`
       ])
     )
   ])
@@ -262,6 +262,18 @@ export const PLATFORM_PERMISSIONS = {
   // Subscription & Billing (SaaS)
   MANAGE_SUBSCRIPTIONS: PERMISSION_KEYS.SUBSCRIPTION.MANAGE,
   VIEW_INVOICES: PERMISSION_KEYS.INVOICE.VIEW, // SaaS Invoices
+  
+  // 📦 Packages & Licensing (SaaS)
+  MANAGE_PACKAGES: PERMISSION_KEYS.SUBSCRIPTION.MANAGE, // Using subscription as package proxy
+  MANAGE_FEATURES: PERMISSION_KEYS.SYSTEM.MANAGE, // Feature flags are system-level
+  MANAGE_LICENSES: PERMISSION_KEYS.SUBSCRIPTION.MANAGE, // License management
+  
+  // 🔔 Notifications (Platform-wide)
+  MANAGE_NOTIFICATIONS: PERMISSION_KEYS.NOTIFICATION.MANAGE,
+  CREATE_ANNOUNCEMENTS: PERMISSION_KEYS.NOTIFICATION.CREATE,
+  
+  // 🔌 Integrations (Global services)
+  MANAGE_INTEGRATIONS: PERMISSION_KEYS.SYSTEM.MANAGE, // Third-party integrations
   
   // Global Content/Marketing
   MANAGE_GLOBAL_THEMES: PERMISSION_KEYS.THEME.MANAGE,

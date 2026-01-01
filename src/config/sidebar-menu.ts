@@ -15,7 +15,7 @@ import {
   FileText,
   Settings
 } from "lucide-react"
-import { RESOURCE_KEYS, ACTION_KEYS } from "./permission-keys"
+import { RESOURCE_KEYS, ACTION_KEYS, BUSINESS_PERMISSIONS } from "./permission-keys"
 import { APP_MODULES, ROUTE_PATHS } from "./module-registry"
 
 // Re-export or alias for compatibility if needed, using the registry
@@ -25,32 +25,52 @@ const MENU_MODULES = APP_MODULES;
 export const sidebarMenuConfig = {
   // 👥 Role-based menu items
   menus: {
-    // 👑 Super Admin - Manages everything
-    // 👑 Super Admin - Manages everything (GLOBAL Context)
+    // 👑 SUPER ADMIN - Platform Management (Industry Standard Structure)
     "super-admin": [
+      // 📊 1. OVERVIEW
       MENU_MODULES.DASHBOARD,
+      
+      // 🏢 2. TENANT MANAGEMENT
       MENU_MODULES.BUSINESS_UNITS,
-      // Operational modules removed to enforce context-switching
-      // MENU_MODULES.OUTLETS, -> Inside Business Unit
-      // MENU_MODULES.CATALOG, -> Inside Business Unit
-      // MENU_MODULES.INVENTORY, -> Inside Business Unit
-      // MENU_MODULES.SALES, -> Inside Business Unit
-      // ...
       
-      MENU_MODULES.USER_MANAGEMENT, // Global User Management
-      MENU_MODULES.FINANCE, // Global Finance (Subscriptions, Payouts)
-      MENU_MODULES.REPORTS, // Global Aggregated Reports
-      MENU_MODULES.SUPPORT, // Global Support Tickets
-      MENU_MODULES.SYSTEM, // Global Settings
+      // 💼 3. BILLING & FINANCE
+      MENU_MODULES.FINANCE, // Subscriptions, Invoices, Payouts, Revenue
       
-      // Optional: Keep Logistics/Providors if they are global integrations?
-      // MENU_MODULES.LOGISTICS, -> Courier config is global? Yes.
-      // But Parcel management is per order (BU). 
-      // Let's keep Logistics for Courier Configuration.
-      MENU_MODULES.LOGISTICS, 
-      MENU_MODULES.SUPPLIERS, // Global Suppliers? Or BU specific? Usually BU specific. Removing.
-      // MENU_MODULES.RISK_MANAGEMENT, // Global Risk Rules? Yes.
+      // 📦 4. PACKAGES & LICENSING (NEW - Critical for SaaS)
+      MENU_MODULES.PACKAGES, // Plans, Features, Licenses, Trials
+      
+      // 👥 5. USER & ACCESS MANAGEMENT
+      // 👥 5. USER & ACCESS MANAGEMENT
+      {
+        ...MENU_MODULES.USER_MANAGEMENT,
+        children: [
+           { title: "Platform Users", path: "/global/user-management/platform-users" },
+           { title: "Platform Roles", path: "/global/user-management/platform-roles" },
+           { title: "Business Users", path: "/global/user-management/business-users" },
+           { title: "Business Roles", path: "/global/user-management/business-roles" },
+        ]
+      },
+      
+      // 🎫 6. SUPPORT & TICKETS
+      MENU_MODULES.SUPPORT,
+      
+      // 📈 7. ANALYTICS & REPORTS
+      MENU_MODULES.REPORTS,
+      
+      // 🔒 8. SECURITY & RISK
       MENU_MODULES.RISK_MANAGEMENT,
+      
+      // 🔌 9. INTEGRATIONS (NEW - Third-party services)
+      MENU_MODULES.INTEGRATIONS, // Payment, Shipping, Email/SMS, Webhooks, API Keys
+      
+      // 🚚 10. OPERATIONS
+      MENU_MODULES.LOGISTICS, // Courier providers (Global config)
+      
+      // 🔔 11. NOTIFICATIONS (NEW - Platform alerts)
+      MENU_MODULES.NOTIFICATIONS, // Alert Center, Announcements
+      
+      // ⚙️ 12. SYSTEM SETTINGS (Keep at bottom)
+      MENU_MODULES.SYSTEM, // Module Toggles, Templates, Localization, Backups
     ],
 
     // 🏢 Business Admin - Manages specific business unit
@@ -67,8 +87,6 @@ export const sidebarMenuConfig = {
           { title: "All Products", path: ROUTE_PATHS.CATALOG.PRODUCT.ROOT },
           { title: "Add Product", path: ROUTE_PATHS.CATALOG.PRODUCT.ADD, action: ACTION_KEYS.CREATE },
           { title: "Categories", path: ROUTE_PATHS.CATALOG.CATEGORY, resource: RESOURCE_KEYS.CATEGORY },
-          { title: "Sub-Categories", path: ROUTE_PATHS.CATALOG.SUB_CATEGORY, resource: RESOURCE_KEYS.CATEGORY },
-          { title: "Child-Categories", path: ROUTE_PATHS.CATALOG.CHILD_CATEGORY, resource: RESOURCE_KEYS.CATEGORY },
           { title: "Brands", path: ROUTE_PATHS.CATALOG.BRAND, resource: RESOURCE_KEYS.BRAND },
           { title: "Units", path: ROUTE_PATHS.CATALOG.UNIT, resource: RESOURCE_KEYS.UNIT },
           { title: "Attributes", path: ROUTE_PATHS.CATALOG.ATTRIBUTE, resource: RESOURCE_KEYS.ATTRIBUTE },
@@ -203,27 +221,28 @@ export const sidebarMenuConfig = {
     "dynamic": [
       {
         ...MENU_MODULES.DASHBOARD,
-        resource: RESOURCE_KEYS.ANALYTICS // Keep this as it is a specific page
+        resource: RESOURCE_KEYS.ANALYTICS 
       },
       MENU_MODULES.POS_TERMINAL,
       {
         ...MENU_MODULES.CATALOG,
-        resource: undefined, // Removed to allow granular child access
+        resource: undefined, 
         children: [
            { title: "Products", path: ROUTE_PATHS.CATALOG.PRODUCT.ROOT, resource: RESOURCE_KEYS.PRODUCT },
+           { title: "Add Product", path: ROUTE_PATHS.CATALOG.PRODUCT.ADD, action: ACTION_KEYS.CREATE, resource: RESOURCE_KEYS.PRODUCT },
            { title: "Categories", path: ROUTE_PATHS.CATALOG.CATEGORY, resource: RESOURCE_KEYS.CATEGORY },
            { title: "Brands", path: ROUTE_PATHS.CATALOG.BRAND, resource: RESOURCE_KEYS.BRAND },
-           { title: "Units", path: ROUTE_PATHS.CATALOG.UNIT, resource: RESOURCE_KEYS.PRODUCT },
+           { title: "Units", path: ROUTE_PATHS.CATALOG.UNIT, resource: RESOURCE_KEYS.UNIT },
            { title: "Attributes", path: ROUTE_PATHS.CATALOG.ATTRIBUTE, resource: RESOURCE_KEYS.ATTRIBUTE },
            { title: "Attribute Groups", path: ROUTE_PATHS.CATALOG.ATTRIBUTE_GROUP, resource: RESOURCE_KEYS.ATTRIBUTE_GROUP },
            { title: "Warranties", path: "/catalog/warranties", resource: RESOURCE_KEYS.WARRANTY },
-           { title: "Tax", path: ROUTE_PATHS.CATALOG.TAX, resource: RESOURCE_KEYS.SYSTEM },
+           { title: "Tax", path: ROUTE_PATHS.CATALOG.TAX, resource: RESOURCE_KEYS.TAX },
         ]
       },
       {
         ...MENU_MODULES.SALES,
-        resource: undefined, // Removed
-        icon: CreditCard, // Changed icon for dynamic Sales
+        resource: undefined, 
+        icon: CreditCard,
         children: [
           { title: "All Sales", path: ROUTE_PATHS.SALES.ROOT, resource: RESOURCE_KEYS.ORDER },
           { title: "Today's Sales", path: ROUTE_PATHS.SALES.TODAY, resource: RESOURCE_KEYS.ORDER },
@@ -232,44 +251,56 @@ export const sidebarMenuConfig = {
           { title: "Delivery", path: ROUTE_PATHS.SALES.DELIVERY, resource: RESOURCE_KEYS.DELIVERY },
         ]
       },
-      MENU_MODULES.STOREFRONT, // Added
+      {
+        ...MENU_MODULES.STOREFRONT,
+        resource: undefined,
+      }, 
       {
         ...MENU_MODULES.INVENTORY,
-        icon: Package, // Revert icon to Package for dynamic
+        icon: Package, 
         children: [
-          { title: "Stock Levels", path: ROUTE_PATHS.INVENTORY.ROOT },
+          { title: "Stock Levels", path: ROUTE_PATHS.INVENTORY.ROOT, resource: RESOURCE_KEYS.INVENTORY },
           { title: "Transfers", path: ROUTE_PATHS.INVENTORY.TRANSFERS, resource: RESOURCE_KEYS.TRANSFER, action: ACTION_KEYS.CREATE },
           { title: "Adjustments", path: ROUTE_PATHS.INVENTORY.ADJUSTMENTS, resource: RESOURCE_KEYS.ADJUSTMENT, action: ACTION_KEYS.ADJUST },
         ]
       },
       {
         ...MENU_MODULES.MARKETING,
-        resource: undefined, // REMOVED: This blocked user with only 'adCampaign' access
+        resource: undefined, 
       },
       {
         ...MENU_MODULES.CUSTOMERS,
-        resource: undefined, // Removed
+        resource: undefined, 
         children: [
-          { title: "Customer List", path: ROUTE_PATHS.CUSTOMERS.ROOT, resource: RESOURCE_KEYS.CUSTOMER }, // Explicit resource added
+          { title: "Customer List", path: ROUTE_PATHS.CUSTOMERS.ROOT, resource: RESOURCE_KEYS.CUSTOMER }, 
           { title: "Loyalty", path: ROUTE_PATHS.CUSTOMERS.LOYALTY, resource: RESOURCE_KEYS.LOYALTY },
           { title: "Subscriptions", path: ROUTE_PATHS.CUSTOMERS.SUBSCRIPTIONS, resource: RESOURCE_KEYS.SUBSCRIPTION },
           { title: "Reviews", path: ROUTE_PATHS.CUSTOMERS.REVIEWS, resource: RESOURCE_KEYS.REVIEW },
         ]
       },
-      MENU_MODULES.SUPPLIERS,
+      {
+        ...MENU_MODULES.SUPPLIERS,
+        resource: RESOURCE_KEYS.SUPPLIER,
+      },
       {
         ...MENU_MODULES.STAFF,
-        // resource: undefined, // Removed to enforce permission check
+        resource: RESOURCE_KEYS.STAFF, 
       },
       {
         ...MENU_MODULES.SUPPORT,
-        resource: undefined, // Removed
+        resource: RESOURCE_KEYS.TICKET,
       },
-      MENU_MODULES.CONTENT,
-      MENU_MODULES.REPORTS, // Uses the updated definition with children
+      {
+        ...MENU_MODULES.CONTENT,
+        resource: RESOURCE_KEYS.CONTENT, 
+      },
+      {
+        ...MENU_MODULES.REPORTS,  
+        resource: RESOURCE_KEYS.REPORT, 
+      },
       {
         ...MENU_MODULES.FINANCE,
-        resource: undefined, // Removed
+        resource: undefined, 
         children: [
             { title: "Payments", path: ROUTE_PATHS.FINANCE.PAYMENTS, resource: RESOURCE_KEYS.PAYMENT },
             { title: "Settlements", path: ROUTE_PATHS.FINANCE.SETTLEMENTS, resource: RESOURCE_KEYS.SETTLEMENT },
@@ -278,12 +309,30 @@ export const sidebarMenuConfig = {
             { title: "Audit Logs", path: ROUTE_PATHS.FINANCE.AUDIT_LOGS, resource: RESOURCE_KEYS.AUDIT_LOG },
         ]
       },
-      MENU_MODULES.ACCOUNTING,
-      MENU_MODULES.LOGISTICS,
-      MENU_MODULES.RISK_MANAGEMENT,
-      MENU_MODULES.HRM,
-      MENU_MODULES.VENDORS,
-      MENU_MODULES.POS_CONFIG,
+      {
+        ...MENU_MODULES.ACCOUNTING,
+        resource: undefined, 
+      },
+      {
+        ...MENU_MODULES.LOGISTICS,
+        resource: undefined, 
+      },
+      {
+        ...MENU_MODULES.RISK_MANAGEMENT,
+        resource: undefined, 
+      },
+      {
+        ...MENU_MODULES.HRM,
+        resource: undefined, 
+      },
+      {
+        ...MENU_MODULES.VENDORS,
+        resource: undefined,
+      },
+      {
+        ...MENU_MODULES.POS_CONFIG,
+        resource: undefined, 
+      },
     ],
   },
 
@@ -315,11 +364,6 @@ export const sidebarMenuConfig = {
 
 // Helper function to get menu for role
 export const getSidebarMenu = (role: string, businessUnit: string, outletId?: string) => {
-  // Determine Base URL for relative paths
-  // [UPDATED] Removed role from base URL. 
-  // If businessUnit exists -> /${businessUnit}
-  // If no BU and super-admin -> /global (was /super-admin)
-  // Else -> / (or handle as needed)
   
   let baseUrl = "/";
   if (businessUnit) {
@@ -327,12 +371,8 @@ export const getSidebarMenu = (role: string, businessUnit: string, outletId?: st
   } else if (role === 'super-admin') {
       baseUrl = `/global`; 
   } else {
-      // Fallback for staff/others without BU context (shouldn't happen often)
       baseUrl = `/global`; 
   }
-
-  // Helper to prefix relative paths
-  // [FIX] Ensure we don't fix paths that are already absolute or start with base
   const prefixMenuPaths = (items: any[]): any[] => {
     return items.map(item => {
       const newItem = { ...item };
@@ -341,12 +381,8 @@ export const getSidebarMenu = (role: string, businessUnit: string, outletId?: st
          if (newItem.path === "") {
              newItem.path = baseUrl;
          } else if (newItem.path && !newItem.path.startsWith('/') && !newItem.path.startsWith('http')) {
-             // Only prefix if purely relative
              newItem.path = `${baseUrl}/${newItem.path}`;
          }
-         // If it starts with '/', we leave it alone.
-         // This assumes manually defined absolute paths (like /marketing/seo) are correct.
-         // If they were meant to be relative to scoped user, they should have been defined without '/'.
       }
 
       if (newItem.children) {
@@ -365,7 +401,7 @@ export const getSidebarMenu = (role: string, businessUnit: string, outletId?: st
       const rawOutletMenu = [
           {
             title: "Outlet Dashboard",
-            path: `/outlets/${outletId}`, 
+            path: ``, 
             icon: LayoutDashboard,
             exact: true,
           },
@@ -459,13 +495,6 @@ export const getSidebarMenu = (role: string, businessUnit: string, outletId?: st
       roleMenu = dynamicMenu;
   }
 
-  // 3. [NEW] Universal Dynamic Merge
-  // Even if a role has a fixed list, we append any missing modules from the 'dynamic' master list.
-  if (role !== 'dynamic') { // Avoid merging dynamic with itself
-    const existingTitles = new Set(roleMenu.map((item: any) => item.title));
-    const extraItems = dynamicMenu.filter((item: any) => !existingTitles.has(item.title));
-    roleMenu = [...roleMenu, ...extraItems];
-  }
 
   // Deduplicate before returning
    const uniqueMenu = roleMenu.filter((item, index, self) =>

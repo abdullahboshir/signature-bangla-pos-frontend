@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Users, User, Search, MoreHorizontal, Edit, Trash2, ShieldCheck, MapPin, Smartphone, CheckCircle, RefreshCw, Download, Check, X, Building, Layers } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
@@ -24,6 +24,13 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { AutoFormModal } from "@/components/shared/AutoFormModal"
 import { useParams, useRouter } from "next/navigation"
@@ -45,21 +52,45 @@ const USER_STATUS = {
     BLOCKED: 'blocked',
 } as const;
 
-export function UserManagementTable() {
+interface UserManagementTableProps {
+    viewScope?: 'platform' | 'business' | 'all';
+}
+
+export function UserManagementTable({ viewScope = 'all' }: UserManagementTableProps) {
+    const params = useParams();
+    const router = useRouter();
+    const { currentBusinessUnit } = useCurrentBusinessUnit();
+    const { user: currentUser } = useAuth();
+
     const [activeTab, setActiveTab] = useState("all")
     const [searchTerm, setSearchTerm] = useState("")
+    const [filterBU, setFilterBU] = useState<string>(() => {
+        if (params && params["business-unit"] && typeof params["business-unit"] === 'string') {
+            return "all";
+        }
+        return "all"
+    })
 
     // Edit/Create State
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingUser, setEditingUser] = useState<any>(null)
 
-    const { currentBusinessUnit } = useCurrentBusinessUnit()
-    const { user: currentUser } = useAuth()
-    const params = useParams();
-    const router = useRouter();
+    // Determine current user role context (Robust Check)
+    const isSuperAdmin = useMemo(() => {
+        if (currentUser?.isSuperAdmin === true) return true;
+        return currentUser?.roles?.some((r: any) => {
+            const rName = (typeof r === 'string' ? r : r.name).toLowerCase();
+            return rName === 'super-admin' || rName === 'super_admin';
+        });
+    }, [currentUser]);
 
-    // Determine current user role context
-    const isSuperAdmin = currentUser?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
+    // Sync Filter with Context for Super Admin
+    useEffect(() => {
+        if (isSuperAdmin && currentBusinessUnit && params && params["business-unit"] && filterBU === 'all') {
+            const targetId = currentBusinessUnit._id || currentBusinessUnit.id;
+            if (targetId) setFilterBU(targetId);
+        }
+    }, [isSuperAdmin, currentBusinessUnit, params, filterBU]);
 
     // RTK Query Hooks
     const {
@@ -102,11 +133,47 @@ export function UserManagementTable() {
 
         if (!isSuperAdmin && currentBusinessUnit) {
             allUsers = allUsers.filter((user: any) => {
-                if (!user.businessUnits) return false;
-                return user.businessUnits.some((bu: any) => {
+                // Check legacy businessUnits array
+                const hasLegacyBU = user.businessUnits?.some((bu: any) => {
                     const buId = typeof bu === 'string' ? bu : (bu.id || bu.slug || bu._id);
                     return buId === currentBusinessUnit.id || buId === currentBusinessUnit.slug || buId === currentBusinessUnit._id;
                 });
+
+                // Check new permissions structure
+                const hasPermissionBU = user.permissions?.some((p: any) => {
+                    // Check if permission is directly scoped to this BU
+                    const pBuId = p.businessUnit ? (typeof p.businessUnit === 'string' ? p.businessUnit : (p.businessUnit._id || p.businessUnit.id)) : null;
+                    if (pBuId === currentBusinessUnit.id || pBuId === currentBusinessUnit.slug || pBuId === currentBusinessUnit._id) return true;
+
+                    // Check if permission is scoped to an Outlet belonging to this BU
+                    if (p.outlet && typeof p.outlet === 'object' && p.outlet.businessUnit) {
+                        const outletParentBuId = typeof p.outlet.businessUnit === 'string' ? p.outlet.businessUnit : p.outlet.businessUnit._id;
+                        if (outletParentBuId === currentBusinessUnit.id || outletParentBuId === currentBusinessUnit._id) return true;
+                    }
+                    return false;
+                });
+
+                return hasLegacyBU || hasPermissionBU;
+            });
+        } else if (isSuperAdmin && filterBU !== 'all') {
+            allUsers = allUsers.filter((user: any) => {
+                const hasLegacyBU = user.businessUnits?.some((bu: any) => {
+                    const buId = typeof bu === 'string' ? bu : (bu.id || bu.slug || bu._id);
+                    return buId === filterBU;
+                });
+
+                const hasPermissionBU = user.permissions?.some((p: any) => {
+                    const pBuId = p.businessUnit ? (typeof p.businessUnit === 'string' ? p.businessUnit : (p.businessUnit._id || p.businessUnit.id)) : null;
+                    if (pBuId === filterBU) return true;
+
+                    if (p.outlet && typeof p.outlet === 'object' && p.outlet.businessUnit) {
+                        const outletParentBuId = typeof p.outlet.businessUnit === 'string' ? p.outlet.businessUnit : p.outlet.businessUnit._id;
+                        if (outletParentBuId === filterBU) return true;
+                    }
+                    return false;
+                });
+
+                return hasLegacyBU || hasPermissionBU;
             });
         }
 
@@ -116,11 +183,12 @@ export function UserManagementTable() {
                 ? `${user.name.firstName || ''} ${user.name.lastName || ''}`.trim() || 'Unnamed'
                 : user.name,
         }));
-    }, [rawUsers, currentUser, currentBusinessUnit, isSuperAdmin]);
+    }, [rawUsers, currentUser, currentBusinessUnit, isSuperAdmin, filterBU, params]);
 
     // Derived state for filtered users
     const filteredData = useMemo(() => {
         let data = users;
+
 
         // Search Filter
         if (searchTerm) {
@@ -132,10 +200,31 @@ export function UserManagementTable() {
             );
         }
 
-        if (activeTab === 'all') return data;
+        if (activeTab === 'all') {
+            if (viewScope === 'platform') {
+                return data.filter((u: any) => u.roles?.some((r: any) => {
+                    const roleName = (typeof r === 'string' ? r : r.name).toLowerCase();
+                    const isSystemRole = typeof r === 'object' && (r.isSystemRole || r.isSystem); // robust check
+                    return ['super-admin', 'platform-admin', 'system-support'].includes(roleName) || isSystemRole;
+                }));
+            }
+            if (viewScope === 'business') {
+                return data.filter((u: any) => !u.roles?.some((r: any) => {
+                    const roleName = (typeof r === 'string' ? r : r.name).toLowerCase();
+                    const isSystemRole = typeof r === 'object' && (r.isSystemRole || r.isSystem);
+                    return ['super-admin', 'platform-admin'].includes(roleName) || (isSystemRole && roleName === 'super-admin');
+                    // Note: Some business roles might be 'system' defined but business usage (e.g. standard 'manager'). 
+                    // So we mainly exclude super-admin/platform-admin. 
+                }));
+            }
+            return data;
+        }
+
         if (activeTab === 'staff') {
             return data.filter((u: any) => u.roles?.some((r: any) => {
                 const roleName = (typeof r === 'string' ? r : r.name).toLowerCase();
+                // Filter out super-admin from strictly "staff" tab if viewed in business context
+                if (viewScope === 'business' && roleName === 'super-admin') return false;
                 return ['super-admin', 'admin', 'manager', 'sales-associate', 'support-agent'].includes(roleName) || r.isSystemRole;
             }));
         }
@@ -164,18 +253,37 @@ export function UserManagementTable() {
     const { currentRole } = useCurrentRole();
 
     const handleCreate = () => {
-        // Redirect to dedicated Add User page
+        // Strict Routing based on View Scope
+        if (viewScope === 'platform') {
+            router.push('/global/user-management/platform-users/add');
+            return;
+        }
+
+        if (viewScope === 'business') {
+            router.push('/global/user-management/business-users/add');
+            return;
+        }
+
+        // Fallback for generic/legacy views
         if (params["business-unit"]) {
             router.push(`/${params["business-unit"]}/user-management/add-user`);
         } else {
-            // Global routes
-            router.push('/global/user-management/add-user');
+            // Default to business user add if not specified, or show modal?
+            // For safety, redirect to business add as it's the most common case
+            router.push('/global/user-management/business-users/add');
         }
     }
 
     const handleEdit = (user: any) => {
-        setEditingUser(user);
-        setIsModalOpen(true);
+        // setEditingUser(user);
+        // setIsModalOpen(true);
+        // Navigate to full Edit Page
+        const userId = user._id || user.id;
+        if (params["business-unit"]) {
+            router.push(`/${params["business-unit"]}/user-management/users/${userId}/edit`);
+        } else {
+            router.push(`/global/user-management/users/${userId}/edit`);
+        }
     }
 
     const handleSubmit = async (data: any) => {
@@ -205,7 +313,8 @@ export function UserManagementTable() {
                     phone: data.phone,
                     password: data.password || "default123",
                     roles: [data.role],
-                    businessUnits: [businessUnitId],
+                    // Send businessUnits ONLY if we have a valid ID. For global users it should be empty.
+                    businessUnits: businessUnitId ? [businessUnitId] : [],
                     status: "active"
                 };
                 await createUser(createPayload).unwrap();
@@ -559,6 +668,21 @@ export function UserManagementTable() {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
+                        {isSuperAdmin && (
+                            <div className="w-[200px]">
+                                <Select value={filterBU} onValueChange={setFilterBU}>
+                                    <SelectTrigger className="h-9">
+                                        <SelectValue placeholder="All Business Units" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Business Units</SelectItem>
+                                        {availableBusinessUnits.map((bu: any) => (
+                                            <SelectItem key={bu.id || bu._id} value={bu.id || bu._id}>{bu.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
                         <Button variant="outline" size="sm" onClick={() => refetchUsers()}>
                             <RefreshCw className="mr-2 h-4 w-4" /> Refresh
                         </Button>
@@ -763,13 +887,35 @@ export function UserManagementTable() {
                         placeholder: "Select Role"
                     },
                     // Show Business Unit dropdown if Super Admin and NOT editing (or allows editing if needed, but keeping simple for now)
-                    (isSuperAdmin && !editingUser) && {
+                    (isSuperAdmin && !editingUser && viewScope !== 'platform') && {
                         name: "businessUnit",
                         label: "Business Unit",
                         type: "select",
                         required: true,
                         options: availableBusinessUnits.map((bu: any) => ({ label: bu.name, value: bu.id })),
-                        placeholder: "Select Business Unit"
+                        placeholder: "Select Business Unit",
+                    },
+                    // Optional Outlet Selection (Dependent on BU)
+                    (!editingUser && viewScope !== 'platform') && {
+                        name: "outlet",
+                        label: "Outlet (Optional)",
+                        type: "select",
+                        required: false,
+                        description: "Leave empty to give access to all outlets in the Business Unit",
+                        options: availableOutlets
+                            .filter((o: any) => {
+                                // Filter outlets based on selected BU (needs form state access or assumption)
+                                // AutoFormModal doesn't easily expose live state to schema builder function directly without re-render.
+                                // Simplification: Show ALL outlets, but ideally should filter if BU selected.
+                                // For now, listing all outlets is risky if lists overlap ID.
+                                // Better approach: If we can't easily filter dynamically inside this specific component structure without refactor,
+                                // we will show all outlets but maybe prefix with BU name?
+                                // OR relies on user picking right one.
+                                // Let's try to filter if we can access the 'defaultValues' logic or if we assume manual selection.
+                                return true;
+                            })
+                            .map((o: any) => ({ label: `${o.name} (${o.businessUnit?.name || 'Unknown BU'})`, value: o.id })),
+                        placeholder: "Select Outlet (Specific Access)"
                     },
                     {
                         name: "status",

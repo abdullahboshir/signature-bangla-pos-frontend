@@ -3,26 +3,6 @@ import { toast } from "sonner";
 import { useConfirmDelete } from "./useConfirmDelete";
 import { useBusinessUnitSubmit } from "./useBusinessUnitSubmit";
 
-/**
- * Generic CRUD operations hook
- * Combines all common CRUD patterns into a single reusable hook
- * 
- * @param config Configuration object
- * @returns CRUD state and handlers
- * 
- * @example
- * const crud = useGenericCrud({
- *   queryHook: useGetBrandsQuery,
- *   createHook: useCreateBrandMutation,
- *   updateHook: useUpdateBrandMutation,
- *   deleteHook: useDeleteBrandMutation,
- *   resourceName: "Brand",
- *   businessUnitScoped: true,
- * });
- * 
- * // Use: crud.data, crud.handleSubmit, crud.handleDelete, etc.
- */
-
 export interface GenericCrudConfig<T> {
   /** RTK Query hook for fetching list */
   queryHook: any;
