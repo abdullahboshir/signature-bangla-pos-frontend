@@ -138,6 +138,17 @@ export const sidebarMenuConfig = {
       },
       MENU_MODULES.SUPPLIERS,
       MENU_MODULES.VENDORS,
+      {
+        title: "User Management",
+        path: "user-management",
+        icon: Users,
+        // resource: undefined, // Let children decide
+        children: [
+           { title: "Staff / Users", path: "user-management/business-users", resource: BUSINESS_PERMISSIONS.MANAGE_STAFF },
+           { title: "Business Roles", path: "user-management/business-roles", resource: RESOURCE_KEYS.ROLE },
+           { title: "Add Staff", path: "user-management/business-users/add", action: ACTION_KEYS.CREATE, hidden: true },
+        ]
+      },
       MENU_MODULES.EXPENSES,
       MENU_MODULES.ACCOUNTING,
       MENU_MODULES.HRM,

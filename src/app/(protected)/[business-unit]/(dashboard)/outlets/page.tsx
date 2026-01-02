@@ -32,7 +32,7 @@ interface Outlet {
     phone: string;
     email?: string;
     isActive: boolean;
-    businessUnit: string;
+    businessUnit: string | { _id: string, name: string };
 }
 
 export default function OutletListPage() {
@@ -138,6 +138,18 @@ export default function OutletListPage() {
                     {row.original.address}, {row.original.city}
                 </div>
             ),
+        },
+        {
+            id: "businessUnit",
+            header: "Business Unit",
+            cell: ({ row }) => {
+                const bu = row.original.businessUnit;
+                return (
+                    <div className="flex items-center gap-1 text-sm font-medium">
+                        {typeof bu === 'object' ? bu.name : 'N/A'}
+                    </div>
+                );
+            },
         },
         {
             id: "contact",

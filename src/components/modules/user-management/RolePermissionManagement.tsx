@@ -7,13 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Plus, Check, Shield, Save, Search, Settings, Users, ShoppingCart, Package, Building2, TrendingUp, Loader2, Pencil, Trash2, Briefcase, CreditCard, Monitor, Warehouse, ShoppingBag, Globe, Truck, FileText, MessageSquare, Megaphone, BoxIcon, Eye } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import PermissionGroupManagement from './PermissionGroupManagement';
 import {
     RESOURCE_KEYS,
-    PERMISSION_SCOPES,
-    PERMISSION_OPERATORS,
     PERMISSION_KEYS
 } from '@/config/permission-keys';
 
@@ -216,12 +215,18 @@ interface RolePermissionManagementProps {
 export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionManagementProps) {
     const { hasPermission } = usePermissions();
     // RTK Query Hooks
-    const { data: rolesData, isLoading: isRolesLoading } = useGetRolesQuery({ limit: 1000 });
-    const { data: permissionsData, isLoading: isPermsLoading } = useGetPermissionsQuery({ limit: 5000 });
-    const { data: groupsData } = useGetPermissionGroupsQuery({ limit: 1000 });
-    console.log("rolesData", rolesData);
-    console.log("permissionsData", permissionsData);
-    console.log("groupsData", groupsData);
+    const { data: rolesData, isLoading: isRolesLoading, error: rolesError } = useGetRolesQuery({ limit: 1000 });
+    const { data: permissionsData, isLoading: isPermsLoading, error: permsError } = useGetPermissionsQuery({ limit: 5000 });
+    const { data: groupsData, error: groupsError } = useGetPermissionGroupsQuery({ limit: 1000 });
+
+    console.log("DEBUG: Roles Data:", rolesData);
+    console.log("DEBUG: Roles Error:", rolesError);
+    console.log("DEBUG: Roles Loading:", isRolesLoading);
+
+    console.log("DEBUG: Perms Data:", permissionsData);
+    console.log("DEBUG: Perms Error:", permsError);
+
+    console.log("DEBUG: Groups Data:", groupsData);
 
     // Mutations
     const [createRole] = useCreateRoleMutation();
@@ -242,12 +247,16 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
     const [newDataAccess, setNewDataAccess] = useState({ products: 0, orders: 0, customers: 0 });
     const [viewingGroup, setViewingGroup] = useState<PermissionGroup | null>(null);
     const [groupSearchQuery, setGroupSearchQuery] = useState('');
+    const [activeTab, setActiveTab] = useState("direct");
+    const [permissionSearchQuery, setPermissionSearchQuery] = useState('');
 
     // Sync RTK Data to Local State
     useEffect(() => {
         if (rolesData) {
             // Normalize Roles like before
-            let fetchedRoles: Role[] = Array.isArray(rolesData) ? rolesData : rolesData?.data?.result || rolesData?.data || [];
+            let fetchedRoles: Role[] = Array.isArray(rolesData)
+                ? rolesData
+                : rolesData?.result || rolesData?.data?.result || rolesData?.data || [];
 
             // Normalize Permissions array in roles
             fetchedRoles = fetchedRoles.map((role: any) => {
@@ -283,16 +292,37 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
             });
 
             // Filter Roles based on View Scope
+            // Filter Roles based on View Scope
+            const BUSINESS_ROLES_IDS = ['manager', 'store-manager', 'cashier', 'sales-associate', 'staff', 'delivery-man', 'vendor', 'customer', 'store_keeper'];
+
             if (viewScope === 'platform') {
-                fetchedRoles = fetchedRoles.filter(r =>
-                    r.id === 'super-admin' ||
-                    (r.isSystemRole && r.name !== 'Store Manager') // Assume some system roles like Store Manager are Business facing
-                    // Simplified: Platform only shows Super Admin and core system roles
-                );
+                fetchedRoles = fetchedRoles.filter(r => {
+                    const rId = r.id ? r.id.toLowerCase() : '';
+                    const rName = r.name ? r.name.toLowerCase() : '';
+
+                    // Super Admin is always Platform
+                    if (rId === 'super-admin' || rName === 'super admin') return true;
+
+                    // Exclude known Business Roles even if they are system roles
+                    if (BUSINESS_ROLES_IDS.some(br => rId.includes(br) || rName.includes(br))) return false;
+
+                    // Otherwise, include System Roles (Support, etc.) or explicitly global ones
+                    return r.isSystemRole;
+                });
             } else if (viewScope === 'business') {
-                fetchedRoles = fetchedRoles.filter(r =>
-                    r.id !== 'super-admin' // Exclude Super Admin from Business Roles list 
-                );
+                fetchedRoles = fetchedRoles.filter(r => {
+                    const rId = r.id ? r.id.toLowerCase() : '';
+                    const rName = r.name ? r.name.toLowerCase() : '';
+
+                    // Exclude Super Admin
+                    if (rId === 'super-admin' || rName === 'super admin') return false;
+
+                    // Include explicitly known Business Roles
+                    if (BUSINESS_ROLES_IDS.some(br => rId.includes(br) || rName.includes(br))) return true;
+
+                    // Include custom roles (non-system)
+                    return !r.isSystemRole;
+                });
             }
 
             setRoles(fetchedRoles);
@@ -307,7 +337,11 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
 
     useEffect(() => {
         if (permissionsData) {
-            const fetchedPermissions: Permission[] = Array.isArray(permissionsData) ? permissionsData : permissionsData?.data || [];
+            // Handle paginated response { result: [], meta: {} } or direct array
+            const fetchedPermissions: Permission[] = Array.isArray(permissionsData)
+                ? permissionsData
+                : (permissionsData as any).result || permissionsData?.data || [];
+
             console.log("Fetched Permissions Count:", fetchedPermissions.length);
             setPermissions(fetchedPermissions);
         }
@@ -319,7 +353,19 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
 
     // Group Permissions by Resource - Memoized for performance
     const groupedPermissions = React.useMemo(() => {
-        return permissions.reduce((acc, perm) => {
+        let permsToGroup = permissions;
+
+        // FILTER: Apply Search Query for Direct Permissions
+        if (activeTab === "direct" && permissionSearchQuery) {
+            const lowerQuery = permissionSearchQuery.toLowerCase();
+            permsToGroup = permissions.filter(p =>
+                p.resource.toLowerCase().includes(lowerQuery) ||
+                p.action.toLowerCase().includes(lowerQuery) ||
+                (p.description && p.description.toLowerCase().includes(lowerQuery))
+            );
+        }
+
+        return permsToGroup.reduce((acc, perm) => {
             const resource = perm.resource || 'Other';
             if (!acc[resource]) {
                 acc[resource] = [];
@@ -327,7 +373,7 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
             acc[resource].push(perm);
             return acc;
         }, {} as Record<string, Permission[]>);
-    }, [permissions]);
+    }, [permissions, permissionSearchQuery, activeTab]);
 
 
 
@@ -653,7 +699,7 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                     </Button>
                                 )}
                             </DialogTrigger>
-                            <DialogContent>
+                            <DialogContent className="sm:max-w-[500px]">
                                 <DialogHeader>
                                     <DialogTitle>Create New Role</DialogTitle>
                                     <DialogDescription>
@@ -661,36 +707,16 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                     </DialogDescription>
                                 </DialogHeader>
                                 <div className="grid gap-4 py-4">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="name">Role Name</Label>
-                                        <Input
-                                            id="name"
-                                            value={newRoleName}
-                                            onChange={(e) => setNewRoleName(e.target.value)}
-                                            placeholder="e.g. Regional Manager"
-                                        />
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <Checkbox id="isDefault" checked={newIsDefault} onCheckedChange={(c: any) => setNewIsDefault(!!c)} />
-                                        <div className="grid gap-1.5 leading-none">
-                                            <Label htmlFor="isDefault" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                                Set as Default Role
-                                            </Label>
-                                            <p className="text-[0.8rem] text-muted-foreground">
-                                                New users with this hierarchy level will get this role automatically.
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="desc">Description</Label>
-                                        <Input
-                                            id="desc"
-                                            value={newRoleDesc}
-                                            onChange={(e) => setNewRoleDesc(e.target.value)}
-                                            placeholder="Role description..."
-                                        />
-                                    </div>
                                     <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="name">Role Name</Label>
+                                            <Input
+                                                id="name"
+                                                value={newRoleName}
+                                                onChange={(e) => setNewRoleName(e.target.value)}
+                                                placeholder="e.g. Regional Manager"
+                                            />
+                                        </div>
                                         <div className="grid gap-2">
                                             <Label htmlFor="hierarchy">Hierarchy Level (1-100)</Label>
                                             <Input
@@ -703,6 +729,7 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                             />
                                         </div>
                                     </div>
+
                                     <div className="border p-3 rounded-md space-y-2">
                                         <Label>Max Data Access Limit (0 = Unlimited)</Label>
                                         <div className="grid grid-cols-3 gap-2">
@@ -738,6 +765,29 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                             </div>
                                         </div>
                                     </div>
+
+                                    <div className="flex items-center space-x-2">
+                                        <Checkbox id="isDefault" checked={newIsDefault} onCheckedChange={(c: any) => setNewIsDefault(!!c)} />
+                                        <div className="grid gap-1.5 leading-none">
+                                            <Label htmlFor="isDefault" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                                Set as Default Role
+                                            </Label>
+                                            <p className="text-[0.8rem] text-muted-foreground">
+                                                New users with this hierarchy level will get this role automatically.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="desc">Description</Label>
+                                        <Textarea
+                                            id="desc"
+                                            value={newRoleDesc}
+                                            onChange={(e) => setNewRoleDesc(e.target.value)}
+                                            placeholder="Role description..."
+                                            className="min-h-[80px]"
+                                        />
+                                    </div>
                                 </div>
                                 <DialogFooter>
                                     <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
@@ -756,7 +806,7 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
 
                     {/* Edit Role Dialog (Hidden logic, triggered by state) */}
                     <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                        <DialogContent>
+                        <DialogContent className="sm:max-w-[500px]">
                             <DialogHeader>
                                 <DialogTitle>Edit Role</DialogTitle>
                                 <DialogDescription>
@@ -764,35 +814,18 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="grid gap-4 py-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="edit-name">Role Name</Label>
-                                    <Input
-                                        id="edit-name"
-                                        value={editingRoleName}
-                                        onChange={(e) => setEditingRoleName(e.target.value)}
-                                        placeholder="Role Name"
-                                        disabled={isSystemRole(selectedRole)}
-                                    />
-                                    {isSystemRole(selectedRole) && <p className="text-[10px] text-orange-500">System roles cannot be renamed.</p>}
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <Checkbox id="edit-isDefault" checked={editingIsDefault} onCheckedChange={(c: any) => setEditingIsDefault(!!c)} />
-                                    <div className="grid gap-1.5 leading-none">
-                                        <Label htmlFor="edit-isDefault" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                            Set as Default Role
-                                        </Label>
-                                    </div>
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="edit-desc">Description</Label>
-                                    <Input
-                                        id="edit-desc"
-                                        value={editingRoleDesc}
-                                        onChange={(e) => setEditingRoleDesc(e.target.value)}
-                                        placeholder="Description"
-                                    />
-                                </div>
                                 <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="edit-name">Role Name</Label>
+                                        <Input
+                                            id="edit-name"
+                                            value={editingRoleName}
+                                            onChange={(e) => setEditingRoleName(e.target.value)}
+                                            placeholder="Role Name"
+                                            disabled={isSystemRole(selectedRole)}
+                                        />
+                                        {isSystemRole(selectedRole) && <p className="text-[10px] text-orange-500">System roles cannot be renamed.</p>}
+                                    </div>
                                     <div className="grid gap-2">
                                         <Label htmlFor="edit-hierarchy">Hierarchy Level</Label>
                                         <Input
@@ -805,6 +838,7 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                         />
                                     </div>
                                 </div>
+
                                 <div className="border p-3 rounded-md space-y-2">
                                     <Label>Max Data Access Limit (0 = Unlimited)</Label>
                                     <div className="grid grid-cols-3 gap-2">
@@ -839,6 +873,26 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                             />
                                         </div>
                                     </div>
+                                </div>
+
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox id="edit-isDefault" checked={editingIsDefault} onCheckedChange={(c: any) => setEditingIsDefault(!!c)} />
+                                    <div className="grid gap-1.5 leading-none">
+                                        <Label htmlFor="edit-isDefault" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                            Set as Default Role
+                                        </Label>
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="edit-desc">Description</Label>
+                                    <Textarea
+                                        id="edit-desc"
+                                        value={editingRoleDesc}
+                                        onChange={(e) => setEditingRoleDesc(e.target.value)}
+                                        placeholder="Description"
+                                        className="min-h-[80px]"
+                                    />
                                 </div>
                             </div>
                             <DialogFooter>
@@ -925,7 +979,7 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
 
                         {/* Right Column: Permission Matrix */}
                         <Card className="lg:col-span-9 flex flex-col h-full overflow-hidden border-2 border-primary/10">
-                            <Tabs defaultValue="direct" className="flex flex-col h-full">
+                            <Tabs defaultValue="direct" value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
                                 {/* Stats Calculation */}
                                 {(() => {
                                     const totalPermissions = permissions.length;
@@ -974,11 +1028,15 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                                 </div>
 
 
-                                                <CardDescription className="mt-1">
-                                                    {isSuperAdmin(selectedRole)
-                                                        ? 'Super Admin has full system access.'
-                                                        : 'Configure what this role can access and modify.'}
-                                                </CardDescription>
+                                                <div className="relative w-64 mt-2">
+                                                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                                    <Input
+                                                        placeholder={activeTab === 'direct' ? "Search permissions..." : "Search groups..."}
+                                                        className="pl-8 h-9"
+                                                        value={permissionSearchQuery}
+                                                        onChange={(e) => setPermissionSearchQuery(e.target.value)}
+                                                    />
+                                                </div>
                                             </div>
 
                                             <div className="flex flex-col items-end gap-3">
@@ -995,7 +1053,7 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                                         </Button>
                                                     </div>
                                                 )}
-                                                <TabsList className="grid w-full grid-cols-2">
+                                                <TabsList className="grid w-auto grid-cols-2">
                                                     <TabsTrigger value="direct">Direct Permissions</TabsTrigger>
                                                     <TabsTrigger value="groups">Group Permissions</TabsTrigger>
                                                 </TabsList>
@@ -1159,7 +1217,12 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                                     Permission Groups (Quick Select)
                                                 </h3>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                    {groupsData?.result?.map((group: PermissionGroup) => {
+                                                    {groupsData?.result?.filter((g: PermissionGroup) => {
+                                                        if (activeTab === 'groups' && permissionSearchQuery) {
+                                                            return g.name.toLowerCase().includes(permissionSearchQuery.toLowerCase());
+                                                        }
+                                                        return true;
+                                                    }).map((group: PermissionGroup) => {
                                                         const groupPermissionIds = group.permissions.map((p: any) => (typeof p === 'object' && p !== null ? p._id : p));
                                                         const isSuper = isSuperAdmin(selectedRole);
 

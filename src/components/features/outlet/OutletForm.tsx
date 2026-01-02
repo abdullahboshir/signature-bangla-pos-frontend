@@ -11,67 +11,94 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Swal from "sweetalert2";
-import { useCreateOutletMutation } from "@/redux/api/organization/outletApi";
+import { useCreateOutletMutation, useUpdateOutletMutation } from "@/redux/api/organization/outletApi";
 import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi";
+import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit";
 
 interface OutletFormProps {
     preSelectedSlug?: string;
+    initialData?: any;
+    isEditMode?: boolean;
 }
 
-export function OutletForm({ preSelectedSlug }: OutletFormProps) {
+export function OutletForm({ preSelectedSlug, initialData, isEditMode = false }: OutletFormProps) {
     const router = useRouter();
 
     // API
     const [createOutlet, { isLoading: isCreating }] = useCreateOutletMutation();
+    const [updateOutlet, { isLoading: isUpdating }] = useUpdateOutletMutation();
     const { data: businessUnitsData, isLoading: isLoadingBUs } = useGetBusinessUnitsQuery(undefined);
 
     // Handle BU data safely
     const businessUnits = Array.isArray(businessUnitsData) ? businessUnitsData :
         (businessUnitsData?.data || businessUnitsData || []);
 
-    // Form state
-    const [name, setName] = useState("");
-    const [code, setCode] = useState("");
-    const [phone, setPhone] = useState("");
-    const [email, setEmail] = useState("");
-    const [address, setAddress] = useState("");
-    const [city, setCity] = useState("");
-    const [country, setCountry] = useState("Bangladesh");
-    const [businessUnitId, setBusinessUnitId] = useState("");
-    const [isActive, setIsActive] = useState(true);
+    // Form state - Initialize with initialData if available
+    const [name, setName] = useState(initialData?.name || "");
+    const [code, setCode] = useState(initialData?.code || "");
+    const [phone, setPhone] = useState(initialData?.phone || "");
+    const [email, setEmail] = useState(initialData?.email || "");
+    const [address, setAddress] = useState(initialData?.address || "");
+    const [city, setCity] = useState(initialData?.city || "");
+    const [country, setCountry] = useState(initialData?.country || "Bangladesh");
+
+    // For BU ID: 
+    // If Editing, use initialData.businessUnit 
+    // (Ensure to handle if it's an object { id, name } or string ID)
+    const initialBuId = initialData?.businessUnit
+        ? (typeof initialData.businessUnit === 'object' ? (initialData.businessUnit._id || initialData.businessUnit.id) : initialData.businessUnit)
+        : "";
+
+    const [businessUnitId, setBusinessUnitId] = useState(initialBuId || "");
+    const [isActive, setIsActive] = useState(initialData !== undefined ? initialData.isActive : true);
+
+    const { currentBusinessUnit } = useCurrentBusinessUnit();
 
     // Initial Load Logic for Scoped Context
     useEffect(() => {
-        if (preSelectedSlug && businessUnits.length > 0) {
-            // Try to find BU by slug or ID match
-            // Try to find BU by slug or ID match (case insensitive for slug)
-            const matchedBU = businessUnits.find((bu: any) =>
-                (bu.slug && bu.slug.toLowerCase() === preSelectedSlug.toLowerCase()) ||
-                bu.id === preSelectedSlug ||
-                bu._id === preSelectedSlug
-            );
+        if (preSelectedSlug) {
+            const slugLower = preSelectedSlug.toLowerCase();
 
-            if (matchedBU) {
-                setBusinessUnitId(matchedBU.id || matchedBU._id);
-            } else if (preSelectedSlug) {
-                // Fallback: If no match found (e.g. list empty or mismatch), use slug directly.
-                // This ensures the backend (which supports slug) receives a valid identifier.
-                setBusinessUnitId(preSelectedSlug);
+            // Priority 1: Use Context if available and matches slug (Case Insensitive)
+            if (currentBusinessUnit) {
+                const currentSlug = (currentBusinessUnit.slug || "").toLowerCase();
+                // Check matching slug or direct ID key
+                if (currentSlug === slugLower || currentBusinessUnit.id === preSelectedSlug || currentBusinessUnit._id === preSelectedSlug) {
+                    setBusinessUnitId(currentBusinessUnit.id || currentBusinessUnit._id);
+                    return;
+                }
             }
-        } else if (preSelectedSlug && businessUnits.length === 0 && !isLoadingBUs) {
-            // Case where list failed to load but we have a slug
+
+            // Priority 2: Use List if loaded
+            if (businessUnits.length > 0) {
+                const matchedBU = businessUnits.find((bu: any) =>
+                    (bu.slug && bu.slug.toLowerCase() === slugLower) ||
+                    bu.id === preSelectedSlug ||
+                    bu._id === preSelectedSlug
+                );
+                if (matchedBU) {
+                    setBusinessUnitId(matchedBU.id || matchedBU._id);
+                    return;
+                }
+            }
+
+            // Priority 3: Fallback to slug if nothing else found
+            // Logic: If state is empty OR state matches the slug (re-enforcing)
+            // But we must be careful not to overwrite a valid ID with a slug if we re-run
+            // Simple check: If we are here, we didn't match ID above.
             setBusinessUnitId(preSelectedSlug);
         }
-    }, [preSelectedSlug, businessUnits]);
+    }, [preSelectedSlug, businessUnits, currentBusinessUnit]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         // If scoped, we might rely on preSelectedSlug logic if state isn't set yet? 
         // Better to enforce selection state.
-        const finalBU = businessUnitId;
+        const finalBU = businessUnitId || preSelectedSlug; // Absolute fallback for submission
 
-        if (!finalBU) {
+        if (!finalBU && !isEditMode) {
+            console.log("Validation Failed: FinalBU is empty", { businessUnitId, preSelectedSlug });
             Swal.fire("Error", "Please select a Business Unit", "error");
             return;
         }
@@ -85,28 +112,36 @@ export function OutletForm({ preSelectedSlug }: OutletFormProps) {
                 address,
                 city,
                 country,
-                businessUnit: finalBU,
+                businessUnit: finalBU, // This can be ID or Slug
                 isActive
             };
 
-            const res: any = await createOutlet(payload).unwrap();
+            let res: any;
+
+            if (isEditMode && initialData?._id) {
+                // Update Logic
+                res = await updateOutlet({ id: initialData._id, body: payload }).unwrap();
+            } else {
+                // Create Logic
+                res = await createOutlet(payload).unwrap();
+            }
 
             if (res) {
                 Swal.fire({
                     icon: "success",
                     title: "Success",
-                    text: "Outlet created successfully!",
+                    text: isEditMode ? "Outlet updated successfully!" : "Outlet created successfully!",
                     timer: 1500,
                     showConfirmButton: false,
                 });
                 router.back();
             }
         } catch (error: any) {
-            console.error("Creation error:", error);
+            console.error(isEditMode ? "Update error:" : "Creation error:", error);
             Swal.fire({
                 icon: "error",
                 title: "Failed",
-                text: error?.message || error?.data?.message || JSON.stringify(error?.data) || "Could not create outlet."
+                text: error?.message || error?.data?.message || JSON.stringify(error?.data) || (isEditMode ? "Could not update outlet." : "Could not create outlet.")
             });
         }
     };
@@ -118,9 +153,9 @@ export function OutletForm({ preSelectedSlug }: OutletFormProps) {
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Add New Outlet</h2>
+                    <h2 className="text-3xl font-bold tracking-tight">{isEditMode ? "Edit Outlet" : "Add New Outlet"}</h2>
                     <p className="text-muted-foreground">
-                        Create a physical store location.
+                        {isEditMode ? "Update outlet details." : "Create a physical store location."}
                     </p>
                 </div>
             </div>
@@ -147,14 +182,38 @@ export function OutletForm({ preSelectedSlug }: OutletFormProps) {
                                         <SelectValue placeholder="Select Business Unit" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {isLoadingBUs ? (
+                                        {isLoadingBUs && businessUnits.length === 0 ? (
                                             <div className="p-2 text-sm text-center">Loading...</div>
                                         ) : (
-                                            businessUnits.map((bu: any) => (
-                                                <SelectItem key={bu.id || bu._id} value={bu.id || bu._id}>
-                                                    {bu.name}
-                                                </SelectItem>
-                                            ))
+                                            // Merge list with currentBU if needed, AND add fallback slug option if currently selected is just a slug
+                                            (() => {
+                                                const uniqueBUs = [...businessUnits];
+
+                                                // Add Current BU if missing
+                                                if (currentBusinessUnit && !uniqueBUs.find(b => (b.id || b._id) === (currentBusinessUnit.id || currentBusinessUnit._id))) {
+                                                    uniqueBUs.push(currentBusinessUnit);
+                                                }
+
+                                                const options = uniqueBUs.map((bu: any) => (
+                                                    <SelectItem key={bu.id || bu._id} value={bu.id || bu._id}>
+                                                        {bu.name}
+                                                    </SelectItem>
+                                                ));
+
+                                                // Critical Fallback: If selected value is the slug (no ID match), render it as an option so Select displays it
+                                                if (preSelectedSlug && businessUnitId === preSelectedSlug) {
+                                                    // Check if an ID option already exists that resolves this? No, if we are here, we are using slug value
+                                                    options.push(
+                                                        <SelectItem key="fallback-slug" value={preSelectedSlug}>
+                                                            {/* Try to display a nice name if we can match it loosely, else slug */}
+                                                            {currentBusinessUnit?.slug === preSelectedSlug ? currentBusinessUnit.name : (preSelectedSlug.charAt(0).toUpperCase() + preSelectedSlug.slice(1))}
+                                                        </SelectItem>
+                                                    );
+                                                }
+
+                                                return options;
+                                            })()
+
                                         )}
                                     </SelectContent>
                                 </Select>
@@ -254,8 +313,8 @@ export function OutletForm({ preSelectedSlug }: OutletFormProps) {
 
                             <div className="flex justify-end gap-2 pt-4">
                                 <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
-                                <Button type="submit" disabled={isCreating}>
-                                    {isCreating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...</> : "Create Outlet"}
+                                <Button type="submit" disabled={isCreating || isUpdating}>
+                                    {isCreating || isUpdating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {isEditMode ? "Updating..." : "Creating..."}</> : (isEditMode ? "Save Changes" : "Create Outlet")}
                                 </Button>
                             </div>
                         </form>

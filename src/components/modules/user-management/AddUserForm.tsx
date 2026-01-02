@@ -89,7 +89,19 @@ export default function AddUserForm({ isPlatformUser = false }: AddUserFormProps
             router.back();
         } catch (err: any) {
             console.error("Failed to create user", err);
-            toast.error(err?.data?.message || err?.message || "Failed to create user");
+
+            // Handle Validation Errors from Backend
+            if (err?.data?.errorSources) {
+                err.data.errorSources.forEach((source: any) => {
+                    form.setError(source.path, {
+                        type: "manual",
+                        message: source.message,
+                    });
+                });
+                toast.error("Please fix the validation errors");
+            } else {
+                toast.error(err?.data?.message || err?.message || "Failed to create user");
+            }
         }
     };
 

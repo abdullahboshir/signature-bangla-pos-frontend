@@ -3,7 +3,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
-import { useGetOutletQuery } from "@/redux/api/organization/outletApi";
+import { useGetOutletsQuery } from "@/redux/api/organization/outletApi";
 
 interface RoleAssignmentRowProps {
     assignment: {
@@ -26,7 +26,7 @@ export function RoleAssignmentRow({
     onRemove
 }: RoleAssignmentRowProps) {
     // Fetch outlets for this specific row's Business Unit
-    const { data: outletsData, isLoading: isOutletsLoading } = useGetOutletQuery(
+    const { data: outletsData, isLoading: isOutletsLoading } = useGetOutletsQuery(
         assignment.businessUnit ? { businessUnit: assignment.businessUnit } : { businessUnit: 'none' },
         { skip: !assignment.businessUnit }
     );

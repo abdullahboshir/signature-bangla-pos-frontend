@@ -202,20 +202,33 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
 
         if (activeTab === 'all') {
             if (viewScope === 'platform') {
-                return data.filter((u: any) => u.roles?.some((r: any) => {
-                    const roleName = (typeof r === 'string' ? r : r.name).toLowerCase();
-                    const isSystemRole = typeof r === 'object' && (r.isSystemRole || r.isSystem); // robust check
-                    return ['super-admin', 'platform-admin', 'system-support'].includes(roleName) || isSystemRole;
-                }));
+                return data.filter((u: any) => {
+                    // Check Global Roles
+                    const hasGlobalRole = u.globalRoles?.length > 0;
+
+                    // Check explicit GLOBAL scope in businessAccess
+                    const hasGlobalAccess = u.businessAccess?.some((acc: any) => acc.scope === 'GLOBAL');
+
+                    // Fallback: Check if super-admin (legacy)
+                    const isSuperAdmin = u.roles?.some((r: any) => {
+                        const rName = (typeof r === 'string' ? r : r.name).toLowerCase();
+                        return rName === 'super-admin';
+                    });
+
+                    return hasGlobalRole || hasGlobalAccess || isSuperAdmin;
+                });
             }
             if (viewScope === 'business') {
-                return data.filter((u: any) => !u.roles?.some((r: any) => {
-                    const roleName = (typeof r === 'string' ? r : r.name).toLowerCase();
-                    const isSystemRole = typeof r === 'object' && (r.isSystemRole || r.isSystem);
-                    return ['super-admin', 'platform-admin'].includes(roleName) || (isSystemRole && roleName === 'super-admin');
-                    // Note: Some business roles might be 'system' defined but business usage (e.g. standard 'manager'). 
-                    // So we mainly exclude super-admin/platform-admin. 
-                }));
+                return data.filter((u: any) => {
+                    // Check Business/Outlet Scope
+                    const hasBusinessAccess = u.businessAccess?.some((acc: any) =>
+                        acc.scope === 'BUSINESS' || acc.scope === 'OUTLET'
+                    );
+
+                    // Exclude pure Platform users unless they specifically have business access
+                    // (e.g. Super Admin often has access to everything, but for the 'Business Users' list we want actual business staff)
+                    return hasBusinessAccess;
+                });
             }
             return data;
         }
@@ -395,8 +408,8 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
             header: "Roles",
             cell: ({ row }) => {
                 const legacyRoles = row.original.roles || [];
-                // Extract roles from permissions
-                const permissionRoles = row.original.permissions?.map((p: any) => p.role) || [];
+                // Extract roles from Business Access (New Model)
+                const permissionRoles = row.original.businessAccess?.map((acc: any) => acc.role) || [];
 
                 // Combine and deduplicate by ID
                 const allRoles = [...legacyRoles, ...permissionRoles].filter((r, i, arr) =>
@@ -423,7 +436,8 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
             header: "Context (BUS/Outlet)",
             cell: ({ row }: any) => {
                 const legacyBUs = row.original.businessUnits || [];
-                const permissions = row.original.permissions || [];
+                // Use Business Access for Scope Context
+                const accessList = row.original.businessAccess || [];
 
 
                 return (
@@ -439,65 +453,49 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
                             </div>
                         )}
 
-                        {/* Scoped Permissions (Explicit Fields) */}
-                        {permissions.map((p: any, idx: number) => {
+                        {/* Scoped Access (New Model) */}
+                        {accessList.map((acc: any, idx: number) => {
                             let displayText = 'Unknown';
 
-                            // 1. Check for Outlet Scope
-                            if (p.outlet) {
-                                // Resolve Outlet Name
-                                let outletName = (p.outlet && typeof p.outlet === 'object' && p.outlet.name) ? p.outlet.name : null;
-                                let parentBUId = (p.outlet && typeof p.outlet === 'object' && p.outlet.businessUnit) ? p.outlet.businessUnit : null;
+                            // Check Scope
+                            if (acc.scope === 'GLOBAL') {
+                                return (
+                                    <Badge key={`acc-${idx}`} variant="outline" className="text-xs font-normal border-blue-200">
+                                        Global
+                                    </Badge>
+                                );
+                            }
 
-                                if (!outletName) {
-                                    // Lookup in availableOutlets
-                                    const outletId = typeof p.outlet === 'string' ? p.outlet : (p.outlet._id || p.outlet.id);
-                                    const foundOutlet = availableOutlets.find((o: any) => (o._id === outletId || o.id === outletId));
-                                    if (foundOutlet) {
-                                        outletName = foundOutlet.name;
-                                        parentBUId = foundOutlet.businessUnit;
-                                    }
-                                }
-                                outletName = outletName || 'Unknown Outlet';
-
-                                // Resolve Business Unit Name (Parent)
+                            // 1. Outlet Scope
+                            if (acc.outlet) {
+                                let outletName = (typeof acc.outlet === 'object' && acc.outlet.name) ? acc.outlet.name : 'Unknown Outlet';
                                 let buName = 'Unknown BU';
-                                // Try direct BU field in permission first
-                                if (p.businessUnit) {
-                                    if (typeof p.businessUnit === 'object' && p.businessUnit.name) {
-                                        buName = p.businessUnit.name;
-                                    } else {
-                                        // Lookup
-                                        const buId = typeof p.businessUnit === 'string' ? p.businessUnit : (p.businessUnit._id || p.businessUnit.id);
-                                        const foundBU = availableBusinessUnits.find((b: any) => (b._id === buId || b.id === buId));
-                                        if (foundBU) buName = foundBU.name;
-                                    }
+
+                                if (acc.businessUnit) {
+                                    buName = (typeof acc.businessUnit === 'object' && acc.businessUnit.name) ? acc.businessUnit.name : 'BU';
                                 }
-                                // Fallback to Outlet's parent if permission.businessUnit is missing 
-                                else if (parentBUId) {
-                                    const buId = typeof parentBUId === 'string' ? parentBUId : (parentBUId._id || parentBUId.id);
-                                    const foundBU = availableBusinessUnits.find((b: any) => (b._id === buId || b.id === buId));
-                                    if (foundBU) buName = foundBU.name;
+
+                                if (outletName === 'Unknown Outlet' && typeof acc.outlet === 'string') {
+                                    const found = availableOutlets.find((o: any) => (o._id === acc.outlet || o.id === acc.outlet));
+                                    if (found) outletName = found.name;
                                 }
 
                                 displayText = `${buName} > ${outletName}`;
                             }
-                            // 2. Check for Business Unit Scope (Only if no outlet)
-                            else if (p.businessUnit) {
-                                if (typeof p.businessUnit === 'object' && p.businessUnit.name) {
-                                    displayText = p.businessUnit.name;
-                                } else {
-                                    // Lookup
-                                    const buId = typeof p.businessUnit === 'string' ? p.businessUnit : (p.businessUnit._id || p.businessUnit.id);
-                                    const foundBU = availableBusinessUnits.find((b: any) => (b._id === buId || b.id === buId));
-                                    if (foundBU) displayText = foundBU.name;
+                            // 2. Business Unit Scope
+                            else if (acc.businessUnit) {
+                                if (typeof acc.businessUnit === 'object' && acc.businessUnit.name) {
+                                    displayText = acc.businessUnit.name;
+                                } else if (typeof acc.businessUnit === 'string') {
+                                    const found = availableBusinessUnits.find((b: any) => (b._id === acc.businessUnit || b.id === acc.businessUnit));
+                                    displayText = found ? found.name : 'Unknown BU';
                                 }
                             } else {
                                 return null;
                             }
 
                             return (
-                                <Badge key={`perm-${idx}`} variant="secondary" className="text-xs font-normal">
+                                <Badge key={`acc-${idx}`} variant="secondary" className="text-xs font-normal">
                                     {displayText}
                                 </Badge>
                             );
