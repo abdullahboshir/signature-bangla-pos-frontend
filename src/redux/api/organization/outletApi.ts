@@ -7,10 +7,18 @@ const { api: outletApi, hooks } = createCrudApi({
   tagType: tagTypes.outlet,
 });
 
+export interface OutletStats {
+  todaySales?: number;
+  salesCount?: number;
+  activeRegisters?: number;
+  lowStockCount?: number;
+  activeStaff?: number;
+}
+
 // Extend with custom endpoints
 const extendedOutletApi = outletApi.injectEndpoints({
   endpoints: (build) => ({
-    getOutletStats: build.query({
+    getOutletStats: build.query<OutletStats, string>({
       query: (id: string) => ({
         url: `/super-admin/outlets/${id}/stats`,
         method: "GET",

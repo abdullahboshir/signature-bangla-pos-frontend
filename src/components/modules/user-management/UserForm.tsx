@@ -19,9 +19,10 @@ export interface UserFormProps {
     isSubmitting: boolean;
     onCancel: () => void;
     apiError?: any;
+    targetScope?: 'GLOBAL' | 'BUSINESS'; // New Prop for context awareness
 }
 
-export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, apiError }: UserFormProps) {
+export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, apiError, targetScope }: UserFormProps) {
     // Query Hooks
     const { data: rolesData } = useGetRolesQuery({})
     const { data: businessUnitsData } = useGetBusinessUnitsQuery(undefined)
@@ -357,19 +358,25 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
                                                 <div className="space-y-3 text-sm">
                                                     <div className="space-y-1">
                                                         <Label className="text-xs text-muted-foreground">Business Unit</Label>
-                                                        <select
-                                                            className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                                            value={assignment.businessUnit}
-                                                            onChange={(e) => {
-                                                                updateRoleAssignment(assignment.tempId, "businessUnit", e.target.value);
-                                                                updateRoleAssignment(assignment.tempId, "outlets", []);
-                                                            }}
-                                                        >
-                                                            <option value="">Global (No Business Unit)</option>
-                                                            {businessUnits.map((bu: any) => (
-                                                                <option key={bu._id} value={bu._id}>{bu.name}</option>
-                                                            ))}
-                                                        </select>
+                                                        {targetScope === 'GLOBAL' ? (
+                                                            <div className="flex h-9 w-full items-center px-3 py-2 text-sm border rounded-md bg-muted text-muted-foreground">
+                                                                Global (Platform User)
+                                                            </div>
+                                                        ) : (
+                                                            <select
+                                                                className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                                                value={assignment.businessUnit}
+                                                                onChange={(e) => {
+                                                                    updateRoleAssignment(assignment.tempId, "businessUnit", e.target.value);
+                                                                    updateRoleAssignment(assignment.tempId, "outlets", []);
+                                                                }}
+                                                            >
+                                                                <option value="">Global (No Business Unit)</option>
+                                                                {businessUnits.map((bu: any) => (
+                                                                    <option key={bu._id} value={bu._id}>{bu.name}</option>
+                                                                ))}
+                                                            </select>
+                                                        )}
                                                     </div>
 
                                                     {assignment.businessUnit && (
@@ -391,8 +398,20 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
                                                             onChange={(e) => updateRoleAssignment(assignment.tempId, "role", e.target.value)}
                                                         >
                                                             <option value="" disabled>Select Role</option>
+                                                            <option value="" disabled>Select Role</option>
                                                             {roles
-                                                                .filter((r: any) => r.id.toLowerCase() !== 'super-admin')
+                                                                .filter((r: any) => {
+                                                                    // Default exclusion
+                                                                    if (r.id.toLowerCase() === 'super-admin') return false;
+
+                                                                    // Scope Filtering
+                                                                    if (targetScope === 'GLOBAL') {
+                                                                        return r.roleScope === 'GLOBAL';
+                                                                    } else if (targetScope === 'BUSINESS') {
+                                                                        return r.roleScope !== 'GLOBAL';
+                                                                    }
+                                                                    return true; // No filter if prop not passed
+                                                                })
                                                                 .map((role: any) => (
                                                                     <option key={role._id} value={role._id}>{role.name}</option>
                                                                 ))}

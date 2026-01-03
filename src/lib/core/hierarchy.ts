@@ -100,7 +100,7 @@ export interface Storefront {
 /**
  * Validates that a user has access to a specific business unit
  */
-export function validateBus inessUnitAccess(
+export function validateBusinessUnitAccess(
   userBusinessUnitIds: string[],
   targetBusinessUnitId: string
 ): boolean {

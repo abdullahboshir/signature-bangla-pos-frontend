@@ -146,6 +146,8 @@ export const useProductForm = (initialData?: any) => {
     const [uploadFile, { isLoading: isUploadingImage }] = useUploadFileMutation();
 
     const [level1, setLevel1] = useState<string>("");
+    const [level2, setLevel2] = useState<string>("");
+    const [level3, setLevel3] = useState<string>("");
 
     const isLoading = isCreating || isUpdating; // Removed isProductLoading since we pass data
     const isUploading = isUploadingImage;
@@ -527,6 +529,8 @@ export const useProductForm = (initialData?: any) => {
         units: mergedUnits,
         businessUnits: busUnits, // Return businessUnits
         level1, setLevel1,
+        level2, setLevel2,
+        level3, setLevel3,
         handleImageUpload,
         removeImage,
         appendImage,

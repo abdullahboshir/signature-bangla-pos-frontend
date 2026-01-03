@@ -49,6 +49,9 @@ import { Badge } from "@/components/ui/badge";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSION_KEYS } from "@/config/permission-keys";
 
+import { ModuleSelect } from "@/components/forms/module-select";
+import { SUPPLIER_STATUS, SUPPLIER_STATUS_OPTIONS, SUPPLIER_MODULE, SUPPLIER_MODULE_OPTIONS } from "@/constant/supplier.constant";
+
 export const SupplierList = () => {
     // Auth & Context
     const { user: currentUser } = useAuth();
@@ -352,11 +355,15 @@ export const SupplierList = () => {
             name: "status",
             label: "Status",
             type: "select",
-            options: [
-                { label: "Active", value: "active" },
-                { label: "Inactive", value: "inactive" }
-            ],
-            defaultValue: "active"
+            options: SUPPLIER_STATUS_OPTIONS,
+            defaultValue: SUPPLIER_STATUS.ACTIVE
+        },
+        {
+            name: "module",
+            label: "Module Scope",
+            type: "select",
+            options: SUPPLIER_MODULE_OPTIONS,
+            defaultValue: SUPPLIER_MODULE.ERP,
         }
     ];
 

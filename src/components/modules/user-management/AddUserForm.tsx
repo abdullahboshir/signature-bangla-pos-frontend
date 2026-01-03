@@ -47,7 +47,21 @@ export default function AddUserForm({ isPlatformUser = false }: AddUserFormProps
     const { data: rawBusinessUnits = [] } = useGetBusinessUnitsQuery(undefined, { skip: !isSuperAdmin });
 
     // Normalize Data
-    const availableRoles = Array.isArray(rawRoles) ? rawRoles : [];
+    // Normalize Data
+    const rawRolesArray = Array.isArray(rawRoles) ? rawRoles : [];
+
+    // Filter Roles based on Context
+    const availableRoles = useMemo(() => {
+        return rawRolesArray.filter((role: any) => {
+            if (isPlatformUser) {
+                // Platform Context: Only Global Roles
+                return role.roleScope === 'GLOBAL';
+            } else {
+                // Business Context: Only Business/Outlet Roles (Not Global)
+                return role.roleScope !== 'GLOBAL';
+            }
+        });
+    }, [rawRolesArray, isPlatformUser]);
     const availableBusinessUnits = Array.isArray(rawBusinessUnits) ? rawBusinessUnits : [];
     console.log("availableRoles", rawRoles);
     console.log("availableBusinessUnits", availableBusinessUnits);

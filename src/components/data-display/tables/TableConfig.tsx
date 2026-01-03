@@ -151,6 +151,43 @@ export const TableConfig: Record<DataType, ITableConfig> = {
     },
   },
 
+  supplier: {
+    dataType: 'supplier',
+    columns: [
+      { id: 'name', header: 'Name', accessorKey: 'name', sortable: true },
+      { id: 'contact', header: 'Contact', accessorKey: 'contactPerson', sortable: true },
+      { id: 'phone', header: 'Phone', accessorKey: 'phone', sortable: true },
+      { id: 'email', header: 'Email', accessorKey: 'email', sortable: true },
+      { id: 'actions', header: 'Actions', accessorKey: 'actions', type: 'actions' },
+    ],
+    showToolbar: true
+  },
+
+  inventory: {
+    dataType: 'inventory',
+    columns: [
+      { id: 'product', header: 'Product', accessorKey: 'product.name', sortable: true },
+      { id: 'sku', header: 'SKU', accessorKey: 'sku', sortable: true },
+      { id: 'quantity', header: 'Quantity', accessorKey: 'quantity', type: 'number', sortable: true },
+      { id: 'location', header: 'Location', accessorKey: 'location', sortable: true },
+      { id: 'actions', header: 'Actions', accessorKey: 'actions', type: 'actions' },
+    ],
+    showToolbar: true
+  },
+
+  purchase: {
+    dataType: 'purchase',
+    columns: [
+      { id: 'id', header: 'ID', accessorKey: 'purchaseId', sortable: true },
+      { id: 'supplier', header: 'Supplier', accessorKey: 'supplier.name', sortable: true },
+      { id: 'date', header: 'Date', accessorKey: 'date', type: 'date', sortable: true },
+      { id: 'total', header: 'Total', accessorKey: 'total', type: 'number', sortable: true },
+      { id: 'status', header: 'Status', accessorKey: 'status', type: 'status', sortable: true },
+      { id: 'actions', header: 'Actions', accessorKey: 'actions', type: 'actions' },
+    ],
+    showToolbar: true
+  },
+
   default: {
     dataType: 'user',
     columns: [
@@ -177,4 +214,5 @@ export const DataTypeIcons: Record<DataType, React.ReactNode> = {
   role: <Shield className="h-4 w-4" />,
   permission: <Key className="h-4 w-4" />,
   outlet: <Store className="h-4 w-4" />,
+  default: <User className="h-4 w-4" />, // Fallback icon
 };

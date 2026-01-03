@@ -42,16 +42,9 @@ import { DataTable } from "@/components/shared/DataTable";
 import { DataPageLayout } from "@/components/shared/DataPageLayout";
 import { ColumnDef } from "@tanstack/react-table";
 import { exportToCSV } from "@/utils/export";
+import { ORDER_STATUS, ORDER_STATUS_OPTIONS } from "@/constant/order.constant";
 
-const ORDER_STATUSES = [
-    { value: "pending", label: "Pending" },
-    { value: "confirmed", label: "Confirmed" },
-    { value: "processing", label: "Processing" },
-    { value: "shipped", label: "Shipped" },
-    { value: "delivered", label: "Delivered" },
-    { value: "cancelled", label: "Cancelled" },
-    { value: "returned", label: "Returned" }
-];
+
 
 interface OrderListProps {
     initialTab?: "all" | "shipping" | "delivery" | "returns";
@@ -129,13 +122,13 @@ export default function OrderList({ initialTab = "all" }: OrderListProps) {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case "confirmed": return "bg-blue-100 text-blue-800";
-            case "processing": return "bg-purple-100 text-purple-800";
-            case "shipped": return "bg-indigo-100 text-indigo-800";
-            case "delivered": return "bg-green-100 text-green-800";
-            case "cancelled": return "bg-red-100 text-red-800";
-            case "returned": return "bg-orange-100 text-orange-800";
-            case "pending": return "bg-yellow-100 text-yellow-800";
+            case ORDER_STATUS.CONFIRMED: return "bg-blue-100 text-blue-800";
+            case ORDER_STATUS.PROCESSING: return "bg-purple-100 text-purple-800";
+            case ORDER_STATUS.SHIPPED: return "bg-indigo-100 text-indigo-800";
+            case ORDER_STATUS.DELIVERED: return "bg-green-100 text-green-800";
+            case ORDER_STATUS.CANCELLED: return "bg-red-100 text-red-800";
+            case ORDER_STATUS.RETURNED: return "bg-orange-100 text-orange-800";
+            case ORDER_STATUS.PENDING: return "bg-yellow-100 text-yellow-800";
             default: return "bg-gray-100 text-gray-800";
         }
     };
@@ -283,7 +276,7 @@ export default function OrderList({ initialTab = "all" }: OrderListProps) {
                 }
                 tabs={[
                     { value: "all", label: "All" },
-                    ...ORDER_STATUSES.map(s => ({ value: s.value, label: s.label }))
+                    ...ORDER_STATUS_OPTIONS
                 ]}
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
@@ -299,7 +292,7 @@ export default function OrderList({ initialTab = "all" }: OrderListProps) {
                 <TabsContent value="all" className="mt-0">
                     <DataTable columns={columns} data={filterOrders("all")} isLoading={loading} />
                 </TabsContent>
-                {ORDER_STATUSES.map(status => (
+                {ORDER_STATUS_OPTIONS.map((status) => (
                     <TabsContent key={status.value} value={status.value} className="mt-0">
                         <DataTable columns={columns} data={filterOrders(status.value)} isLoading={loading} />
                     </TabsContent>
@@ -325,7 +318,7 @@ export default function OrderList({ initialTab = "all" }: OrderListProps) {
                                         <SelectValue placeholder="Select status" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {ORDER_STATUSES.map((status) => (
+                                        {ORDER_STATUS_OPTIONS.map((status) => (
                                             <SelectItem key={status.value} value={status.value}>
                                                 {status.label}
                                             </SelectItem>

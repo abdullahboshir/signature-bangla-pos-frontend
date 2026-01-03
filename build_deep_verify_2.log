@@ -1,0 +1,402 @@
+
+> signature-bangla-pos-frontend@0.1.0 build
+> next build
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+   ▲ Next.js 16.0.3 (Turbopack)
+
+ ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+   Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ✓ Compiled successfully in 11.7s
+   Running TypeScript ...
+   Collecting page data using 11 workers ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+   Generating static pages using 11 workers (0/43) ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+   Generating static pages using 11 workers (10/43) 
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+   Generating static pages using 11 workers (21/43) 
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+   Generating static pages using 11 workers (32/43) 
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+Theme loaded: {
+  apiTheme: {},
+  localTheme: {},
+  mergedTheme: { radius: 10, fontScale: 1, buttonScale: 1, tableRowHeight: 56 }
+}
+ ✓ Generating static pages using 11 workers (43/43) in 1470.8ms
+   Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /[business-unit]
+├ ƒ /[business-unit]/accounting/accounts
+├ ƒ /[business-unit]/accounting/budgets
+├ ƒ /[business-unit]/accounting/expense-categories
+├ ƒ /[business-unit]/accounting/expenses
+├ ƒ /[business-unit]/accounting/transactions
+├ ƒ /[business-unit]/business-settings
+├ ƒ /[business-unit]/catalog/attribute
+├ ƒ /[business-unit]/catalog/attribute-groups
+├ ƒ /[business-unit]/catalog/brand
+├ ƒ /[business-unit]/catalog/category
+├ ƒ /[business-unit]/catalog/product
+├ ƒ /[business-unit]/catalog/product/add
+├ ƒ /[business-unit]/catalog/tax
+├ ƒ /[business-unit]/catalog/unit
+├ ƒ /[business-unit]/catalog/variants
+├ ƒ /[business-unit]/catalog/warranties
+├ ƒ /[business-unit]/contacts/customer
+├ ƒ /[business-unit]/contacts/suppliers
+├ ƒ /[business-unit]/content
+├ ƒ /[business-unit]/customers
+├ ƒ /[business-unit]/customers/carts
+├ ƒ /[business-unit]/customers/loyalty
+├ ƒ /[business-unit]/customers/reviews
+├ ƒ /[business-unit]/customers/subscriptions
+├ ƒ /[business-unit]/customers/wishlists
+├ ƒ /[business-unit]/dashboard
+├ ƒ /[business-unit]/finance/payments
+├ ƒ /[business-unit]/finance/payouts
+├ ƒ /[business-unit]/finance/reconciliation
+├ ƒ /[business-unit]/finance/settlements
+├ ƒ /[business-unit]/home
+├ ƒ /[business-unit]/hrm/assets
+├ ƒ /[business-unit]/hrm/attendance
+├ ƒ /[business-unit]/hrm/departments
+├ ƒ /[business-unit]/hrm/designations
+├ ƒ /[business-unit]/hrm/leave
+├ ƒ /[business-unit]/hrm/payroll
+├ ƒ /[business-unit]/hrm/staff
+├ ƒ /[business-unit]/inventory
+├ ƒ /[business-unit]/inventory/adjustments
+├ ƒ /[business-unit]/inventory/adjustments/new
+├ ƒ /[business-unit]/inventory/ledger
+├ ƒ /[business-unit]/inventory/transfers
+├ ƒ /[business-unit]/inventory/warehouses
+├ ƒ /[business-unit]/logistics/courier
+├ ƒ /[business-unit]/logistics/parcel
+├ ƒ /[business-unit]/marketing/affiliates
+├ ƒ /[business-unit]/marketing/audiences
+├ ƒ /[business-unit]/marketing/campaigns
+├ ƒ /[business-unit]/marketing/coupons
+├ ƒ /[business-unit]/marketing/events
+├ ƒ /[business-unit]/marketing/pixel
+├ ƒ /[business-unit]/marketing/promotions
+├ ƒ /[business-unit]/marketing/seo
+├ ƒ /[business-unit]/online-store/abandoned-carts
+├ ƒ /[business-unit]/online-store/landing-pages
+├ ƒ /[business-unit]/online-store/plugins
+├ ƒ /[business-unit]/online-store/questions
+├ ƒ /[business-unit]/online-store/themes
+├ ƒ /[business-unit]/outlets
+├ ƒ /[business-unit]/outlets/[outletId]
+├ ƒ /[business-unit]/outlets/[outletId]/edit
+├ ƒ /[business-unit]/outlets/new
+├ ƒ /[business-unit]/overview
+├ ƒ /[business-unit]/pos
+├ ƒ /[business-unit]/pos/cash-registers
+├ ƒ /[business-unit]/pos/terminals
+├ ƒ /[business-unit]/profile
+├ ƒ /[business-unit]/purchases
+├ ƒ /[business-unit]/purchases/[id]/edit
+├ ƒ /[business-unit]/purchases/create
+├ ƒ /[business-unit]/reports
+├ ƒ /[business-unit]/reports/profit-loss
+├ ƒ /[business-unit]/reports/sales
+├ ƒ /[business-unit]/reports/stock
+├ ƒ /[business-unit]/risk/analytics
+├ ƒ /[business-unit]/risk/blacklist
+├ ƒ /[business-unit]/risk/fraud
+├ ƒ /[business-unit]/risk/profiles
+├ ƒ /[business-unit]/risk/rules
+├ ƒ /[business-unit]/sales
+├ ƒ /[business-unit]/sales/[id]
+├ ƒ /[business-unit]/sales/create
+├ ƒ /[business-unit]/sales/deliveries
+├ ƒ /[business-unit]/sales/invoices
+├ ƒ /[business-unit]/sales/returns
+├ ƒ /[business-unit]/sales/shipping
+├ ƒ /[business-unit]/suppliers
+├ ƒ /[business-unit]/suppliers/vendors
+├ ƒ /[business-unit]/support/chat
+├ ƒ /[business-unit]/support/disputes
+├ ƒ /[business-unit]/support/tickets
+├ ƒ /[business-unit]/system/api-keys
+├ ƒ /[business-unit]/system/audit-logs
+├ ƒ /[business-unit]/system/backups
+├ ƒ /[business-unit]/system/currencies
+├ ƒ /[business-unit]/system/email-templates
+├ ƒ /[business-unit]/system/languages
+├ ƒ /[business-unit]/system/notifications
+├ ƒ /[business-unit]/system/sms-templates
+├ ƒ /[business-unit]/system/webhooks
+├ ƒ /[business-unit]/system/zones
+├ ƒ /[business-unit]/user-management
+├ ƒ /[business-unit]/user-management/add-user
+├ ƒ /[business-unit]/user-management/all-users
+├ ƒ /[business-unit]/user-management/business-roles
+├ ƒ /[business-unit]/user-management/business-users
+├ ƒ /[business-unit]/user-management/business-users/add
+├ ƒ /[business-unit]/user-management/roles-permissions
+├ ƒ /[business-unit]/user-management/users/[id]
+├ ƒ /[business-unit]/user-management/users/[id]/edit
+├ ○ /about
+├ ○ /auth/forget-password
+├ ○ /auth/login
+├ ○ /auth/register
+├ ○ /contact
+├ ○ /global
+├ ○ /global/business-units
+├ ○ /global/business-units/new
+├ ○ /global/dashboard
+├ ○ /global/outlets/new
+├ ○ /global/platform-settings
+├ ○ /global/risk
+├ ○ /global/risk/fraud
+├ ○ /global/support
+├ ○ /global/support/tickets
+├ ○ /global/system
+├ ○ /global/system/api-keys
+├ ○ /global/system/audit-logs
+├ ○ /global/system/backups
+├ ○ /global/system/data-retention
+├ ○ /global/system/languages
+├ ○ /global/system/notifications
+├ ○ /global/user-management
+├ ○ /global/user-management/business-roles
+├ ○ /global/user-management/business-users
+├ ○ /global/user-management/business-users/add
+├ ○ /global/user-management/platform-roles
+├ ○ /global/user-management/platform-users
+├ ○ /global/user-management/platform-users/add
+├ ƒ /global/user-management/users/[id]/edit
+├ ○ /marketplace/catalog-linking
+├ ○ /marketplace/commission-rules
+├ ○ /marketplace/order-settlement
+├ ○ /marketplace/product-moderation
+├ ○ /marketplace/returns-disputes
+├ ○ /marketplace/seller-kyc
+├ ○ /marketplace/seller-onboarding
+├ ○ /marketplace/seller-orders
+├ ○ /marketplace/seller-performance
+├ ○ /marketplace/seller-wallet
+├ ƒ /shop/[businessUnitId]
+└ ƒ /shop/[businessUnitId]/[...slug]
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

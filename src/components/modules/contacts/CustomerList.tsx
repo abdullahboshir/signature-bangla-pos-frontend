@@ -31,6 +31,7 @@ import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitA
 import { useParams } from "next/navigation"
 import { usePermissions } from "@/hooks/usePermissions"
 import { PERMISSION_KEYS } from "@/config/permission-keys"
+import { CUSTOMER_STATUS, CUSTOMER_STATUS_OPTIONS } from "@/constant/customer.constant";
 
 export const CustomerList = () => {
     // Auth & Context
@@ -236,11 +237,8 @@ export const CustomerList = () => {
             name: "status",
             label: "Status",
             type: "select",
-            options: [
-                { label: "Active", value: "active" },
-                { label: "Inactive", value: "inactive" }
-            ],
-            defaultValue: "active"
+            options: CUSTOMER_STATUS_OPTIONS,
+            defaultValue: CUSTOMER_STATUS.ACTIVE
         }
     ];
 
@@ -284,7 +282,7 @@ export const CustomerList = () => {
             accessorKey: "status",
             header: "Status",
             cell: ({ row }) => (
-                <Badge variant={row.original.status === "active" ? "default" : "secondary"}>
+                <Badge variant={row.original.status === CUSTOMER_STATUS.ACTIVE ? "default" : "secondary"}>
                     {row.original.status}
                 </Badge>
             ),

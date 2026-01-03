@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import PermissionGroupManagement from './PermissionGroupManagement';
+import { ModuleMultiSelect } from "@/components/forms/module-multi-select";
 import {
     RESOURCE_KEYS,
     PERMISSION_KEYS
@@ -32,6 +33,13 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import Swal from 'sweetalert2';
 import {
     useGetRolesQuery,
@@ -39,9 +47,11 @@ import {
     useGetPermissionGroupsQuery,
     useCreateRoleMutation,
     useUpdateRoleMutation,
-    useDeleteRoleMutation
+    useDeleteRoleMutation,
+    useGetPermissionResourcesQuery,
 } from "@/redux/api/iam/roleApi";
 import { usePermissions } from "@/hooks/usePermissions";
+import { RoleScope, RoleScopeType } from '@/constant/role';
 
 // Exported Types
 export interface Permission {
@@ -80,6 +90,8 @@ export interface Role {
     usersCount?: number;
     isSystemRole?: boolean; // If true, maybe uneditable
     isDefault?: boolean; // Only one per hierarchy level
+    roleScope?: RoleScopeType;
+    associatedModules?: string[]; // New module field
 }
 
 // Helper to map resource to icon
@@ -124,7 +136,7 @@ const getResourceIcon = (resource: string) => {
 
         // System
         case RESOURCE_KEYS.SYSTEM:
-        case RESOURCE_KEYS.SYSTEM: // Was SETTINGS
+            // Was SETTINGS
             return Settings;
 
         // Inventory
@@ -158,7 +170,7 @@ const getResourceIcon = (resource: string) => {
         case RESOURCE_KEYS.LOYALTY:
         case RESOURCE_KEYS.PIXEL:
         case RESOURCE_KEYS.AUDIENCE:
-        case RESOURCE_KEYS.AD_CAMPAIGN: // Was MARKETING
+            // Was MARKETING
             return Megaphone;
 
         // Content
@@ -200,7 +212,7 @@ const getResourceIcon = (resource: string) => {
             return Shield;
 
         // Global/Common
-        case RESOURCE_KEYS.SYSTEM: // Was GLOBAL
+        case RESOURCE_KEYS.GLOBAL: // Was GLOBAL
             return Globe;
 
         default:
@@ -214,19 +226,25 @@ interface RolePermissionManagementProps {
 
 export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionManagementProps) {
     const { hasPermission } = usePermissions();
-    // RTK Query Hooks
+
+    // --- RTK Query Hooks with Efficient Loading ---
     const { data: rolesData, isLoading: isRolesLoading, error: rolesError } = useGetRolesQuery({ limit: 1000 });
-    const { data: permissionsData, isLoading: isPermsLoading, error: permsError } = useGetPermissionsQuery({ limit: 5000 });
+    const { data: resourceList, isLoading: isResourcesLoading } = useGetPermissionResourcesQuery(undefined);
+
+    // State for Resource Selection & Searching
+    const [selectedResource, setSelectedResource] = useState<string | null>(null);
+    const [permissionSearchQuery, setPermissionSearchQuery] = useState('');
+
+    // Fetch Permissions ON-DEMAND based on selected resource OR search
+    const { data: permissionsData, isLoading: isPermsLoading, isFetching: isPermsFetching } = useGetPermissionsQuery({
+        limit: 100, // Load enough for one resource
+        resource: permissionSearchQuery ? undefined : selectedResource, // If searching, ignore resource filter (search global)
+        search: permissionSearchQuery || undefined
+    }, {
+        skip: !selectedResource && !permissionSearchQuery // Don't fetch if nothing selected and no search
+    });
+
     const { data: groupsData, error: groupsError } = useGetPermissionGroupsQuery({ limit: 1000 });
-
-    console.log("DEBUG: Roles Data:", rolesData);
-    console.log("DEBUG: Roles Error:", rolesError);
-    console.log("DEBUG: Roles Loading:", isRolesLoading);
-
-    console.log("DEBUG: Perms Data:", permissionsData);
-    console.log("DEBUG: Perms Error:", permsError);
-
-    console.log("DEBUG: Groups Data:", groupsData);
 
     // Mutations
     const [createRole] = useCreateRoleMutation();
@@ -239,6 +257,13 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
     const [searchQuery, setSearchQuery] = useState('');
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
+    // Initial Resource Selection
+    useEffect(() => {
+        if (resourceList && resourceList.length > 0 && !selectedResource) {
+            setSelectedResource(resourceList[0]);
+        }
+    }, [resourceList]);
+
     // Create Role State
     const [newRoleName, setNewRoleName] = useState('');
     const [newRoleDesc, setNewRoleDesc] = useState('');
@@ -248,7 +273,9 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
     const [viewingGroup, setViewingGroup] = useState<PermissionGroup | null>(null);
     const [groupSearchQuery, setGroupSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState("direct");
-    const [permissionSearchQuery, setPermissionSearchQuery] = useState('');
+    const [newRoleScope, setNewRoleScope] = useState<RoleScopeType>(RoleScope.BUSINESS);
+    const [newAssociatedModules, setNewAssociatedModules] = useState<string[]>([]);
+
 
     // Sync RTK Data to Local State
     useEffect(() => {
@@ -287,7 +314,9 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                     hierarchyLevel: role.hierarchyLevel || 1, // Default to 1 if missing
                     maxDataAccess: role.maxDataAccess || { products: 0, orders: 0, customers: 0 },
                     isSystemRole: role.isSystemRole || (role as any).isSystem || false,
-                    isDefault: role.isDefault || false
+                    isDefault: role.isDefault || false,
+                    roleScope: role.roleScope || RoleScope.BUSINESS,
+                    associatedModules: role.associatedModules || [],
                 };
             });
 
@@ -407,7 +436,9 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                 permissionGroups: [],
                 hierarchyLevel: newHierarchy,
                 maxDataAccess: newDataAccess,
-                isDefault: newIsDefault
+                isDefault: newIsDefault,
+                roleScope: newRoleScope,
+                associatedModules: newAssociatedModules
             };
 
             const response: any = await createRole(payload).unwrap();
@@ -422,7 +453,10 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
             setNewRoleDesc('');
             setNewIsDefault(false);
             setNewHierarchy(1);
+            setNewHierarchy(1);
             setNewDataAccess({ products: 0, orders: 0, customers: 0 });
+            setNewRoleScope(RoleScope.BUSINESS);
+            setNewAssociatedModules([]);
 
             Swal.fire({
                 icon: 'success',
@@ -581,6 +615,7 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
     const [editingIsDefault, setEditingIsDefault] = useState(false);
     const [editingHierarchy, setEditingHierarchy] = useState(1);
     const [editingDataAccess, setEditingDataAccess] = useState({ products: 0, orders: 0, customers: 0 });
+    const [editingAssociatedModules, setEditingAssociatedModules] = useState<string[]>([]);
 
     const handleEditRole = () => {
         if (!selectedRole || isSuperAdmin(selectedRole) || !hasPermission(PERMISSION_KEYS.ROLE.UPDATE)) return;
@@ -593,6 +628,7 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
             orders: selectedRole.maxDataAccess?.orders ?? 0,
             customers: selectedRole.maxDataAccess?.customers ?? 0
         });
+        setEditingAssociatedModules(selectedRole.associatedModules || []);
         setIsEditDialogOpen(true);
     };
 
@@ -605,7 +641,8 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                 description: editingRoleDesc,
                 hierarchyLevel: editingHierarchy,
                 maxDataAccess: editingDataAccess,
-                isDefault: editingIsDefault
+                isDefault: editingIsDefault,
+                associatedModules: editingAssociatedModules
             }).unwrap();
 
             setIsEditDialogOpen(false);
@@ -674,11 +711,11 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
     }
 
     return (
-        <div className="space-y-6 h-[calc(100vh-80px)] flex flex-col">
+        <div className="space-y-2 h-[calc(100vh-80px)] flex flex-col">
             <Tabs defaultValue="roles" className="flex-1 flex flex-col h-full overflow-hidden">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
                     <div className="flex items-center gap-4">
-                        <h2 className="text-2xl font-bold tracking-tight">Roles & Permissions</h2>
+                        <h2 className="text-xl font-bold tracking-tight">Roles & Permissions</h2>
                     </div>
 
                     <div className="flex-1 flex justify-center">
@@ -718,16 +755,29 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                             />
                                         </div>
                                         <div className="grid gap-2">
-                                            <Label htmlFor="hierarchy">Hierarchy Level (1-100)</Label>
-                                            <Input
-                                                id="hierarchy"
-                                                type="number"
-                                                min={1}
-                                                max={100}
-                                                value={newHierarchy}
-                                                onChange={(e) => setNewHierarchy(parseInt(e.target.value))}
-                                            />
+                                            <Label htmlFor="roleScope">Role Scope</Label>
+                                            <Select value={newRoleScope} onValueChange={(v: RoleScopeType) => setNewRoleScope(v)}>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select Scope" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value={RoleScope.BUSINESS}>Business (Standard)</SelectItem>
+                                                    <SelectItem value={RoleScope.GLOBAL}>Global (Platform)</SelectItem>
+                                                    <SelectItem value={RoleScope.OUTLET}>Outlet (Branch)</SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                         </div>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="hierarchy">Hierarchy Level (1-100)</Label>
+                                        <Input
+                                            id="hierarchy"
+                                            type="number"
+                                            min={1}
+                                            max={100}
+                                            value={newHierarchy}
+                                            onChange={(e) => setNewHierarchy(parseInt(e.target.value))}
+                                        />
                                     </div>
 
                                     <div className="border p-3 rounded-md space-y-2">
@@ -766,6 +816,18 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                         </div>
                                     </div>
 
+
+
+                                    {/* Associated Modules */}
+                                    <div className="grid gap-2">
+                                        <Label>Associated Modules (Optional)</Label>
+                                        <ModuleMultiSelect
+                                            value={newAssociatedModules}
+                                            onChange={setNewAssociatedModules}
+                                            placeholder="Select modules for this role..."
+                                        />
+                                    </div>
+
                                     <div className="flex items-center space-x-2">
                                         <Checkbox id="isDefault" checked={newIsDefault} onCheckedChange={(c: any) => setNewIsDefault(!!c)} />
                                         <div className="grid gap-1.5 leading-none">
@@ -796,7 +858,7 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                             </DialogContent>
                         </Dialog>
                     </div>
-                </div>
+                </div >
 
                 <TabsContent value="groups" className="flex-1 overflow-auto p-1">
                     <PermissionGroupManagement />
@@ -825,6 +887,14 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                             disabled={isSystemRole(selectedRole)}
                                         />
                                         {isSystemRole(selectedRole) && <p className="text-[10px] text-orange-500">System roles cannot be renamed.</p>}
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label>Role Scope</Label>
+                                        <Input
+                                            value={selectedRole?.roleScope || RoleScope.BUSINESS}
+                                            disabled={true}
+                                            className="bg-muted text-muted-foreground"
+                                        />
                                     </div>
                                     <div className="grid gap-2">
                                         <Label htmlFor="edit-hierarchy">Hierarchy Level</Label>
@@ -875,6 +945,15 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                     </div>
                                 </div>
 
+                                <div className="grid gap-2">
+                                    <Label>Associated Modules</Label>
+                                    <ModuleMultiSelect
+                                        value={editingAssociatedModules}
+                                        onChange={setEditingAssociatedModules}
+                                        disabled={isSystemRole(selectedRole)}
+                                    />
+                                </div>
+
                                 <div className="flex items-center space-x-2">
                                     <Checkbox id="edit-isDefault" checked={editingIsDefault} onCheckedChange={(c: any) => setEditingIsDefault(!!c)} />
                                     <div className="grid gap-1.5 leading-none">
@@ -902,12 +981,12 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                         </DialogContent>
                     </Dialog>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 overflow-hidden">
-                        {/* Left Column: Roles List */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 overflow-hidden">
+
                         <Card className="lg:col-span-3 flex flex-col h-full overflow-hidden">
-                            <CardHeader className="pb-3 border-b">
-                                <CardTitle>Roles</CardTitle>
-                                <div className="pt-2 relative">
+                            <CardHeader className="px-4 py-0 border-b">
+                                <CardTitle className="text-base">Roles</CardTitle>
+                                <div className="relative">
                                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                                     <Input
                                         placeholder="Search roles..."
@@ -943,6 +1022,8 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                                                 <div className="flex items-center justify-between mb-1">
                                                                     <div className="flex items-center gap-2 overflow-hidden">
                                                                         <span className="font-medium truncate">{role.name}</span>
+                                                                        {role.roleScope === RoleScope.GLOBAL && <Badge className="text-[10px] h-5 bg-purple-600">Global</Badge>}
+                                                                        {role.roleScope === RoleScope.OUTLET && <Badge className="text-[10px] h-5 bg-orange-500">Outlet</Badge>}
                                                                         {role.id === 'super-admin' ?
                                                                             <Badge className="text-[10px] h-5 bg-purple-600">Super Admin</Badge>
                                                                             : isSystemRole(role) ?
@@ -1012,7 +1093,7 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                     const selectedModulesCount = isSuper ? totalModules : new Set(selectedPermissionObjects.map(p => p.resource)).size;
 
                                     return (
-                                        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b pb-4 bg-muted/20 gap-4 flex-none">
+                                        <CardHeader className="flex flex-col sm:flex-row items-center justify-between border-b px-4 py-2 bg-muted/20 gap-2 flex-none">
                                             <div>
                                                 <CardTitle className="flex items-center gap-2">
                                                     <Shield className="h-4 w-4 text-primary" />
@@ -1062,95 +1143,146 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                     );
                                 })()}
 
-                                <TabsContent value="direct" className="flex-1 overflow-auto p-0 m-0 border-0 bg-muted/10">
-                                    <div className="h-full">
-                                        <div className="p-6 space-y-8">
-                                            {/* Granular Permissions */}
-                                            {(() => {
-                                                const entries = Object.entries(groupedPermissions);
-                                                console.log("Direct Permissions Debug:", {
-                                                    entriesCount: entries.length,
-                                                    totalPerms: permissions.length,
-                                                    sample: entries.slice(0, 2)
-                                                });
-                                                return entries.map(([resource, perms]) => {
-                                                    const ModuleIcon = getResourceIcon(resource);
-                                                    // Use _id for checking selection
-                                                    // For Super Admin, EVERYTHING is selected
-                                                    const isSuper = isSuperAdmin(selectedRole);
-                                                    const allSelected = isSuper || perms.every(p => selectedRole?.permissions?.includes(p._id));
+                                <TabsContent value="direct" className="flex-1 overflow-hidden p-0 m-0 border-0 bg-muted/10 flex">
+                                    {/* --- 1. Resource Sidebar (Modules) --- */}
+                                    <div className="w-48 sm:w-52 border-r bg-background flex flex-col h-full overflow-hidden">
+                                        <div className="p-3 border-b font-medium text-xs text-muted-foreground bg-muted/10">
+                                            Modules ({resourceList?.length || 0})
+                                        </div>
+                                        <ScrollArea className="flex-1">
+                                            <div className="p-2 space-y-1">
+                                                {isLoading && !resourceList ? (
+                                                    <div className="p-4 text-center text-xs text-muted-foreground">Loading modules...</div>
+                                                ) : (
+                                                    resourceList?.map((resource: string) => {
+                                                        const ModuleIcon = getResourceIcon(resource);
+                                                        const isActive = selectedResource === resource;
+                                                        return (
+                                                            <button
+                                                                key={resource}
+                                                                onClick={() => setSelectedResource(resource)}
+                                                                className={`
+                                                                    w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors text-left
+                                                                    ${isActive
+                                                                        ? 'bg-primary/10 text-primary font-medium'
+                                                                        : 'hover:bg-muted text-muted-foreground hover:text-foreground'}
+                                                                `}
+                                                            >
+                                                                <ModuleIcon className={`h-4 w-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                                                                <span className="truncate capitalize">{resource}</span>
+                                                            </button>
+                                                        )
+                                                    })
+                                                )}
+                                            </div>
+                                        </ScrollArea>
+                                    </div>
 
-                                                    return (
-                                                        <div key={resource} className="space-y-3">
-                                                            <div className="flex items-center justify-between pb-2 border-b">
-                                                                <h3 className="font-medium flex items-center gap-2 text-foreground capitalize">
-                                                                    <div className="p-1 bg-primary/10 rounded">
-                                                                        <ModuleIcon className="h-4 w-4 text-primary" />
+                                    {/* --- 2. Permissions Content (Right Side) --- */}
+                                    <div className="flex-1 flex flex-col h-full overflow-hidden">
+                                        {/* Header for selected module */}
+                                        <div className="px-4 py-2 border-b bg-background flex items-center justify-between shadow-sm z-10">
+                                            <div className="flex items-center gap-2">
+                                                <div className="p-1.5 bg-primary/10 rounded-md">
+                                                    {/* Dynamically get icon for selected resource */}
+                                                    {(() => {
+                                                        const Icon = getResourceIcon(selectedResource || '');
+                                                        return <Icon className="h-5 w-5 text-primary" />;
+                                                    })()}
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-semibold capitalize text-lg leading-none">
+                                                        {permissionSearchQuery ? `Search Results: "${permissionSearchQuery}"` : selectedResource}
+                                                    </h3>
+                                                    <p className="text-xs text-muted-foreground mt-1">
+                                                        {isPermsLoading
+                                                            ? 'Loading permissions...'
+                                                            : `${permissions?.length || 0} permissions available`
+                                                        }
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {!isSuperAdmin(selectedRole) && permissions.length > 0 && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleSelectAll(permissions)}
+                                                    className="h-8"
+                                                >
+                                                    {permissions.every(p => selectedRole?.permissions?.includes(p._id))
+                                                        ? 'Deselect Module'
+                                                        : 'Select Module'
+                                                    }
+                                                </Button>
+                                            )}
+                                        </div>
+
+                                        {/* Permissions Grid */}
+                                        <div className="flex-1 overflow-auto p-6 bg-muted/5">
+                                            {isPermsLoading || isPermsFetching ? (
+                                                <div className="flex h-full items-center justify-center">
+                                                    <Loader2 className="h-8 w-8 animate-spin text-primary/50" />
+                                                </div>
+                                            ) : (
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                                                    {permissions.length === 0 ? (
+                                                        <div className="col-span-full py-10 text-center text-muted-foreground">
+                                                            No permissions found for this module.
+                                                        </div>
+                                                    ) : (
+                                                        permissions.map((perm) => {
+                                                            const isSelected = isSuperAdmin(selectedRole) || selectedRole?.permissions?.includes(perm._id);
+                                                            const isSuper = isSuperAdmin(selectedRole);
+
+                                                            return (
+                                                                <div
+                                                                    key={perm._id}
+                                                                    onClick={() => !isSuper && handleTogglePermission(perm._id)}
+                                                                    className={`
+                                                                        flex items-start space-x-3 p-3 rounded-xl border text-sm transition-all duration-200
+                                                                        ${isSelected
+                                                                            ? 'bg-card border-primary/40 shadow-sm'
+                                                                            : 'bg-card/50 border-transparent hover:border-border hover:bg-card'}
+                                                                        ${isSuper ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'}
+                                                                    `}
+                                                                >
+                                                                    <div className={`
+                                                                        mt-0.5 h-5 w-5 rounded-md border flex items-center justify-center transition-all duration-200 shrink-0
+                                                                        ${isSelected ? 'bg-primary border-primary text-primary-foreground shadow-sm' : 'border-muted-foreground/30 bg-background'}
+                                                                    `}>
+                                                                        {isSelected && <Check className="h-3.5 w-3.5" />}
                                                                     </div>
-                                                                    {resource} Module
-                                                                </h3>
-                                                                {!isSuper && (
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        className="h-6 text-xs text-muted-foreground hover:text-primary"
-                                                                        onClick={() => handleSelectAll(perms)}
-                                                                    >
-                                                                        {allSelected ? 'Deselect All' : 'Select All'}
-                                                                    </Button>
-                                                                )}
-                                                            </div>
-                                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                                {perms.map((perm) => {
-                                                                    const isSelected = isSuper || selectedRole?.permissions?.includes(perm._id);
-                                                                    return (
-                                                                        <div
-                                                                            key={perm._id}
-                                                                            onClick={() => !isSuper && handleTogglePermission(perm._id)}
-                                                                            className={`
-                                                                            flex items-center space-x-3 p-3 rounded-md border text-sm transition-all
-                                                                            ${isSelected
-                                                                                    ? 'bg-primary/5 border-primary/50'
-                                                                                    : 'bg-background hover:border-primary/30'}
-                                                                            ${isSuper ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'}
-                                                                        `}
-                                                                        >
-                                                                            <div className={`
-                                                                            h-4 w-4 rounded border flex items-center justify-center transition-colors
-                                                                            ${isSelected ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground/30'}
-                                                                        `}>
-                                                                                {isSelected && <Check className="h-3 w-3" />}
-                                                                            </div>
-                                                                            <div className="flex flex-col">
-                                                                                <span className={isSelected ? 'font-medium text-foreground' : 'text-muted-foreground'} >
-                                                                                    {perm.action.replace(/_/g, ' ').toUpperCase()}
-                                                                                </span>
-                                                                                <span className="text-[10px] text-muted-foreground/70">{perm.description}</span>
-                                                                                {/* Dynamic Scope Badge */}
-                                                                                {(perm.scope || perm.operator) && (
-                                                                                    <div className="flex flex-wrap gap-1 mt-1">
-                                                                                        {perm.scope && (
-                                                                                            <Badge variant="outline" className="text-[10px] h-4 py-0 px-1 border-blue-200 text-blue-600">
-                                                                                                {perm.scope}
-                                                                                            </Badge>
-                                                                                        )}
-                                                                                        {perm.operator && (
-                                                                                            <Badge variant="outline" className="text-[10px] h-4 py-0 px-1 border-orange-200 text-orange-600">
-                                                                                                {perm.operator}
-                                                                                            </Badge>
-                                                                                        )}
-                                                                                    </div>
+                                                                    <div className="flex flex-col gap-0.5">
+                                                                        <span className={`font-medium ${isSelected ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                                                            {perm.action.replace(/_/g, ' ').toUpperCase()}
+                                                                        </span>
+                                                                        <span className="text-xs text-muted-foreground/70 leading-relaxed line-clamp-2">
+                                                                            {perm.description}
+                                                                        </span>
+
+                                                                        {/* Tags */}
+                                                                        {(perm.scope || perm.operator) && (
+                                                                            <div className="flex flex-wrap gap-1.5 mt-2">
+                                                                                {perm.scope && (
+                                                                                    <Badge variant="secondary" className="text-[10px] h-5 py-0 px-1.5 font-normal bg-blue-50 text-blue-700 hover:bg-blue-100">
+                                                                                        {perm.scope}
+                                                                                    </Badge>
+                                                                                )}
+                                                                                {perm.operator && (
+                                                                                    <Badge variant="secondary" className="text-[10px] h-5 py-0 px-1.5 font-normal bg-orange-50 text-orange-700 hover:bg-orange-100">
+                                                                                        {perm.operator}
+                                                                                    </Badge>
                                                                                 )}
                                                                             </div>
-                                                                        </div>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                });
-                                            })()}
-
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </TabsContent>
@@ -1326,9 +1458,9 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                             </Tabs>
                         </Card>
                     </div>
-                </TabsContent>
-            </Tabs>
-        </div>
+                </TabsContent >
+            </Tabs >
+        </div >
     );
 }
 

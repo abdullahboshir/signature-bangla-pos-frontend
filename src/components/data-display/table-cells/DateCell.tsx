@@ -77,6 +77,7 @@ const timezoneOffsets: Record<TimezoneType, number> = {
   'local': 0, // Will be handled dynamically
   'utc': 0,
   'asia/dhaka': 360, // UTC+6 for Bangladesh
+  'custom': 0 // Handled by custom logic or default
 };
 
 export function DateCell({

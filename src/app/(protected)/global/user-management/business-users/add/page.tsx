@@ -43,9 +43,10 @@ export default function AddBusinessUserPage() {
             <UserForm
                 mode="create"
                 onSubmit={handleSubmit}
-                isSubmitting={isLoading}
                 onCancel={() => router.back()}
                 apiError={userError}
+                isSubmitting={isLoading}
+                targetScope="BUSINESS"
             />
         </div>
     )

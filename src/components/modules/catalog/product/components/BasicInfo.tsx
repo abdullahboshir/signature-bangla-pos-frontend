@@ -13,9 +13,13 @@ interface BasicInfoProps {
     brands: any[];
     level1?: string;
     setLevel1?: (val: string) => void;
+    level2?: string;
+    setLevel2?: (val: string) => void;
+    level3?: string;
+    setLevel3?: (val: string) => void;
 }
 
-export const BasicInfo = ({ form, categories, brands, setLevel1 }: BasicInfoProps) => {
+export const BasicInfo = ({ form, categories, brands, setLevel1, setLevel2, setLevel3 }: BasicInfoProps) => {
     // Watch category fields to drive the hierarchy options dynamically
     const watchedL1 = form.watch("primaryCategory");
     const getSafeId = (item: any) => {

@@ -36,6 +36,7 @@ import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitA
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSION_KEYS } from "@/config/permission-keys";
 import { cn } from "@/lib/utils";
+import { ModuleMultiSelect } from "@/components/forms/module-multi-select";
 
 // Optimized Tree Transformation
 const buildCategoryTree = (categories: any[]) => {
@@ -267,6 +268,19 @@ export const CategoryList = () => {
             });
         }
 
+        fields.push({
+            name: "availableModules",
+            label: "Available Modules",
+            type: "custom",
+            render: () => (
+                <ModuleMultiSelect
+                    name="availableModules"
+                    label="Available Modules"
+                    placeholder="Select available modules..."
+                />
+            )
+        });
+
         return fields;
     };
 
@@ -284,6 +298,7 @@ export const CategoryList = () => {
                 isActive: editingCategory.isActive ? "true" : "false",
                 image: editingCategory.image,
                 parentId: (editingCategory.parentId as any)?._id || editingCategory.parentId || "null",
+                availableModules: (editingCategory as any).availableModules || [],
                 businessUnit: (editingCategory.businessUnit as any)?.id || (editingCategory.businessUnit as any)?._id || editingCategory.businessUnit || defaultBUValue
             };
         }
@@ -291,6 +306,7 @@ export const CategoryList = () => {
         return {
             isActive: "true",
             parentId: "null",
+            availableModules: [],
             businessUnit: isSuperAdmin ? defaultBUValue : paramBusinessUnit
         };
     };

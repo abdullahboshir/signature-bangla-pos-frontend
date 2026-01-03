@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProductFormValues } from "../product.schema";
+import { ModuleMultiSelect } from "@/components/forms/module-multi-select";
 
 interface OrganizationSectionProps {
     form: UseFormReturn<ProductFormValues>;
@@ -100,6 +101,14 @@ export const OrganizationSection = ({ form, units, businessUnits, isLocked }: Or
                                 <FormMessage />
                             </FormItem>
                         )}
+                    />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <ModuleMultiSelect
+                        name="availableModules"
+                        label="Available Modules"
+                        placeholder="Select where this product is available..."
                     />
                 </div>
 

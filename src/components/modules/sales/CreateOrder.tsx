@@ -41,6 +41,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi";
 import { useGetOutletsQuery } from "@/redux/api/organization/outletApi";
 import { usePermissions } from "@/hooks/usePermissions";
+import { PAYMENT_METHOD, PAYMENT_METHOD_OPTIONS } from "@/constant/order.constant";
 
 // Types for POS
 interface Product {
@@ -541,11 +542,11 @@ export default function CreateOrder() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="cash">Cash</SelectItem>
-                                        <SelectItem value="card">Card</SelectItem>
-                                        <SelectItem value="mobile_banking">Mobile Banking</SelectItem>
-                                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                                        <SelectItem value="credit">Credit</SelectItem>
+                                        {PAYMENT_METHOD_OPTIONS.map((option) => (
+                                            <SelectItem key={option.value} value={option.value}>
+                                                {option.label}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>

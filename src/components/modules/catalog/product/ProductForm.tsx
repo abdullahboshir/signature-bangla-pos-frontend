@@ -51,6 +51,12 @@ import { Label } from "@/components/ui/label";
 import { defaultProductValues, productSchema, ProductFormValues } from "./product.schema";
 import { VariantGenerator } from "./components/VariantGenerator";
 import { RelatedProducts } from "./components/RelatedProducts";
+import {
+    PRODUCT_STATUS,
+    PRODUCT_STATUS_OPTIONS,
+    WEIGHT_UNIT_OPTIONS,
+    DIMENSION_UNIT_OPTIONS
+} from "@/constant/product.constant";
 
 
 
@@ -392,13 +398,14 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Status</FormLabel>
-                                                <Select onValueChange={field.onChange} value={field.value || "draft"}>
+                                                <Select onValueChange={field.onChange} value={field.value || PRODUCT_STATUS.DRAFT}>
                                                     <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                                     <SelectContent>
-                                                        <SelectItem value="draft">Draft</SelectItem>
-                                                        <SelectItem value="published">Published</SelectItem>
-                                                        <SelectItem value="suspended">Suspended</SelectItem>
-                                                        <SelectItem value="archived">Archived</SelectItem>
+                                                        {PRODUCT_STATUS_OPTIONS.map((status) => (
+                                                            <SelectItem key={status.value} value={status.value}>
+                                                                {status.label}
+                                                            </SelectItem>
+                                                        ))}
                                                     </SelectContent>
                                                 </Select>
                                                 <FormMessage />
@@ -1017,7 +1024,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
 
                                                                                             for (let i = 0; i < files.length; i++) {
                                                                                                 const formData = new FormData();
-                                                                                                const res = await uploadImage(formData).unwrap();
+                                                                                                const res = await uploadFile(formData).unwrap();
                                                                                                 // uploadApi transforms response to return url string or data object
                                                                                                 if (typeof res === 'string') {
                                                                                                     newUrls.push(res);
@@ -1131,6 +1138,86 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                             <Card>
                                 <CardHeader><CardTitle>Shipping</CardTitle></CardHeader>
                                 <CardContent>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="shipping.physicalProperties.weight"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Weight</FormLabel>
+                                                    <FormControl><Input type="number" step="0.01" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="shipping.physicalProperties.weightUnit"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Weight Unit</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value}>
+                                                        <FormControl><SelectTrigger><SelectValue placeholder="Unit" /></SelectTrigger></FormControl>
+                                                        <SelectContent>
+                                                            {WEIGHT_UNIT_OPTIONS.map((unit) => (
+                                                                <SelectItem key={unit.value} value={unit.value}>{unit.label}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-4 gap-2 mt-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="shipping.physicalProperties.dimensions.height"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Height</FormLabel>
+                                                    <FormControl><Input type="number" step="0.01" placeholder="H" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="shipping.physicalProperties.dimensions.width"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Width</FormLabel>
+                                                    <FormControl><Input type="number" step="0.01" placeholder="W" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="shipping.physicalProperties.dimensions.length"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Length</FormLabel>
+                                                    <FormControl><Input type="number" step="0.01" placeholder="L" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="shipping.physicalProperties.dimensions.unit"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Unit</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value}>
+                                                        <FormControl><SelectTrigger><SelectValue placeholder="Unit" /></SelectTrigger></FormControl>
+                                                        <SelectContent>
+                                                            {DIMENSION_UNIT_OPTIONS.map((unit) => (
+                                                                <SelectItem key={unit.value} value={unit.value}>{unit.label}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
                                     <FormField
                                         control={form.control}
                                         name="shipping.delivery.estimatedDelivery"

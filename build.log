@@ -1,0 +1,25 @@
+
+> signature-bangla-pos-frontend@0.1.0 build
+> next build
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+   ▲ Next.js 16.0.3 (Turbopack)
+
+ ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+   Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ✓ Compiled successfully in 12.2s
+   Running TypeScript ...
+Failed to compile.
+
+./src/components/data-display/tables/TableConfig.tsx:154:3
+Type error: Object literal may only specify known properties, and 'default' does not exist in type 'Record<DataType, TableConfig>'.
+
+[0m [90m 152 |[39m   }[33m,[39m
+ [90m 153 |[39m
+[31m[1m>[22m[39m[90m 154 |[39m   [36mdefault[39m[33m:[39m {
+ [90m     |[39m   [31m[1m^[22m[39m
+ [90m 155 |[39m     dataType[33m:[39m [32m'user'[39m[33m,[39m
+ [90m 156 |[39m     columns[33m:[39m [
+ [90m 157 |[39m       { id[33m:[39m [32m'id'[39m[33m,[39m header[33m:[39m [32m'ID'[39m[33m,[39m accessorKey[33m:[39m [32m'id'[39m[33m,[39m sortable[33m:[39m [36mtrue[39m }[33m,[39m[0m
+Next.js build worker exited with code: 1 and signal: null

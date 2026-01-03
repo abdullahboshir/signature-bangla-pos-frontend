@@ -34,6 +34,14 @@ export enum tagTypes {
   blacklist = "blacklist",
   riskRule = "riskRule",
   courier = "courier",
+  expense = "expense",
+  expenseCategory = "expenseCategory",
+  driver = "driver",
+  vehicle = "vehicle",
+  SalesReport = "SalesReport",
+  PurchaseReport = "PurchaseReport",
+  StockReport = "StockReport",
+  ProfitLossReport = "ProfitLossReport",
 }
 
 export const tagTypesList = Object.values(tagTypes);

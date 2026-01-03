@@ -33,7 +33,7 @@ export default function AddUserPage() {
   const roles = Array.isArray(rolesData) ? rolesData : []
   // Handle BU data safely
   const businessUnits = Array.isArray(businessUnitsData) ? businessUnitsData :
-    (businessUnitsData?.data || businessUnitsData || []);
+    ((businessUnitsData as any)?.data || businessUnitsData || []);
 
 
   const [formData, setFormData] = useState({

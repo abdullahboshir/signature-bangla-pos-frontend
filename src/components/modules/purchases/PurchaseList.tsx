@@ -40,12 +40,12 @@ import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSION_KEYS } from "@/config/permission-keys";
 
+import { PURCHASE_STATUS, PURCHASE_STATUS_OPTIONS, PURCHASE_PAYMENT_STATUS, PURCHASE_PAYMENT_METHOD_OPTIONS } from "@/constant/purchase.constant";
+
 const statusColors = {
-    completed: "bg-green-500/10 text-green-500 border-green-500/20",
-    pending: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
-    processing: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-    received: "bg-green-500/10 text-green-500 border-green-500/20",
-    ordered: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+    [PURCHASE_STATUS.PENDING]: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+    [PURCHASE_STATUS.ORDERED]: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+    [PURCHASE_STATUS.RECEIVED]: "bg-green-500/10 text-green-500 border-green-500/20",
 } as const;
 
 export const PurchaseList = () => {
@@ -175,7 +175,7 @@ export const PurchaseList = () => {
                 body: {
                     paidAmount: newPaidTotal,
                     // If fully paid, we can optionally set status, but backend should ideally handle 'paymentStatus' derived field
-                    paymentStatus: newPaidTotal >= total ? 'paid' : (newPaidTotal > 0 ? 'partial' : 'unpaid'),
+                    paymentStatus: newPaidTotal >= total ? PURCHASE_PAYMENT_STATUS.PAID : (newPaidTotal > 0 ? PURCHASE_PAYMENT_STATUS.PARTIAL : PURCHASE_PAYMENT_STATUS.PENDING),
                     dueAmount: Math.max(0, total - newPaidTotal)
                 }
             }).unwrap();
@@ -317,8 +317,8 @@ export const PurchaseList = () => {
             accessorKey: "paymentStatus",
             header: "Payment",
             cell: ({ row }) => (
-                <Badge variant={row.original.paymentStatus === "paid" ? "default" : "outline"} className="capitalize">
-                    {row.original.paymentStatus || "pending"}
+                <Badge variant={row.original.paymentStatus === PURCHASE_PAYMENT_STATUS.PAID ? "default" : "outline"} className="capitalize">
+                    {row.original.paymentStatus || PURCHASE_PAYMENT_STATUS.PENDING}
                 </Badge>
             ),
         },
@@ -444,9 +444,11 @@ export const PurchaseList = () => {
                                     <SelectValue placeholder="Select status" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="pending">Pending</SelectItem>
-                                    <SelectItem value="ordered">Ordered</SelectItem>
-                                    <SelectItem value="received">Received</SelectItem>
+                                    {PURCHASE_STATUS_OPTIONS.map((option) => (
+                                        <SelectItem key={option.value} value={option.value}>
+                                            {option.label}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>

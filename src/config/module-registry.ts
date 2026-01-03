@@ -78,6 +78,8 @@ export const APP_MODULES: Record<string, AppModule> = {
     resource: RESOURCE_KEYS.COURIER,
     module: "logistics",
     children: [
+      { title: "Drivers", path: "logistics/drivers", resource: RESOURCE_KEYS.DRIVER, action: ACTION_KEYS.MANAGE },
+      { title: "Vehicles", path: "logistics/vehicles", resource: RESOURCE_KEYS.VEHICLE, action: ACTION_KEYS.MANAGE },
       { title: "Couriers", path: "logistics/courier", resource: RESOURCE_KEYS.COURIER, action: ACTION_KEYS.MANAGE },
       { title: "Parcels", path: "logistics/parcel", resource: RESOURCE_KEYS.PARCEL },
       { title: "Reports", path: "reports/logistics", resource: RESOURCE_KEYS.DELIVERY, action: ACTION_KEYS.VIEW },
@@ -471,6 +473,8 @@ export const ROUTE_PATHS = {
   },
   LOGISTICS: {
     ROOT: "logistics",
+    DRIVERS: "logistics/drivers",
+    VEHICLES: "logistics/vehicles",
     COURIER: "logistics/courier",
     PARCEL: "logistics/parcel",
     REPORTS: "logistics/reports",

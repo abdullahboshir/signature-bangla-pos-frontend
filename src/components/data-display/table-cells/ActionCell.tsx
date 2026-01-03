@@ -8,6 +8,7 @@ interface ActionCellProps<T> {
   onView?: (item: T) => void;
   onCopy?: (item: T) => void;
   customActions?: Array<{
+    id: string;
     label: string;
     icon: ReactNode;
     onClick: (item: T) => void;

@@ -29,6 +29,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 
+import { PURCHASE_STATUS, PURCHASE_STATUS_OPTIONS, PURCHASE_PAYMENT_STATUS, PURCHASE_PAYMENT_METHOD_OPTIONS } from "@/constant/purchase.constant";
+
 interface PurchaseFormProps {
     initialValues?: any;
     onSubmit: (values: any) => void;
@@ -49,7 +51,7 @@ export const PurchaseForm = ({
     // Queries
     const form = useForm({
         defaultValues: initialValues || {
-            status: "pending",
+            status: PURCHASE_STATUS.PENDING,
             items: [],
             purchaseDate: new Date().toISOString().split("T")[0],
             discount: 0,
@@ -81,11 +83,11 @@ export const PurchaseForm = ({
             values.dueAmount = Math.max(0, values.grandTotal - (Number(values.paidAmount) || 0));
 
             if (values.paidAmount >= values.grandTotal) {
-                values.paymentStatus = 'paid';
+                values.paymentStatus = PURCHASE_PAYMENT_STATUS.PAID;
             } else if (values.paidAmount > 0) {
-                values.paymentStatus = 'partial';
+                values.paymentStatus = PURCHASE_PAYMENT_STATUS.PARTIAL;
             } else {
-                values.paymentStatus = 'pending';
+                values.paymentStatus = PURCHASE_PAYMENT_STATUS.PENDING;
             }
         }
 
@@ -213,9 +215,11 @@ export const PurchaseForm = ({
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                <SelectItem value="pending">Pending</SelectItem>
-                                                <SelectItem value="ordered">Ordered</SelectItem>
-                                                <SelectItem value="received">Received</SelectItem>
+                                                {PURCHASE_STATUS_OPTIONS.map((option) => (
+                                                    <SelectItem key={option.value} value={option.value}>
+                                                        {option.label}
+                                                    </SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />
@@ -353,12 +357,11 @@ export const PurchaseForm = ({
                                                         </SelectTrigger>
                                                     </FormControl>
                                                     <SelectContent>
-                                                        <SelectItem value="cash">Cash</SelectItem>
-                                                        <SelectItem value="card">Card</SelectItem>
-                                                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                                                        <SelectItem value="mobile_banking">Mobile Banking</SelectItem>
-                                                        <SelectItem value="cheque">Cheque</SelectItem>
-                                                        <SelectItem value="credit">Credit</SelectItem>
+                                                        {PURCHASE_PAYMENT_METHOD_OPTIONS.map((option) => (
+                                                            <SelectItem key={option.value} value={option.value}>
+                                                                {option.label}
+                                                            </SelectItem>
+                                                        ))}
                                                     </SelectContent>
                                                 </Select>
                                                 <FormMessage />

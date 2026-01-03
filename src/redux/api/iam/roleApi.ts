@@ -54,6 +54,13 @@ export const roleApi = baseApi.injectEndpoints({
         providesTags: [tagTypes.permission],
         transformResponse: (response: any) => response.data?.data || response.data || [],
     }),
+    getPermissionResources: build.query({
+      query: () => ({
+        url: "/super-admin/permission/resources",
+        method: "GET",
+      }),
+      transformResponse: (response: any) => response.data?.data || response.data || [],
+    }),
 
     // Permission Groups
     // Permission Groups
@@ -102,6 +109,7 @@ export const {
   useUpdateRoleMutation,
   useDeleteRoleMutation,
   useGetPermissionsQuery,
+  useGetPermissionResourcesQuery,
   useGetPermissionGroupsQuery,
   useCreatePermissionGroupMutation,
   useUpdatePermissionGroupMutation,

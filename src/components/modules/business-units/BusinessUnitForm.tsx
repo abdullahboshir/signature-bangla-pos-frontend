@@ -33,33 +33,15 @@ import { Loader2, Building2, MapPin, Globe, Settings, ShieldCheck, FileText, Sto
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-
-// Constants matching Backend
-const operationalModels = [
-    { value: 'retail', label: 'Retail (Physical/POS)' },
-    { value: 'wholesale', label: 'Wholesale (B2B)' },
-    { value: 'distributor', label: 'Distributor / Logistics' },
-    { value: 'manufacturing', label: 'Manufacturing' },
-    { value: 'service', label: 'Service Based' },
-    { value: 'online_only', label: 'E-commerce / Dark Store' },
-    { value: 'hybrid', label: 'Hybrid (Retail + Online)' },
-    { value: 'marketplace', label: 'Marketplace Platform' }
-] as const;
-
-const industries = [
-    { value: 'fashion', label: 'Fashion & Apparel' },
-    { value: 'electronics', label: 'Electronics & Gadgets' },
-    { value: 'grocery', label: 'Grocery & Supermarket' },
-    { value: 'pharmacy', label: 'Pharmacy & Healthcare' },
-    { value: 'restaurant', label: 'Restaurant & Cafe' },
-    { value: 'beauty', label: 'Beauty & Cosmetics' },
-    { value: 'furniture', label: 'Furniture & Decor' },
-    { value: 'automotive', label: 'Automotive' },
-    { value: 'books_stationery', label: 'Books & Stationery' },
-    { value: 'general', label: 'General / Department Store' },
-    { value: 'other', label: 'Other' }
-] as const;
-
+import { ModuleMultiSelect } from "@/components/forms/module-multi-select";
+import { MODULES } from "@/constant/modules";
+import {
+    BUSINESS_MODEL_OPTIONS,
+    BUSINESS_INDUSTRY_OPTIONS,
+    BUSINESS_MODEL,
+    BUSINESS_INDUSTRY
+} from "@/constant/business-unit.constant";
+// Local constants for currencies and languages
 const currencies = ["BDT", "USD"] as const;
 const webLanguages = ["en", "bn"] as const;
 
@@ -107,6 +89,9 @@ const formSchema = z.object({
     // Policies (Optional)
     returnPolicy: z.string().optional(),
     shippingPolicy: z.string().optional(),
+
+    // Modules
+    activeModules: z.array(z.string()).default([]),
 });
 
 
@@ -123,8 +108,8 @@ export function BusinessUnitForm() {
             name: "",
             id: "",
             slug: "",
-            operationalModel: "retail",
-            industry: "general",
+            operationalModel: BUSINESS_MODEL.RETAIL,
+            industry: BUSINESS_INDUSTRY.GENERAL,
             contactEmail: "",
             contactPhone: "",
             website: "",
@@ -143,6 +128,7 @@ export function BusinessUnitForm() {
             hasShipping: true,
             hasSeo: true,
             hasBundles: true,
+            activeModules: [MODULES.POS, MODULES.ERP], // Default modules
             returnPolicy: "",
             shippingPolicy: "",
         },
@@ -193,6 +179,10 @@ export function BusinessUnitForm() {
                     timezone: values.timezone,
                     inventoryManagement: values.hasInventory
                 },
+                activeModules: Object.values(MODULES).reduce((acc, mod) => {
+                    acc[mod] = values.activeModules.includes(mod);
+                    return acc;
+                }, {} as Record<string, boolean>),
                 features: {
                     hasInventory: values.hasInventory,
                     hasVariants: values.hasVariants,
@@ -268,7 +258,7 @@ export function BusinessUnitForm() {
                                                             </SelectTrigger>
                                                         </FormControl>
                                                         <SelectContent>
-                                                            {operationalModels.map(t => (
+                                                            {BUSINESS_MODEL_OPTIONS.map(t => (
                                                                 <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                                                             ))}
                                                         </SelectContent>
@@ -295,7 +285,7 @@ export function BusinessUnitForm() {
                                                             </SelectTrigger>
                                                         </FormControl>
                                                         <SelectContent>
-                                                            {industries.map(t => (
+                                                            {BUSINESS_INDUSTRY_OPTIONS.map(t => (
                                                                 <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                                                             ))}
                                                         </SelectContent>
@@ -542,8 +532,20 @@ export function BusinessUnitForm() {
                                         />
                                     </div>
                                     <Separator />
-                                    <div>
-                                        <h4 className="mb-4 text-sm font-medium">Enabled Modules</h4>
+                                    <div className="pt-4">
+                                        <div className="mb-6">
+                                            <h4 className="mb-2 text-sm font-medium">Active Modules</h4>
+                                            <ModuleMultiSelect
+                                                name="activeModules"
+                                                label="Select System Modules to Enable"
+                                                placeholder="Select modules..."
+                                            />
+                                            <FormDescription>
+                                                These modules will be active for this business unit.
+                                            </FormDescription>
+                                        </div>
+
+                                        <h4 className="mb-4 text-sm font-medium">Feature Toggles</h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <FormField
                                                 control={form.control}

@@ -44,6 +44,7 @@ import {
 } from "@/redux/api/catalog/productApi";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSION_KEYS } from "@/config/permission-keys";
+import { PRODUCT_STATUS, PRODUCT_STATUS_OPTIONS } from "@/constant/product.constant";
 
 export function ProductList() {
     const router = useRouter();
@@ -123,8 +124,8 @@ export function ProductList() {
         }
 
         if (activeTab === "all") return filtered;
-        if (activeTab === "published") return filtered.filter((p: any) => p.statusInfo?.status === "published");
-        if (activeTab === "draft") return filtered.filter((p: any) => p.statusInfo?.status === "draft");
+        if (activeTab === PRODUCT_STATUS.PUBLISHED) return filtered.filter((p: any) => p.statusInfo?.status === PRODUCT_STATUS.PUBLISHED);
+        if (activeTab === PRODUCT_STATUS.DRAFT) return filtered.filter((p: any) => p.statusInfo?.status === PRODUCT_STATUS.DRAFT);
         if (activeTab === "low_stock") {
             return filtered.filter((p: any) =>
                 (p.inventory?.inventory?.stock || 0) <= (p.inventory?.inventory?.lowStockThreshold || 0)
@@ -156,7 +157,7 @@ export function ProductList() {
             Cost: p.pricing?.costPrice || 0,
             Price: p.pricing?.basePrice || 0,
             Stock: p.inventory?.inventory?.stock || 0,
-            Status: p.statusInfo?.status || "draft",
+            Status: p.statusInfo?.status || PRODUCT_STATUS.DRAFT,
             Created: p.createdAt ? format(new Date(p.createdAt), "yyyy-MM-dd") : ""
         }));
         exportToCSV(dataToExport, "products-export");
@@ -313,7 +314,7 @@ export function ProductList() {
             accessorKey: "statusInfo.status",
             header: "Status",
             cell: ({ row }) => (
-                <Badge variant={row.original.statusInfo?.status === "published" ? "default" : "secondary"}>
+                <Badge variant={row.original.statusInfo?.status === PRODUCT_STATUS.PUBLISHED ? "default" : "secondary"}>
                     {row.original.statusInfo?.status || "Draft"}
                 </Badge>
             ),
@@ -343,28 +344,28 @@ export function ProductList() {
                                 </DropdownMenuItem>
                             )}
 
-                            {hasPermission(PERMISSION_KEYS.PRODUCT.UPDATE) && product.statusInfo?.status !== "published" && (
-                                <DropdownMenuItem onClick={(e) => handleStatusUpdate(product, "published", e)}>
+                            {hasPermission(PERMISSION_KEYS.PRODUCT.UPDATE) && product.statusInfo?.status !== PRODUCT_STATUS.PUBLISHED && (
+                                <DropdownMenuItem onClick={(e) => handleStatusUpdate(product, PRODUCT_STATUS.PUBLISHED, e)}>
                                     <CheckCircle className="mr-2 h-4 w-4 text-green-600" /> Publish
                                 </DropdownMenuItem>
                             )}
 
-                            {hasPermission(PERMISSION_KEYS.PRODUCT.UPDATE) && product.statusInfo?.status !== "draft" && (
-                                <DropdownMenuItem onClick={(e) => handleStatusUpdate(product, "draft", e)}>
+                            {hasPermission(PERMISSION_KEYS.PRODUCT.UPDATE) && product.statusInfo?.status !== PRODUCT_STATUS.DRAFT && (
+                                <DropdownMenuItem onClick={(e) => handleStatusUpdate(product, PRODUCT_STATUS.DRAFT, e)}>
                                     <Edit2 className="mr-2 h-4 w-4 text-muted-foreground" /> Mark as Draft
                                 </DropdownMenuItem>
                             )}
 
                             <DropdownMenuSeparator />
 
-                            {hasPermission(PERMISSION_KEYS.PRODUCT.UPDATE) && product.statusInfo?.status !== "archived" && (
-                                <DropdownMenuItem onClick={(e) => handleStatusUpdate(product, "archived", e)}>
+                            {hasPermission(PERMISSION_KEYS.PRODUCT.UPDATE) && product.statusInfo?.status !== PRODUCT_STATUS.ARCHIVED && (
+                                <DropdownMenuItem onClick={(e) => handleStatusUpdate(product, PRODUCT_STATUS.ARCHIVED, e)}>
                                     <Archive className="mr-2 h-4 w-4 text-orange-600" /> Archive
                                 </DropdownMenuItem>
                             )}
 
-                            {hasPermission(PERMISSION_KEYS.PRODUCT.UPDATE) && product.statusInfo?.status !== "suspended" && (
-                                <DropdownMenuItem onClick={(e) => handleStatusUpdate(product, "suspended", e)}>
+                            {hasPermission(PERMISSION_KEYS.PRODUCT.UPDATE) && product.statusInfo?.status !== PRODUCT_STATUS.SUSPENDED && (
+                                <DropdownMenuItem onClick={(e) => handleStatusUpdate(product, PRODUCT_STATUS.SUSPENDED, e)}>
                                     <AlertTriangle className="mr-2 h-4 w-4 text-red-600" /> Suspend
                                 </DropdownMenuItem>
                             )}
@@ -561,7 +562,7 @@ export function ProductList() {
                     <StatCard
                         title="Active Products"
                         icon={CheckCircle}
-                        value={products.filter((p: any) => p.statusInfo?.status === "published").length}
+                        value={products.filter((p: any) => p.statusInfo?.status === PRODUCT_STATUS.PUBLISHED).length}
                     />
                     <StatCard
                         title="Low Stock"
@@ -572,8 +573,8 @@ export function ProductList() {
             }
             tabs={[
                 { value: "all", label: "All Products" },
-                { value: "published", label: "Published" },
-                { value: "draft", label: "Draft" },
+                { value: PRODUCT_STATUS.PUBLISHED, label: "Published" },
+                { value: PRODUCT_STATUS.DRAFT, label: "Draft" },
                 { value: "low_stock", label: "Low Stock" },
             ]}
             activeTab={activeTab}

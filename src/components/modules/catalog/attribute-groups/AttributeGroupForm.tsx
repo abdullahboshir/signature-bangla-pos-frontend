@@ -46,8 +46,15 @@ const attributeFieldSchema = z.object({
     placeholder: z.string().optional(),
 });
 
+// ... imports
+import { ModuleSelect } from "@/components/forms/module-select";
+import { MODULES } from "@/constant/modules";
+
+// ...
+
 const attributeGroupSchema = z.object({
     name: z.string().min(1, "Name is required"),
+    module: z.string().min(1, "Module is required"),
     description: z.string().optional(),
     isActive: z.boolean().optional(),
     fields: z.array(attributeFieldSchema).min(1, "At least one field is required"),
@@ -66,6 +73,7 @@ export function AttributeGroupForm({ initialData, onSubmit, isLoading }: Attribu
         resolver: zodResolver(attributeGroupSchema),
         defaultValues: initialData || {
             name: "",
+            module: MODULES.SYSTEM,
             description: "",
             isActive: true,
             fields: [{ key: "", label: "", type: "text", required: false }],
@@ -116,6 +124,13 @@ export function AttributeGroupForm({ initialData, onSubmit, isLoading }: Attribu
                                     </FormItem>
                                 )}
                             />
+
+                            <ModuleSelect
+                                name="module"
+                                label="Module Scope"
+                                placeholder="Select which module this group belongs to"
+                            />
+
                             <FormField
                                 control={form.control}
                                 name="description"

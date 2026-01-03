@@ -27,8 +27,10 @@ export const ROUTE_PATHS = {
   USER_MANAGEMENT: {
     ROOT: "user-management",
     ALL_USERS: "user-management/all-users",
+    PLATFORM_USERS: "user-management/users",
     ROLES_PERMISSIONS: "user-management/roles-permissions",
     ADD_USER: "user-management/add-user",
+    // PLATFORM_USERS defined above
     USER_DETAILS: (id: string) => `user-management/users/${id}`,
   },
   CATALOG: {

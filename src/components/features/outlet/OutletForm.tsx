@@ -31,7 +31,7 @@ export function OutletForm({ preSelectedSlug, initialData, isEditMode = false }:
 
     // Handle BU data safely
     const businessUnits = Array.isArray(businessUnitsData) ? businessUnitsData :
-        (businessUnitsData?.data || businessUnitsData || []);
+        ((businessUnitsData as any)?.data || businessUnitsData || []);
 
     // Form state - Initialize with initialData if available
     const [name, setName] = useState(initialData?.name || "");

@@ -1,3 +1,4 @@
+"use client";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -6,7 +7,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useCreateAdjustmentMutation } from "@/redux/api/inventory/inventoryApi";
 import { useGetProductsQuery } from "@/redux/api/catalog/productApi"; // To select product
-import { useGetOutletQuery } from "@/redux/api/organization/outletApi"; // To select outlet
+import { useGetOutletsQuery } from "@/redux/api/organization/outletApi"; // To select outlet
 
 import { Button } from "@/components/ui/button";
 import {
@@ -44,7 +45,7 @@ export default function NewAdjustmentPage() {
     const router = useRouter();
     const [createAdjustment, { isLoading }] = useCreateAdjustmentMutation();
     const { data: products = [] } = useGetProductsQuery({});
-    const { data: outlets = [] } = useGetOutletQuery({});
+    const { data: outlets = [] } = useGetOutletsQuery({});
 
     const form = useForm<AdjustmentFormValues>({
         resolver: zodResolver(adjustmentSchema),

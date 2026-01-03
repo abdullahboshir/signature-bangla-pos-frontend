@@ -43,9 +43,10 @@ export default function PlatformAddUserPage() {
             <UserForm
                 mode="create"
                 onSubmit={handleSubmit}
-                isSubmitting={isLoading}
                 onCancel={() => router.back()}
                 apiError={userError}
+                targetScope="GLOBAL"
+                isSubmitting={isLoading}
             />
         </div>
     );

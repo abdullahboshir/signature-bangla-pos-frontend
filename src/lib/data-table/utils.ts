@@ -198,15 +198,15 @@ export function exportToCSV<T extends Record<string, any>>(
 
             // Format based on column type
             if (col.type === "date" && value) {
-              value = new Date(value as string | Date).toLocaleDateString();
+              value = new Date(value as string | Date).toLocaleDateString() as any;
             }
 
             if (col.type === "boolean" && value !== undefined) {
-              value = value ? "Yes" : "No";
+              value = (value ? "Yes" : "No") as any;
             }
 
             if (col.type === "number" && typeof value === "number") {
-              value = value.toLocaleString();
+              value = value.toLocaleString() as any;
             }
 
             // Escape quotes and wrap in quotes

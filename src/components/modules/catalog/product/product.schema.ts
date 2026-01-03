@@ -14,6 +14,7 @@ export const productSchema = z.object({
   
   outlet: z.string().optional(),
   businessUnit: z.string().optional(),
+  availableModules: z.array(z.string()).optional(),
   categories: z.array(z.string()).min(1, "At least one category is required"),
   primaryCategory: z.string().min(1, "Primary category is required"),
 
@@ -219,6 +220,7 @@ export const defaultProductValues: ProductFormValues = {
     barcode: "",
     businessUnit: "",
     primaryCategory: "",
+    availableModules: [],
 
     categories: [],
     unit: "",

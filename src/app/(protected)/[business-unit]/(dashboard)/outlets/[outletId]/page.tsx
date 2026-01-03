@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, ShoppingBag, AlertTriangle, MonitorSmartphone } from "lucide-react"
 import { useParams } from "next/navigation"
-import { useGetOutletStatsQuery } from "@/redux/api/organization/outletApi";
+import { useGetOutletStatsQuery, OutletStats } from "@/redux/api/organization/outletApi";
 
 // Inline currency formatter if missing
 const formatCurrency = (amount: number) => {
@@ -18,9 +18,11 @@ export default function OutletDashboard() {
     const outletId = params.outletId as string;
 
     // Fetch real stats
-    const { data: stats, isLoading } = useGetOutletStatsQuery(outletId, {
+    const { data, isLoading } = useGetOutletStatsQuery(outletId, {
         skip: !outletId
     });
+
+    const stats = data as OutletStats | undefined;
 
     if (isLoading) {
         return <div className="p-8 text-center text-muted-foreground">Loading dashboard stats...</div>;
@@ -121,8 +123,8 @@ export default function OutletDashboard() {
                         <div className="space-y-4">
                             <div className="flex items-center">
                                 <span className="flex-1 font-medium">Main Counter</span>
-                                <span className={stats?.activeRegisters > 0 ? "text-green-600" : "text-gray-400"}>
-                                    {stats?.activeRegisters > 0 ? "Open" : "Closed"}
+                                <span className={(stats?.activeRegisters || 0) > 0 ? "text-green-600" : "text-gray-400"}>
+                                    {(stats?.activeRegisters || 0) > 0 ? "Open" : "Closed"}
                                 </span>
                             </div>
                         </div>

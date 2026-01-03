@@ -113,6 +113,8 @@ export const RESOURCE_KEYS = {
   // Logistics
   COURIER: "courier",
   PARCEL: "parcel",
+  DRIVER: "driver",
+  VEHICLE: "vehicle",
 
   // Risk & Fraud
   BLACKLIST: "blacklist",
@@ -131,6 +133,7 @@ export const RESOURCE_KEYS = {
   
   // Dashboard
   DASHBOARD: "dashboard",
+  GLOBAL: "global",
 } as const;
 
 export const ACTION_KEYS = {

@@ -32,7 +32,7 @@ export default function EditUserPage() {
 
     const roles = Array.isArray(rolesData) ? rolesData : []
     const businessUnits = Array.isArray(businessUnitsData) ? businessUnitsData :
-        (businessUnitsData?.data || businessUnitsData || []);
+        ((businessUnitsData as any)?.data || businessUnitsData || []);
 
     const [formData, setFormData] = useState({
         firstName: "",
@@ -55,7 +55,7 @@ export default function EditUserPage() {
     const [permSearch, setPermSearch] = useState("");
 
     const { data: permissionsData, isLoading: isLoadingPerms } = useGetPermissionsQuery({ limit: 1000 });
-    const allPermissions = Array.isArray(permissionsData) ? permissionsData : (permissionsData?.data || []);
+    const allPermissions = Array.isArray(permissionsData) ? permissionsData : ((permissionsData as any)?.data || []);
 
     const filteredPermissions = allPermissions.filter((p: any) =>
         p.id.toLowerCase().includes(permSearch.toLowerCase()) ||

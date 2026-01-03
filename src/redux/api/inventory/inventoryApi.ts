@@ -23,6 +23,14 @@ const injectedInventoryApi = inventoryApi.injectEndpoints({
       }),
       providesTags: [tagTypes.inventory],
     }),
+    createAdjustment: build.mutation({
+      query: (data) => ({
+        url: '/adjustments',
+        method: 'POST',
+        data,
+      }),
+      invalidatesTags: [tagTypes.inventory, tagTypes.product],
+    }),
   }),
 });
 
@@ -34,7 +42,7 @@ export const {
   useDeleteInventoryMutation,
 } = hooks;
 
-export const { useGetLedgerQuery } = injectedInventoryApi as any;
+export const { useGetLedgerQuery, useCreateAdjustmentMutation } = injectedInventoryApi as any;
 
 export default inventoryApi;
 

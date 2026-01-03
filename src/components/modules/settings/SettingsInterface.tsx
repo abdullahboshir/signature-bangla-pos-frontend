@@ -32,12 +32,6 @@ export function SettingsInterface() {
     const paramBusinessUnit = params?.["business-unit"] as string
     const outletId = searchParams.get('outlet');
 
-    // If SA and in SA route (no param), businessUnit might be undefined.
-    // Ideally SA should select a BU or manage "Default/Global" settings.
-    // User complained about "Theme", which works globally usually.
-
-    // If param is present, use it. If not, and we are super-admin, we are in Global Context (businessUnit = null).
-    // If not super-admin and trying to access without param, we might default, but usually routing handles that.
 
     // Resolve slug to ID if param exists and matches a BU in user context
     const matchedBU = user?.businessUnits?.find((bu: any) => bu.id === paramBusinessUnit || bu._id === paramBusinessUnit || bu.slug === paramBusinessUnit);
@@ -149,11 +143,7 @@ export function SettingsInterface() {
 
     return (
         <div className="container mx-auto py-6 space-y-6">
-            {isSuperAdmin && (
-                <div className="bg-slate-100 p-2 rounded text-xs mb-2">
-                    DEBUG: BU={String(businessUnit)}, Loading={String(settingsLoading)}, LocalSettings={localSettings ? 'Present' : 'Null'}
-                </div>
-            )}
+
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">{outletId ? "Outlet Settings" : "Settings"}</h1>

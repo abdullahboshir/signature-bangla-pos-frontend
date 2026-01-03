@@ -9,7 +9,8 @@ export type DataType =
   | 'purchase'
   | 'role'
   | 'permission'
-  | 'outlet';
+  | 'outlet'
+  | 'default';
 
 export interface TableColumn<T = any> {
   id: string;

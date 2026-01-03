@@ -266,7 +266,7 @@ export function TableFilters({
             initialFocus
             mode="range"
             defaultMonth={dateRange.from}
-            selected={dateRange}
+            selected={dateRange as any}
             onSelect={(range) => {
               setDateRange(range || {});
               if (range?.from && range?.to) {

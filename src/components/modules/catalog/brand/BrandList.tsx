@@ -35,7 +35,10 @@ interface Brand {
     status: string;
     createdAt?: string;
     businessUnit?: string | { _id: string, name: string };
+    availableModules?: string[];
 }
+
+import { ModuleMultiSelect } from "@/components/forms/module-multi-select";
 
 export const BrandList = () => {
     const params = useParams();
@@ -254,6 +257,19 @@ export const BrandList = () => {
                 disabled: false
             });
         }
+        fields.push({
+            name: "availableModules",
+            label: "Available Modules",
+            type: "custom",
+            render: () => (
+                <ModuleMultiSelect
+                    name="availableModules"
+                    label="Available Modules"
+                    placeholder="Select available modules..."
+                />
+            )
+        });
+
         return fields;
     };
 
@@ -300,9 +316,11 @@ export const BrandList = () => {
                 fields={getFields()}
                 defaultValues={editingBrand ? {
                     ...editingBrand,
+                    availableModules: editingBrand.availableModules || [],
                     businessUnit: (editingBrand.businessUnit as any)?.id || (editingBrand.businessUnit as any)?._id || editingBrand.businessUnit || "global"
                 } : {
                     status: "active",
+                    availableModules: [],
                     businessUnit: isSuperAdmin ? (paramBusinessUnit ? businessUnits.find((b: any) => b.slug === paramBusinessUnit || b._id === paramBusinessUnit)?._id : "global") : "global"
                 }}
                 onSubmit={handleSubmit}

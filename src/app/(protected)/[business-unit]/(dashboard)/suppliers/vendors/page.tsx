@@ -1,5 +1,5 @@
-import VendorList from "@/components/modules/suppliers/VendorList"
+import { SupplierList } from "@/components/modules/contacts/SupplierList"
 
 export default function VendorPage() {
-    return <VendorList />
+    return <SupplierList />
 }

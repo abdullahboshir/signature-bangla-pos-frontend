@@ -11,6 +11,7 @@ import { useGetUnitsQuery } from "@/redux/api/catalog/unitApi";
 import { useCreateProductMutation } from "@/redux/api/catalog/productApi";
 import { toast } from "sonner";
 import { z } from "zod";
+import { PRODUCT_STATUS } from "@/constant/product.constant";
 
 export function ProductBulkImport({ buttonVariant = "outline" }: { buttonVariant?: "default" | "outline" | "ghost" }) {
     // 1. Fetch Reference Data for Validation
@@ -81,7 +82,7 @@ export function ProductBulkImport({ buttonVariant = "outline" }: { buttonVariant
                     brands: row.Brand ? [maps.brands.get(row.Brand.trim().toLowerCase())] : [],
                     unit: row.Unit ? maps.units.get(row.Unit.trim().toLowerCase()) : undefined,
                     statusInfo: {
-                        status: row.Status?.toLowerCase() === 'published' ? 'published' : 'draft',
+                        status: row.Status?.toLowerCase() === 'published' ? PRODUCT_STATUS.PUBLISHED : PRODUCT_STATUS.DRAFT,
                     },
                     pricing: {
                         basePrice: parseFloat(row["Sale Price"]),

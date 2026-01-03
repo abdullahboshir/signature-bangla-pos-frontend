@@ -30,7 +30,10 @@ interface ITax {
     type: 'percentage' | 'fixed';
     isActive: boolean;
     isDefault?: boolean;
+    module: string;
 }
+
+import { ModuleSelect } from "@/components/forms/module-select";
 
 import { useParams } from "next/navigation";
 import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi";
@@ -212,6 +215,18 @@ export const TaxList = () => {
                     { label: "Inactive", value: "inactive" }
                 ],
                 defaultValue: "active"
+            },
+            {
+                name: "module",
+                label: "Module",
+                type: "custom",
+                render: () => (
+                    <ModuleSelect
+                        name="module"
+                        label="Module"
+                        placeholder="Select Module"
+                    />
+                )
             }
         ];
 
@@ -255,12 +270,14 @@ export const TaxList = () => {
             return {
                 ...editingTax,
                 status: editingTax.isActive ? 'active' : 'inactive',
+                module: editingTax.module || "system",
                 businessUnit: (editingTax as any).businessUnit || "global"
             };
         }
         return {
             status: "active",
             type: 'percentage',
+            module: "system",
             businessUnit: isSuperAdmin ? (paramBusinessUnit ? businessUnits.find((b: any) => b.slug === paramBusinessUnit || b._id === paramBusinessUnit)?._id : "global") : "global"
         }
     };

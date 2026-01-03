@@ -57,7 +57,7 @@ export function UserProfileForm({ userId }: UserProfileFormProps) {
     const { data: businessUnitsData, isLoading: isLoadingBUs } = useGetBusinessUnitsQuery(undefined, { skip: !useAdminQuery });
 
     const roles = Array.isArray(rolesData) ? rolesData : [];
-    const businessUnits = (Array.isArray(businessUnitsData) ? businessUnitsData : businessUnitsData?.data) || [];
+    const businessUnits = (Array.isArray(businessUnitsData) ? businessUnitsData : (businessUnitsData as any)?.data) || [];
 
     // Normalization logic
     const unwrapUser = (data: any) => {

@@ -4,9 +4,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BarChart3 } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
 import { PERMISSION_KEYS } from "@/config/permission-keys"
+import { DataTable } from "@/components/shared/DataTable"
+import { useGetSalesSummaryQuery } from "@/redux/api/erp/reports/salesReportApi"
 
 export default function SalesReport() {
     const { hasPermission } = usePermissions();
+    const { data: reportData, isLoading } = useGetSalesSummaryQuery({});
+
+    // Safe casting for data access
+    const tableData = Array.isArray((reportData as any)?.data) ? (reportData as any).data : (Array.isArray(reportData) ? reportData : []);
+
+    const columns = [
+        { accessorKey: "date", header: "Date" },
+        { accessorKey: "totalSales", header: "Total Sales" },
+        { accessorKey: "totalOrders", header: "Orders" },
+        { accessorKey: "netProfit", header: "Net Profit" }
+    ];
 
     if (!hasPermission(PERMISSION_KEYS.SALES_REPORT.READ)) {
         return <div className="p-4 text-center text-muted-foreground">You do not have permission to view sales reports.</div>
@@ -22,7 +35,12 @@ export default function SalesReport() {
                 <CardDescription>Comprehensive sales performance reports.</CardDescription>
             </CardHeader>
             <CardContent>
-                <p className="text-muted-foreground">Sales reporting visualization will be rendered here.</p>
+                <DataTable
+                    columns={columns}
+                    data={tableData}
+                    isLoading={isLoading}
+                    searchKey="date"
+                />
             </CardContent>
         </Card>
     )
