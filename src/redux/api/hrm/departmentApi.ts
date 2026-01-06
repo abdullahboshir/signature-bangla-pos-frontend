@@ -5,7 +5,7 @@ const departmentApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     createDepartment: build.mutation({
       query: (data: unknown) => ({
-        url: "/department/create",
+        url: "/hrm/departments",
         method: "POST",
         contentType: "application/json",
         data,
@@ -14,21 +14,21 @@ const departmentApi = baseApi.injectEndpoints({
     }),
     getDepartments: build.query({
       query: () => ({
-        url: "/department/getDepartments",
+        url: "/hrm/departments",
         method: "GET",
       }),
       providesTags: [tagTypes.department],
     }),
     getDepartment: build.query({
       query: (id: string) => ({
-        url: `/department/${id}`,
+        url: `/hrm/departments/${id}`,
         method: "GET",
       }),
       providesTags: [tagTypes.department],
     }),
     updateDepartment: build.mutation({
       query: (data: { id: string; body: unknown }) => ({
-        url: `/department/${data?.id}`,
+        url: `/hrm/departments/${data?.id}`,
         method: "PATCH",
         contentType: "application/json",
         data: data.body,
@@ -37,7 +37,7 @@ const departmentApi = baseApi.injectEndpoints({
     }),
     deleteDepartment: build.mutation({
       query: (id: string) => ({
-        url: `/department/${id}`,
+        url: `/hrm/departments/${id}`,
         method: "DELETE",
       }),
       invalidatesTags: [tagTypes.department],

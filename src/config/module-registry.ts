@@ -20,8 +20,9 @@ import {
   Globe,
   ShieldAlert,
   Plug,
+  Building,
 } from "lucide-react"
-import { RESOURCE_KEYS, ACTION_KEYS, PLATFORM_PERMISSIONS, BUSINESS_PERMISSIONS } from "./permission-keys"
+import { RESOURCE_KEYS, ACTION_KEYS, BUSINESS_PERMISSIONS } from "./permission-keys"
 
 // ========================================
 // SINGLE SOURCE OF TRUTH: Module Registry
@@ -51,11 +52,19 @@ export const APP_MODULES: Record<string, AppModule> = {
     // resource: RESOURCE_KEYS.SYSTEM // OLD
   },
   
+  COMPANIES: {
+    title: "Companies",
+    path: "companies",
+    icon: Building,
+    resource: RESOURCE_KEYS.ACCOUNT,
+    module: "system"
+  },
+  
   EXPENSES: {
     title: "Expenses",
     path: "accounting/expenses",
     icon: DollarSign,
-    resource: BUSINESS_PERMISSIONS.MANAGE_EXPENSES, // NEW
+    resource: RESOURCE_KEYS.EXPENSE, // Fixed from BUSINESS_PERMISSIONS.MANAGE_EXPENSES
     module: "erp"
   },
 
@@ -63,7 +72,7 @@ export const APP_MODULES: Record<string, AppModule> = {
     title: "Business Units",
     path: "business-units",
     icon: Store,
-    resource: PLATFORM_PERMISSIONS.VIEW_BUSINESS_UNITS, // NEW
+    resource: RESOURCE_KEYS.BUSINESS_UNIT, // Fixed from PLATFORM_PERMISSIONS.VIEW_BUSINESS_UNITS
     children: [
       { title: "All Units", path: "business-units" },
       { title: "Add New Unit", path: "business-units/new", action: ACTION_KEYS.CREATE }, // Keep action for now, permission check usually handles resource+action
@@ -127,14 +136,12 @@ export const APP_MODULES: Record<string, AppModule> = {
     resource: RESOURCE_KEYS.USER, // General Key, specific permission checked on children
     children: [
       // Platform Scope
-      { title: "Platform Users", path: "user-management/platform-users", resource: PLATFORM_PERMISSIONS.MANAGE_PLATFORM_USERS },
-      { title: "Platform Roles", path: "user-management/platform-roles", resource: PLATFORM_PERMISSIONS.MANAGE_PLATFORM_ROLES },
+      { title: "Platform Users", path: "user-management/platform-users", resource: RESOURCE_KEYS.USER },
+      { title: "Platform Roles", path: "user-management/platform-roles", resource: RESOURCE_KEYS.ROLE },
       { title: "Add Platform User", path: "user-management/platform-users/add", action: ACTION_KEYS.CREATE, hidden: true },
 
       // Business Scope
-      { title: "Staff / Users", path: "user-management/business-users", resource: BUSINESS_PERMISSIONS.MANAGE_STAFF },
-      { title: "Business Roles", path: "user-management/business-roles", resource: RESOURCE_KEYS.ROLE }, // Needs Business Role Permission if split? Keeping generic for now or use BUSINESS_PERMISSIONS.MANAGE_ROLES if exists? User didn't specify Business Roles permission key explicitly in previous step, so using generic ROLE resource but scoped by business unit context.
-      { title: "Add Staff", path: "user-management/business-users/add", action: ACTION_KEYS.CREATE, hidden: true },
+      { title: "Business Roles", path: "user-management/business-roles", resource: RESOURCE_KEYS.ROLE },
     ],
   },
 
@@ -149,13 +156,13 @@ export const APP_MODULES: Record<string, AppModule> = {
     title: "Catalog",
     path: "catalog",
     icon: Package,
-    resource: BUSINESS_PERMISSIONS.VIEW_PRODUCTS, // NEW
+    resource: RESOURCE_KEYS.PRODUCT, // Fixed from BUSINESS_PERMISSIONS.VIEW_PRODUCTS
     module: "erp",
     children: [
-      { title: "Products", path: "catalog/product", resource: BUSINESS_PERMISSIONS.MANAGE_PRODUCTS },
+      { title: "Products", path: "catalog/product", resource: RESOURCE_KEYS.PRODUCT },
       { title: "Add Product", path: "catalog/product/add", action: ACTION_KEYS.CREATE },
       { title: "Edit Product", path: "catalog/product/edit", action: ACTION_KEYS.UPDATE, hidden: true },
-      { title: "Categories", path: "catalog/category", resource: BUSINESS_PERMISSIONS.MANAGE_CATEGORIES },
+      { title: "Categories", path: "catalog/category", resource: RESOURCE_KEYS.CATEGORY },
       { title: "Variants", path: "catalog/variants", resource: RESOURCE_KEYS.VARIANT },
       { title: "Brands", path: "catalog/brand", resource: RESOURCE_KEYS.BRAND },
       { title: "Units", path: "catalog/unit", resource: RESOURCE_KEYS.UNIT },
@@ -170,11 +177,11 @@ export const APP_MODULES: Record<string, AppModule> = {
     title: "Inventory",
     path: "inventory",
     icon: Package,
-    resource: BUSINESS_PERMISSIONS.MANAGE_INVENTORY, // NEW
+    resource: RESOURCE_KEYS.INVENTORY, // Fixed from BUSINESS_PERMISSIONS.MANAGE_INVENTORY
     module: "erp",
     children: [
       { title: "Stock Levels", path: "inventory" },
-      { title: "Purchases", path: "inventory/purchase", resource: BUSINESS_PERMISSIONS.CREATE_PURCHASE },
+      { title: "Purchases", path: "inventory/purchase", resource: RESOURCE_KEYS.PURCHASE },
       { title: "New Purchase", path: "inventory/purchase/new", action: ACTION_KEYS.CREATE, hidden: true },
       { title: "Stock Ledger", path: "inventory/ledger", resource: RESOURCE_KEYS.INVENTORY, action: ACTION_KEYS.TRACK },
       { title: "Warehouses", path: "inventory/warehouses", resource: RESOURCE_KEYS.WAREHOUSE },
@@ -197,11 +204,11 @@ export const APP_MODULES: Record<string, AppModule> = {
     title: "Sales & Orders",
     path: "sales",
     icon: ShoppingCart,
-    resource: BUSINESS_PERMISSIONS.VIEW_ORDERS, // NEW
+    resource: RESOURCE_KEYS.ORDER, // Fixed from BUSINESS_PERMISSIONS.VIEW_ORDERS
     module: "erp",
     children: [
-      { title: "All Orders", path: "sales", resource: BUSINESS_PERMISSIONS.MANAGE_ORDERS },
-      { title: "POS", path: "pos", resource: BUSINESS_PERMISSIONS.ACCESS_POS, module: "pos" },
+      { title: "All Orders", path: "sales", resource: RESOURCE_KEYS.ORDER },
+      { title: "POS", path: "pos", resource: RESOURCE_KEYS.TERMINAL, module: "pos" },
       { title: "Shipping", path: "sales/shipping", resource: RESOURCE_KEYS.SHIPPING },
       { title: "Deliveries", path: "sales/deliveries", resource: RESOURCE_KEYS.DELIVERY },
       { title: "Returns", path: "sales/returns", resource: RESOURCE_KEYS.RETURN },
@@ -213,7 +220,7 @@ export const APP_MODULES: Record<string, AppModule> = {
     title: "Marketing",
     path: "marketing",
     icon: Megaphone,
-    resource: BUSINESS_PERMISSIONS.MANAGE_PROMOTIONS, // NEW
+    resource: RESOURCE_KEYS.PROMOTION, // Fixed from BUSINESS_PERMISSIONS.MANAGE_PROMOTIONS
     module: "crm",
     children: [
       { title: "Promotions", path: "marketing/promotions", resource: RESOURCE_KEYS.PROMOTION },
@@ -232,7 +239,7 @@ export const APP_MODULES: Record<string, AppModule> = {
     title: "Customers",
     path: "customers",
     icon: User,
-    resource: BUSINESS_PERMISSIONS.MANAGE_CUSTOMERS, // NEW
+    resource: RESOURCE_KEYS.CUSTOMER, // Fixed from BUSINESS_PERMISSIONS.MANAGE_CUSTOMERS
     module: "crm",
     children: [
       { title: "Customer List", path: "customers", resource: RESOURCE_KEYS.CUSTOMER },
@@ -275,20 +282,33 @@ export const APP_MODULES: Record<string, AppModule> = {
     ]
   },
 
+  BUSINESS_SETTINGS: {
+    title: "Settings",
+    path: "business-settings",
+    icon: Settings,
+    resource: RESOURCE_KEYS.BUSINESS_UNIT, // More appropriate for business admins
+    children: [
+        { title: "General", path: "business-settings?tab=overview", resource: RESOURCE_KEYS.BUSINESS_UNIT },
+        { title: "Sales & Finance", path: "business-settings?tab=sales", resource: RESOURCE_KEYS.BUSINESS_UNIT },
+        { title: "POS Configuration", path: "business-settings?tab=pos", resource: RESOURCE_KEYS.TERMINAL },
+        { title: "Inventory", path: "business-settings?tab=inventory", resource: RESOURCE_KEYS.INVENTORY },
+    ]
+  },
+
   SYSTEM: {
     title: "System",
-    path: "system",
+    path: "platform-settings", // Point direct parent click to settings
     icon: Settings,
-    resource: PLATFORM_PERMISSIONS.MANAGE_SYSTEM, // NEW
+    resource: RESOURCE_KEYS.SYSTEM,
     children: [
-      { title: "General Settings", path: "system", resource: RESOURCE_KEYS.SYSTEM },
-      { title: "Module Toggles", path: "system/modules", resource: PLATFORM_PERMISSIONS.MANAGE_SYSTEM },
+      { title: "General Settings", path: "platform-settings?tab=system", resource: RESOURCE_KEYS.SYSTEM }, 
+      { title: "Module Toggles", path: "platform-settings?tab=modules", resource: RESOURCE_KEYS.SYSTEM },
       { title: "Email Templates", path: "system/email-templates", resource: RESOURCE_KEYS.EMAIL_TEMPLATE },
       { title: "SMS Templates", path: "system/sms-templates", resource: RESOURCE_KEYS.SMS_TEMPLATE },
       { title: "Languages", path: "system/languages", resource: RESOURCE_KEYS.LANGUAGE },
       { title: "Currencies", path: "system/currencies", resource: RESOURCE_KEYS.CURRENCY },
       { title: "Zones & Locations", path: "system/zones", resource: RESOURCE_KEYS.ZONE },
-      { title: "Backups", path: "system/backups", resource: PLATFORM_PERMISSIONS.MANAGE_BACKUPS },
+      { title: "Backups", path: "system/backups", resource: RESOURCE_KEYS.BACKUP },
     ]
   },
 
@@ -297,14 +317,14 @@ export const APP_MODULES: Record<string, AppModule> = {
     title: "Packages & Plans",
     path: "packages",
     icon: Package,
-    resource: PLATFORM_PERMISSIONS.MANAGE_PACKAGES,
+    resource: RESOURCE_KEYS.SUBSCRIPTION, // Fixed from PLATFORM_PERMISSIONS.MANAGE_PACKAGES
     badge: "SaaS",
     children: [
       { title: "All Packages", path: "packages" },
       { title: "Create Package", path: "packages/new", action: ACTION_KEYS.CREATE },
-      { title: "Feature Flags", path: "packages/features", resource: PLATFORM_PERMISSIONS.MANAGE_FEATURES },
-      { title: "License Keys", path: "licenses", resource: PLATFORM_PERMISSIONS.MANAGE_LICENSES },
-      { title: "Trials", path: "packages/trials", resource: PLATFORM_PERMISSIONS.MANAGE_PACKAGES },
+      { title: "Feature Flags", path: "packages/features", resource: RESOURCE_KEYS.SYSTEM },
+      { title: "License Keys", path: "licenses", resource: RESOURCE_KEYS.SUBSCRIPTION },
+      { title: "Trials", path: "packages/trials", resource: RESOURCE_KEYS.SUBSCRIPTION },
     ]
   },
 
@@ -313,7 +333,7 @@ export const APP_MODULES: Record<string, AppModule> = {
     title: "Notifications",
     path: "notifications",
     icon: Bell,
-    resource: PLATFORM_PERMISSIONS.MANAGE_NOTIFICATIONS,
+    resource: RESOURCE_KEYS.NOTIFICATION,
     badge: "New",
     children: [
       { title: "Alert Center", path: "notifications" },
@@ -327,15 +347,15 @@ export const APP_MODULES: Record<string, AppModule> = {
     title: "Integrations",
     path: "integrations",
     icon: Plug,
-    resource: PLATFORM_PERMISSIONS.MANAGE_INTEGRATIONS,
+    resource: RESOURCE_KEYS.SYSTEM,
     badge: "New",
     children: [
       { title: "All Integrations", path: "integrations" },
-      { title: "Payment Gateways", path: "integrations/payment", resource: PLATFORM_PERMISSIONS.MANAGE_INTEGRATIONS },
-      { title: "Shipping Providers", path: "integrations/shipping", resource: PLATFORM_PERMISSIONS.MANAGE_INTEGRATIONS },
-      { title: "Email & SMS", path: "integrations/communication", resource: PLATFORM_PERMISSIONS.MANAGE_INTEGRATIONS },
-      { title: "Webhooks", path: "integrations/webhooks", resource: PLATFORM_PERMISSIONS.MANAGE_WEBHOOKS },
-      { title: "API Keys", path: "integrations/api-keys", resource: PLATFORM_PERMISSIONS.MANAGE_API_KEYS },
+      { title: "Payment Gateways", path: "integrations/payment", resource: RESOURCE_KEYS.SYSTEM },
+      { title: "Shipping Providers", path: "integrations/shipping", resource: RESOURCE_KEYS.SYSTEM },
+      { title: "Email & SMS", path: "integrations/communication", resource: RESOURCE_KEYS.SYSTEM },
+      { title: "Webhooks", path: "integrations/webhooks", resource: RESOURCE_KEYS.WEBHOOK },
+      { title: "API Keys", path: "integrations/api-keys", resource: RESOURCE_KEYS.API_KEY },
     ]
   },
 
@@ -343,7 +363,7 @@ export const APP_MODULES: Record<string, AppModule> = {
     title: "Suppliers",
     path: "suppliers",
     icon: Truck,
-    resource: BUSINESS_PERMISSIONS.MANAGE_SUPPLIERS, // NEW
+    resource: RESOURCE_KEYS.SUPPLIER, // Fixed from BUSINESS_PERMISSIONS.MANAGE_SUPPLIERS
     module: "erp"
   },
 
@@ -351,7 +371,7 @@ export const APP_MODULES: Record<string, AppModule> = {
     title: "Reports",
     path: "reports",
     icon: BarChart3,
-    resource: BUSINESS_PERMISSIONS.VIEW_FINANCIAL_REPORTS, // NEW
+    resource: RESOURCE_KEYS.REPORT, // Fixed from BUSINESS_PERMISSIONS.VIEW_FINANCIAL_REPORTS
     module: "erp",
     children: [
       { title: "Sales Analysis", path: "reports/sales", resource: RESOURCE_KEYS.SALES_REPORT },
@@ -366,7 +386,7 @@ export const APP_MODULES: Record<string, AppModule> = {
     title: "POS Terminal",
     path: "pos",
     icon: ShoppingCart,
-    resource: BUSINESS_PERMISSIONS.ACCESS_POS, // NEW
+    resource: RESOURCE_KEYS.TERMINAL, // Fixed from BUSINESS_PERMISSIONS.ACCESS_POS
     module: "pos"
   },
 
@@ -374,7 +394,7 @@ export const APP_MODULES: Record<string, AppModule> = {
     title: "Staff Management",
     path: "hrm/staff",
     icon: Users,
-    resource: BUSINESS_PERMISSIONS.MANAGE_STAFF, // NEW
+    resource: RESOURCE_KEYS.STAFF, // Fixed from BUSINESS_PERMISSIONS.MANAGE_STAFF
     module: "hrm"
   },
 
@@ -382,16 +402,30 @@ export const APP_MODULES: Record<string, AppModule> = {
     title: "HRM & Payroll",
     path: "hrm",
     icon: Users,
-    resource: BUSINESS_PERMISSIONS.MANAGE_STAFF, // NEW
+    resource: RESOURCE_KEYS.STAFF, // Fixed from BUSINESS_PERMISSIONS.MANAGE_STAFF
     module: "hrm",
     children: [
       { title: "Staff Directory", path: "hrm/staff", resource: RESOURCE_KEYS.STAFF },
       { title: "Departments", path: "hrm/departments", resource: RESOURCE_KEYS.DEPARTMENT },
       { title: "Designations", path: "hrm/designations", resource: RESOURCE_KEYS.DESIGNATION },
-      { title: "Attendance", path: "hrm/attendance", resource: BUSINESS_PERMISSIONS.MANAGE_ATTENDANCE },
+      { title: "Attendance", path: "hrm/attendance", resource: RESOURCE_KEYS.ATTENDANCE },
       { title: "Leave Requests", path: "hrm/leave", resource: RESOURCE_KEYS.LEAVE },
-      { title: "Payroll", path: "hrm/payroll", resource: BUSINESS_PERMISSIONS.MANAGE_PAYROLL },
+      { title: "Payroll", path: "hrm/payroll", resource: RESOURCE_KEYS.PAYROLL },
       { title: "Assets", path: "hrm/assets", resource: RESOURCE_KEYS.ASSET },
+    ]
+  },
+
+  GOVERNANCE: {
+    title: "Governance",
+    path: "governance",
+    icon: ShieldAlert,
+    resource: RESOURCE_KEYS.GOVERNANCE_SHAREHOLDER,
+    module: "governance",
+    children: [
+      { title: "Shareholders", path: "governance/shareholders", resource: RESOURCE_KEYS.GOVERNANCE_SHAREHOLDER },
+      { title: "Voting & Proposals", path: "governance/voting", resource: RESOURCE_KEYS.GOVERNANCE_VOTING },
+      { title: "Board Meetings", path: "governance/meetings", resource: RESOURCE_KEYS.GOVERNANCE_MEETING },
+      { title: "Compliance", path: "governance/compliance", resource: RESOURCE_KEYS.GOVERNANCE_COMPLIANCE },
     ]
   },
 
@@ -595,6 +629,12 @@ export const ROUTE_PATHS = {
   },
   SUPPLIERS: {
     ROOT: "suppliers",
+  },
+  GOVERNANCE: {
+      ROOT: "governance",
+      SHAREHOLDERS: "governance/shareholders",
+      VOTING: "governance/voting",
+      MEETINGS: "governance/meetings",
   },
   REPORTS: {
     ROOT: "reports",

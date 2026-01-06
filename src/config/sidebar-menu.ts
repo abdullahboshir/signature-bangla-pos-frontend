@@ -15,7 +15,7 @@ import {
   FileText,
   Settings
 } from "lucide-react"
-import { RESOURCE_KEYS, ACTION_KEYS, BUSINESS_PERMISSIONS } from "./permission-keys"
+import { RESOURCE_KEYS, ACTION_KEYS } from "./permission-keys"
 import { APP_MODULES, ROUTE_PATHS } from "./module-registry"
 
 // Re-export or alias for compatibility if needed, using the registry
@@ -31,6 +31,8 @@ export const sidebarMenuConfig = {
       MENU_MODULES.DASHBOARD,
       
       // 🏢 2. TENANT MANAGEMENT
+      // 🏢 2. TENANT MANAGEMENT
+      MENU_MODULES.COMPANIES, // Manage Companies
       MENU_MODULES.BUSINESS_UNITS,
       
       // 💼 3. BILLING & FINANCE
@@ -76,28 +78,37 @@ export const sidebarMenuConfig = {
     // 🏢 Business Admin - Manages specific business unit
     "business-admin": [
       MENU_MODULES.DASHBOARD,
+      
+      // 🛒 1. RETAIL & POS
       {
         ...MENU_MODULES.POS_TERMINAL,
         badge: "Live",
+        module: 'pos',
       },
-      MENU_MODULES.OUTLETS,
       {
-        ...MENU_MODULES.CATALOG,
+        ...MENU_MODULES.OUTLETS,
+        module: 'pos',
+      },
+
+      // 📦 2. ERP SYSTEM (Inventory, Products, Purchases, Logistics)
+      {
+        ...MENU_MODULES.CATALOG, // Products
+        module: 'erp',
         children: [
-          { title: "All Products", path: ROUTE_PATHS.CATALOG.PRODUCT.ROOT },
-          { title: "Add Product", path: ROUTE_PATHS.CATALOG.PRODUCT.ADD, action: ACTION_KEYS.CREATE },
-          { title: "Categories", path: ROUTE_PATHS.CATALOG.CATEGORY, resource: RESOURCE_KEYS.CATEGORY },
-          { title: "Brands", path: ROUTE_PATHS.CATALOG.BRAND, resource: RESOURCE_KEYS.BRAND },
-          { title: "Units", path: ROUTE_PATHS.CATALOG.UNIT, resource: RESOURCE_KEYS.UNIT },
-          { title: "Attributes", path: ROUTE_PATHS.CATALOG.ATTRIBUTE, resource: RESOURCE_KEYS.ATTRIBUTE },
-          { title: "Attribute Groups", path: ROUTE_PATHS.CATALOG.ATTRIBUTE_GROUP, resource: RESOURCE_KEYS.ATTRIBUTE_GROUP },
-          { title: "Warranties", path: "/catalog/warranties", resource: RESOURCE_KEYS.WARRANTY },
-          { title: "Tax", path: ROUTE_PATHS.CATALOG.TAX, resource: RESOURCE_KEYS.TAX },
+            { title: "All Products", path: ROUTE_PATHS.CATALOG.PRODUCT.ROOT },
+            { title: "Add Product", path: ROUTE_PATHS.CATALOG.PRODUCT.ADD, action: ACTION_KEYS.CREATE },
+            { title: "Categories", path: ROUTE_PATHS.CATALOG.CATEGORY, resource: RESOURCE_KEYS.CATEGORY },
+            { title: "Brands", path: ROUTE_PATHS.CATALOG.BRAND, resource: RESOURCE_KEYS.BRAND },
+            { title: "Units", path: ROUTE_PATHS.CATALOG.UNIT, resource: RESOURCE_KEYS.UNIT },
+            { title: "Attributes", path: ROUTE_PATHS.CATALOG.ATTRIBUTE, resource: RESOURCE_KEYS.ATTRIBUTE },
+            { title: "Attribute Groups", path: ROUTE_PATHS.CATALOG.ATTRIBUTE_GROUP, resource: RESOURCE_KEYS.ATTRIBUTE_GROUP },
+            { title: "Warranties", path: "/catalog/warranties", resource: RESOURCE_KEYS.WARRANTY },
+            { title: "Tax", path: ROUTE_PATHS.CATALOG.TAX, resource: RESOURCE_KEYS.TAX },
         ],
       },
-      MENU_MODULES.STOREFRONT,
       {
         ...MENU_MODULES.INVENTORY,
+        module: 'erp',
         children: [
             { title: "Stock Levels", path: ROUTE_PATHS.INVENTORY.ROOT },
             { title: "Purchases", path: ROUTE_PATHS.INVENTORY.PURCHASE, resource: RESOURCE_KEYS.PURCHASE },
@@ -105,12 +116,15 @@ export const sidebarMenuConfig = {
             { title: "Stock Ledger", path: ROUTE_PATHS.INVENTORY.LEDGER },
             { title: "Warehouses", path: ROUTE_PATHS.INVENTORY.WAREHOUSES, resource: RESOURCE_KEYS.WAREHOUSE },
             { title: "Transfers", path: ROUTE_PATHS.INVENTORY.TRANSFERS, resource: RESOURCE_KEYS.TRANSFER, action: ACTION_KEYS.CREATE },
+            { title: "Suppliers", path: ROUTE_PATHS.SUPPLIERS.ROOT, resource: RESOURCE_KEYS.SUPPLIER }, // Merged Suppliers
+            { title: "Logistics", path: ROUTE_PATHS.LOGISTICS.ROOT, resource: RESOURCE_KEYS.COURIER }, // Merged Logistics
         ]
       },
       {
         ...MENU_MODULES.SALES, 
         title: "Sales & Orders",
         icon: CreditCard,
+        module: 'erp',
         children: [
           { title: "All Orders", path: ROUTE_PATHS.SALES.ROOT, resource: RESOURCE_KEYS.ORDER },
           { title: "Returns", path: ROUTE_PATHS.SALES.RETURNS, resource: RESOURCE_KEYS.RETURN },
@@ -118,42 +132,62 @@ export const sidebarMenuConfig = {
           { title: "Invoices", path: ROUTE_PATHS.SALES.INVOICES, resource: RESOURCE_KEYS.INVOICE },
         ],
       },
+
+      // 🌐 3. E-COMMERCE
+      { ...MENU_MODULES.STOREFRONT, title: "E-Commerce", module: 'ecommerce' },
+
+      // 🤝 4. CRM SUITE (Customers, Marketing, Support)
       {
         ...MENU_MODULES.CUSTOMERS,
+        title: "CRM & Customers",
+        module: 'crm',
         children: [
           { title: "Customer List", path: ROUTE_PATHS.CUSTOMERS.ROOT },
           { title: "Add Customer", path: ROUTE_PATHS.CUSTOMERS.NEW, action: ACTION_KEYS.CREATE },
           { title: "Loyalty Program", path: ROUTE_PATHS.CUSTOMERS.LOYALTY, resource: RESOURCE_KEYS.LOYALTY },
           { title: "Subscriptions", path: ROUTE_PATHS.CUSTOMERS.SUBSCRIPTIONS, resource: RESOURCE_KEYS.SUBSCRIPTION },
-          { title: "Reviews", path: ROUTE_PATHS.CUSTOMERS.REVIEWS, resource: RESOURCE_KEYS.REVIEW },
+          { title: "Marketing", path: ROUTE_PATHS.MARKETING.ROOT, resource: RESOURCE_KEYS.PROMOTION }, // Merged Marketing
+          { title: "Support Tickets", path: ROUTE_PATHS.SUPPORT.ROOT, resource: RESOURCE_KEYS.TICKET }, // Merged Support
         ],
       },
-      {
-        ...MENU_MODULES.MARKETING,
-        children: [
-            { title: "Promotions", path: ROUTE_PATHS.MARKETING.PROMOTIONS, resource: RESOURCE_KEYS.PROMOTION },
-            { title: "Coupons", path: ROUTE_PATHS.MARKETING.COUPONS, resource: RESOURCE_KEYS.COUPON },
-            { title: "Ad Campaigns", path: ROUTE_PATHS.MARKETING.CAMPAIGNS, resource: RESOURCE_KEYS.AD_CAMPAIGN },
-        ] 
-      },
-      MENU_MODULES.SUPPLIERS,
-      MENU_MODULES.VENDORS,
+
+      // 👥 5. HRM & ADMIN
+      { ...MENU_MODULES.HRM, module: 'hrm' },
       {
         title: "User Management",
         path: "user-management",
         icon: Users,
-        // resource: undefined, // Let children decide
+        // No strict module, base feature
         children: [
-           { title: "Staff / Users", path: "user-management/business-users", resource: BUSINESS_PERMISSIONS.MANAGE_STAFF },
+           { title: "Staff / Users", path: "user-management/business-users", resource: RESOURCE_KEYS.STAFF, action: ACTION_KEYS.MANAGE },
            { title: "Business Roles", path: "user-management/business-roles", resource: RESOURCE_KEYS.ROLE },
-           { title: "Add Staff", path: "user-management/business-users/add", action: ACTION_KEYS.CREATE, hidden: true },
         ]
       },
-      MENU_MODULES.EXPENSES,
-      MENU_MODULES.ACCOUNTING,
-      MENU_MODULES.HRM,
+
+      // 💰 6. FINANCE
+      {
+         ...MENU_MODULES.FINANCE,
+         module: 'finance', // or 'erp' since finance is inside ERP? But toggled separately via ERP->Finance. 
+         // If module.activeModules.finance is true, show this.
+         children: [
+             ...MENU_MODULES.FINANCE.children || [],
+             ...MENU_MODULES.ACCOUNTING.children || [], // Merge Accounting into Finance
+         ]
+      },
+      
       MENU_MODULES.REPORTS,
-      MENU_MODULES.POS_CONFIG,
+
+      // ⚙️ SETTINGS & UTILITIES (Consolidated)
+      {
+          ...MENU_MODULES.BUSINESS_SETTINGS,
+          title: "Setup & Settings",
+          children: [
+              { title: "General Settings", path: "business-settings?tab=overview", resource: RESOURCE_KEYS.BUSINESS_UNIT },
+              { title: "POS Configuration", path: "business-settings?tab=pos", resource: RESOURCE_KEYS.TERMINAL, module: 'pos' },
+              { title: "Integrations", path: "integrations", resource: RESOURCE_KEYS.SYSTEM, module: 'integrations' }, // Moved here
+              { title: "Governance", path: "governance", resource: RESOURCE_KEYS.GOVERNANCE_SHAREHOLDER, module: 'governance' }, // Moved here
+          ]
+      }
     ],
     
     // Seller - Sales & Catalog focused
@@ -175,12 +209,40 @@ export const sidebarMenuConfig = {
           { title: "Today's Sales", path: ROUTE_PATHS.SALES.TODAY },
         ]
       },
-      {
-        ...MENU_MODULES.CUSTOMERS,
-        children: [
-            { title: "Customer List", path: ROUTE_PATHS.CUSTOMERS.ROOT },
-        ]
-      }
+    ],
+
+    // 🏛️ GOVERNANCE (Investors, Shareholders, Silent Partners)
+    // Read-only access to high-level data
+    "governance": [
+        MENU_MODULES.DASHBOARD,
+        // High-level Financials
+        {
+          ...MENU_MODULES.FINANCE,
+          title: "Financial Overview",
+          children: [
+             { title: "Revenue & P&L", path: ROUTE_PATHS.FINANCE.ROOT },
+             { title: "Expense Reports", path: "finance/expenses" },
+             { title: "Bank Accounts", path: "finance/accounts" },
+          ]
+        },
+        // Reports
+        MENU_MODULES.REPORTS,
+        // Governance Specifics
+        {
+          title: "Governance",
+          path: "governance",
+          icon: Users,
+          children: [
+             { title: "Shareholders", path: "governance/shareholders", resource: RESOURCE_KEYS.GOVERNANCE_SHAREHOLDER },
+             { title: "Board Meetings", path: "governance/meetings", resource: RESOURCE_KEYS.GOVERNANCE_MEETING },
+             { title: "Compliance", path: "governance/compliance", resource: RESOURCE_KEYS.GOVERNANCE_COMPLIANCE },
+          ]
+        },
+        // Company Settings (Read Only typically)
+        {
+           ...MENU_MODULES.BUSINESS_SETTINGS,
+           title: "Company Profile",
+        }
     ],
 
     // 💰 Cashier - POS focused
@@ -359,12 +421,7 @@ export const sidebarMenuConfig = {
       path: ROUTE_PATHS.COMMON.PROFILE,
       icon: User,
     },
-    {
-      title: "Settings",
-      path: ROUTE_PATHS.COMMON.SETTINGS,
-      icon: Settings,
-      resource: RESOURCE_KEYS.SYSTEM
-    },
+
     {
       title: "Help & Support",
       path: ROUTE_PATHS.COMMON.HELP,
@@ -412,7 +469,7 @@ export const getSidebarMenu = (role: string, businessUnit: string, outletId?: st
       const rawOutletMenu = [
           {
             title: "Outlet Dashboard",
-            path: ``, 
+            path: `dashboard`, 
             icon: LayoutDashboard,
             exact: true,
           },
@@ -489,8 +546,7 @@ export const getSidebarMenu = (role: string, businessUnit: string, outletId?: st
       return [...outletMenu, ...scopedCommonMenu];
   }
 
-  // 1. Context Isolation Logic 🛡️
-  // If Super Admin enters a Business Unit, show ONLY Business Admin menu (Context Switching)
+
   if (role === 'super-admin' && businessUnit) {
       // Return 'business-admin' menu directly, bypassing 'super-admin' global menu
       const businessAdminMenu = sidebarMenuConfig.menus['business-admin'];
@@ -502,6 +558,8 @@ export const getSidebarMenu = (role: string, businessUnit: string, outletId?: st
   
   if (Object.prototype.hasOwnProperty.call(sidebarMenuConfig.menus, role)) {
       roleMenu = sidebarMenuConfig.menus[role as keyof typeof sidebarMenuConfig.menus];
+  } else if (role === 'admin') {
+      roleMenu = sidebarMenuConfig.menus['business-admin'];
   } else {
       roleMenu = dynamicMenu;
   }

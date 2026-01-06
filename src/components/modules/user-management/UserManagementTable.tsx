@@ -273,7 +273,12 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
         }
 
         if (viewScope === 'business') {
-            router.push('/global/user-management/business-users/add');
+            // Check if in scoped context
+            if (params["business-unit"]) {
+                router.push(`/${params["business-unit"]}/user-management/business-users/add`);
+            } else {
+                router.push('/global/user-management/business-users/add');
+            }
             return;
         }
 
@@ -281,8 +286,7 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
         if (params["business-unit"]) {
             router.push(`/${params["business-unit"]}/user-management/add-user`);
         } else {
-            // Default to business user add if not specified, or show modal?
-            // For safety, redirect to business add as it's the most common case
+            // Default to business user add if not specified
             router.push('/global/user-management/business-users/add');
         }
     }
@@ -696,6 +700,69 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
                     isLoading={isLoadingUsers}
                     renderSubComponent={(row) => {
                         const user = row.original;
+
+                        // 1. Gather all role assignments (Global + Scoped)
+                        const assignments: any[] = [];
+
+                        // A. Global Roles
+                        if (user.roles && user.roles.length > 0) {
+                            user.roles.forEach((r: any) => {
+                                const rId = typeof r === 'string' ? r : (r._id || r.id);
+                                const rName = (typeof r === 'object' && r.name) ? r.name : 'Unknown';
+                                assignments.push({
+                                    roleId: rId,
+                                    roleName: rName,
+                                    scopeType: 'GLOBAL',
+                                    scopeName: 'Global System',
+                                    scopeVariant: 'outline'
+                                });
+                            });
+                        }
+
+                        // B. Scoped Roles (Business Access)
+                        if (user.businessAccess && user.businessAccess.length > 0) {
+                            user.businessAccess.forEach((acc: any) => {
+                                let scopeName = 'Unknown Scope';
+                                let scopeVariant = 'secondary';
+                                let scopeType = acc.scope;
+
+                                // Resolve Scope Name
+                                if (acc.scope === 'GLOBAL') {
+                                    scopeName = 'Global System';
+                                    scopeVariant = 'outline';
+                                } else if (acc.outlet) {
+                                    scopeVariant = 'secondary';
+                                    let outletName = (typeof acc.outlet === 'object' && acc.outlet.name) ? acc.outlet.name : null;
+                                    let buName = (typeof acc.businessUnit === 'object' && acc.businessUnit.name) ? acc.businessUnit.name : 'Unknown BU';
+
+                                    if (!outletName && typeof acc.outlet === 'string') {
+                                        const found = availableOutlets.find((o: any) => o.id === acc.outlet || o._id === acc.outlet);
+                                        if (found) outletName = found.name;
+                                    }
+                                    scopeName = `${buName} > ${outletName || 'Outlet'}`;
+                                } else if (acc.businessUnit) {
+                                    scopeVariant = 'default'; // Primary/Business
+                                    if (typeof acc.businessUnit === 'object' && acc.businessUnit.name) {
+                                        scopeName = acc.businessUnit.name;
+                                    } else {
+                                        const found = availableBusinessUnits.find((b: any) => b.id === acc.businessUnit || b._id === acc.businessUnit);
+                                        scopeName = found ? found.name : 'Business Unit';
+                                    }
+                                }
+
+                                const rId = typeof acc.role === 'string' ? acc.role : (acc.role?._id || acc.role?.id);
+                                const rName = (typeof acc.role === 'object' && acc.role.name) ? acc.role.name : 'Unknown Role';
+
+                                assignments.push({
+                                    roleId: rId,
+                                    roleName: rName,
+                                    scopeType,
+                                    scopeName,
+                                    scopeVariant
+                                });
+                            });
+                        }
+
                         return (
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-2 bg-muted/30 rounded-lg">
                                 {/* Personal & Security Info */}
@@ -754,76 +821,84 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
                                     </div>
                                 </div>
 
-                                {/* Access & Roles (Consolidated) */}
+                                {/* Access & Roles (Expanded) */}
                                 <div className="space-y-4 col-span-1 md:col-span-2">
                                     <div>
                                         <h4 className="text-sm font-semibold mb-2 flex items-center text-primary">
-                                            <Layers className="mr-2 h-4 w-4" /> Access & Roles
+                                            <Layers className="mr-2 h-4 w-4" /> Access & Permissions
                                         </h4>
-                                        <div className="bg-card rounded-md border p-3 space-y-3 text-sm">
-                                            {user.permissions && user.permissions.length > 0 ? (
-                                                <div className="grid gap-2">
-                                                    {user.permissions.map((p: any, idx: number) => {
-                                                        // Resolve Scope Name
-                                                        let scopeName = 'Global System';
-                                                        let scopeVariant: "default" | "secondary" | "outline" = "outline";
+                                        <div className="bg-card rounded-md border p-3 space-y-3 text-sm max-h-[400px] overflow-y-auto">
+                                            {assignments.length > 0 ? (
+                                                <div className="space-y-4">
+                                                    {assignments.map((assign: any, idx: number) => {
+                                                        // Resolve Full Role Details from 'availableRoles' to get Permissions
+                                                        const fullRole = availableRoles.find((r: any) => (r._id === assign.roleId || r.id === assign.roleId));
 
-                                                        if (p.outlet) {
-                                                            scopeVariant = "secondary";
-                                                            let outletName = (p.outlet && typeof p.outlet === 'object' && p.outlet.name) ? p.outlet.name : null;
-                                                            let parentBUId = (p.outlet && typeof p.outlet === 'object' && p.outlet.businessUnit) ? p.outlet.businessUnit : null;
-
-                                                            if (!outletName) {
-                                                                const outletId = typeof p.outlet === 'string' ? p.outlet : (p.outlet._id || p.outlet.id);
-                                                                const foundOutlet = availableOutlets.find((o: any) => (o._id === outletId || o.id === outletId));
-                                                                if (foundOutlet) { outletName = foundOutlet.name; parentBUId = foundOutlet.businessUnit; }
-                                                            }
-
-                                                            let buName = 'Unknown BU';
-                                                            if (p.businessUnit) {
-                                                                if (typeof p.businessUnit === 'object' && p.businessUnit.name) buName = p.businessUnit.name;
-                                                                else {
-                                                                    const buId = typeof p.businessUnit === 'string' ? p.businessUnit : (p.businessUnit._id || p.businessUnit.id);
-                                                                    const foundBU = availableBusinessUnits.find((b: any) => (b._id === buId || b.id === buId));
-                                                                    if (foundBU) buName = foundBU.name;
-                                                                }
-                                                            } else if (parentBUId) {
-                                                                const buId = typeof parentBUId === 'string' ? parentBUId : (parentBUId._id || parentBUId.id);
-                                                                const foundBU = availableBusinessUnits.find((b: any) => (b._id === buId || b.id === buId));
-                                                                if (foundBU) buName = foundBU.name;
-                                                            }
-                                                            scopeName = `${buName} > ${outletName || 'Unknown'}`;
-                                                        } else if (p.businessUnit) {
-                                                            scopeVariant = "default";
-                                                            if (typeof p.businessUnit === 'object' && p.businessUnit.name) scopeName = p.businessUnit.name;
-                                                            else {
-                                                                const buId = typeof p.businessUnit === 'string' ? p.businessUnit : (p.businessUnit._id || p.businessUnit.id);
-                                                                const foundBU = availableBusinessUnits.find((b: any) => (b._id === buId || b.id === buId));
-                                                                if (foundBU) scopeName = foundBU.name;
-                                                            }
-                                                        }
-
-                                                        const roleName = p.role ? (typeof p.role === 'string' ? 'Role ID: ' + p.role : p.role.name) : 'Unknown Role';
+                                                        // Gather Permission Groups Names
+                                                        const groups = fullRole?.permissionGroups?.map((g: any) => typeof g === 'string' ? g : g.name) || [];
+                                                        // Gather Raw Permissions count
+                                                        const permCount = fullRole?.permissions?.length || 0;
 
                                                         return (
-                                                            <div key={idx} className="flex items-center justify-between p-3 bg-muted/40 rounded-md border hover:bg-muted/60 transition-colors">
-                                                                <div className="flex flex-col gap-1">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="font-semibold text-sm">{roleName}</span>
-                                                                        {p.role?.isSystemRole && <Badge variant="secondary" className="text-[10px] h-4">System</Badge>}
+                                                            <div key={idx} className="flex flex-col gap-2 p-3 bg-muted/40 rounded-md border hover:bg-muted/60 transition-colors">
+                                                                {/* Header: Role & Scope */}
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex flex-col gap-1">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="font-bold text-md">{assign.roleName || fullRole?.name || 'Unknown Role'}</span>
+                                                                            {fullRole?.isSystemRole && <Badge variant="secondary" className="text-[10px] h-4">System</Badge>}
+                                                                        </div>
+                                                                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                                            <MapPin className="h-3 w-3" />
+                                                                            <span>{assign.scopeName}</span>
+                                                                        </div>
                                                                     </div>
-                                                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                                        <MapPin className="h-3 w-3" />
-                                                                        <span>{scopeName}</span>
+                                                                    <Badge variant={assign.scopeVariant as any} className="uppercase">{assign.scopeType || 'Unknown'}</Badge>
+                                                                </div>
+
+                                                                {/* Body: Permissions/Groups */}
+                                                                <div className="mt-2 border-t pt-2">
+                                                                    <div className="flex flex-col gap-2">
+                                                                        {/* 1. Permission Groups (High Level) */}
+                                                                        {groups.length > 0 && (
+                                                                            <div className="flex flex-wrap gap-1 mb-1">
+                                                                                <span className="text-[10px] text-muted-foreground mr-1 font-semibold">Groups:</span>
+                                                                                {groups.map((g: string, gIdx: number) => (
+                                                                                    <Badge key={gIdx} variant="secondary" className="text-[10px] h-4">
+                                                                                        {g}
+                                                                                    </Badge>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* 2. Granular Permissions (Resource: Action) */}
+                                                                        {fullRole?.permissions && fullRole.permissions.length > 0 ? (
+                                                                            <div className="flex flex-wrap gap-1">
+                                                                                {fullRole.permissions.map((p: any, pIdx: number) => {
+                                                                                    const label = (typeof p === 'object' && p.resource && p.action)
+                                                                                        ? `${p.resource}:${p.action}`
+                                                                                        : (typeof p === 'string' ? p : 'Unknown Perm');
+
+                                                                                    return (
+                                                                                        <Badge key={pIdx} variant="outline" className="text-[10px] bg-background font-mono">
+                                                                                            {label}
+                                                                                        </Badge>
+                                                                                    )
+                                                                                })}
+                                                                            </div>
+                                                                        ) : (
+                                                                            <p className="text-xs text-muted-foreground">
+                                                                                {groups.length === 0 && `No detailed permissions found (Raw count: ${permCount})`}
+                                                                            </p>
+                                                                        )}
                                                                     </div>
                                                                 </div>
-                                                                <Badge variant={scopeVariant}>{scopeVariant === 'default' ? 'BU' : (scopeVariant === 'secondary' ? 'Outlet' : 'Global')}</Badge>
                                                             </div>
                                                         )
                                                     })}
                                                 </div>
                                             ) : (
-                                                <div className="text-muted-foreground italic text-xs p-4 text-center">No active permissions found.</div>
+                                                <div className="text-muted-foreground italic text-xs p-4 text-center">No role assignments found.</div>
                                             )}
                                         </div>
                                     </div>

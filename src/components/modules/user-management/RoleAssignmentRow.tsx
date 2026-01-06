@@ -16,6 +16,7 @@ interface RoleAssignmentRowProps {
     businessUnits: any[];
     onUpdate: (id: string, field: string, value: any) => void;
     onRemove: (id: string) => void;
+    lockedBusinessUnitId?: string;
 }
 
 export function RoleAssignmentRow({
@@ -23,7 +24,8 @@ export function RoleAssignmentRow({
     roles,
     businessUnits,
     onUpdate,
-    onRemove
+    onRemove,
+    lockedBusinessUnitId
 }: RoleAssignmentRowProps) {
     // Fetch outlets for this specific row's Business Unit
     const { data: outletsData, isLoading: isOutletsLoading } = useGetOutletsQuery(
@@ -32,6 +34,16 @@ export function RoleAssignmentRow({
     );
 
     const outlets = Array.isArray(outletsData) ? outletsData : (outletsData?.data || []);
+
+    const filteredRoles = React.useMemo(() => {
+        if (assignment.businessUnit) {
+            // Business Context: Show Business and Outlet roles
+            return roles.filter((r: any) => r.roleScope !== 'GLOBAL');
+        } else {
+            // Global Context (No BU selected): Show Global roles only
+            return roles.filter((r: any) => r.roleScope === 'GLOBAL');
+        }
+    }, [roles, assignment.businessUnit]);
 
     return (
         <TableRow>
@@ -44,7 +56,7 @@ export function RoleAssignmentRow({
                         <SelectValue placeholder="Select Role" />
                     </SelectTrigger>
                     <SelectContent>
-                        {roles.map((role: any) => (
+                        {filteredRoles.map((role: any) => (
                             <SelectItem key={role._id} value={role._id}>
                                 {role.name}
                             </SelectItem>
@@ -59,6 +71,7 @@ export function RoleAssignmentRow({
                         onUpdate(assignment.tempId, "businessUnit", val);
                         onUpdate(assignment.tempId, "outlet", null); // Reset outlet
                     }}
+                    disabled={!!lockedBusinessUnitId}
                 >
                     <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select Scope" />

@@ -61,6 +61,8 @@ import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitA
 import { useGetProductsQuery } from "@/redux/api/catalog/productApi";
 import { usePermissions } from "@/hooks/usePermissions";
 
+import { PURCHASE_STATUS_OPTIONS, PURCHASE_PAYMENT_METHOD_OPTIONS, PURCHASE_PAYMENT_STATUS_OPTIONS } from "@/constant/purchase.constant";
+
 // Schema
 const purchaseSchema = z.object({
     supplier: z.string().min(1, "Supplier is required"),
@@ -69,7 +71,7 @@ const purchaseSchema = z.object({
     dueDate: z.date().optional(),
     businessUnit: z.string().min(1, "Business Unit is required"),
     outlet: z.string().min(1, "Outlet is required"),
-    status: z.enum(["pending", "ordered", "received"]),
+    status: z.enum(PURCHASE_STATUS_OPTIONS.map(o => o.value) as [string, ...string[]]),
     items: z.array(z.object({
         product: z.string(),
         productName: z.string(),
@@ -87,8 +89,8 @@ const purchaseSchema = z.object({
 
     // Payment
     paidAmount: z.number().optional(),
-    paymentMethod: z.enum(['cash', 'card', 'bank_transfer', 'mobile_banking', 'cheque', 'credit']).optional(),
-    paymentStatus: z.enum(['pending', 'partial', 'paid']).optional()
+    paymentMethod: z.enum(PURCHASE_PAYMENT_METHOD_OPTIONS.map(o => o.value) as [string, ...string[]]).optional(),
+    paymentStatus: z.enum(PURCHASE_PAYMENT_STATUS_OPTIONS.map(o => o.value) as [string, ...string[]]).optional()
 });
 
 type PurchaseFormValues = z.infer<typeof purchaseSchema>;
@@ -453,9 +455,11 @@ export function CreatePurchaseForm() {
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="pending">Pending</SelectItem>
-                                                    <SelectItem value="ordered">Ordered</SelectItem>
-                                                    <SelectItem value="received">Received</SelectItem>
+                                                    {PURCHASE_STATUS_OPTIONS.map((option) => (
+                                                        <SelectItem key={option.value} value={option.value}>
+                                                            {option.label}
+                                                        </SelectItem>
+                                                    ))}
                                                 </SelectContent>
                                             </Select>
                                             {field.value === 'received' && (
@@ -489,12 +493,11 @@ export function CreatePurchaseForm() {
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="cash">Cash</SelectItem>
-                                                    <SelectItem value="card">Card</SelectItem>
-                                                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                                                    <SelectItem value="mobile_banking">Mobile Banking</SelectItem>
-                                                    <SelectItem value="cheque">Cheque</SelectItem>
-                                                    <SelectItem value="credit">Credit (Due)</SelectItem>
+                                                    {PURCHASE_PAYMENT_METHOD_OPTIONS.map((option) => (
+                                                        <SelectItem key={option.value} value={option.value}>
+                                                            {option.label}
+                                                        </SelectItem>
+                                                    ))}
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />

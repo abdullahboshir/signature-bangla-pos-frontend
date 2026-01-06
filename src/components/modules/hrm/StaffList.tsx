@@ -7,29 +7,45 @@ import { Users, Plus } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
 import { PERMISSION_KEYS } from "@/config/permission-keys"
 import { ColumnDef } from "@tanstack/react-table"
+import { useGetAllUsersQuery } from "@/redux/api/iam/userApi"
+import { Badge } from "@/components/ui/badge"
 
 export default function StaffList() {
     const { hasPermission } = usePermissions();
+    const { data: rawData, isLoading } = useGetAllUsersQuery({});
 
-    const data: any[] = [];
-    const isLoading = false;
+    // Filter mainly staff members (non-customers) or show all with role badge
+    const staffData = Array.isArray(rawData) ? rawData.filter((u: any) => u.role?.name !== 'customer') : [];
 
     const columns: ColumnDef<any>[] = [
         {
             accessorKey: "name",
             header: "Name",
+            cell: ({ row }) => (
+                <div>
+                    <div className="font-medium">{row.original.name}</div>
+                    <div className="text-xs text-muted-foreground">{row.original.email}</div>
+                </div>
+            )
         },
         {
-            accessorKey: "position",
-            header: "Position",
+            accessorKey: "role",
+            header: "Role",
+            cell: ({ row }) => <Badge className="uppercase">{row.original.role?.name || 'N/A'}</Badge>
         },
         {
-            accessorKey: "department",
-            header: "Department",
+            accessorKey: "businessUnit",
+            header: "Business Unit",
+            cell: ({ row }) => <span>{row.original.businessUnit?.name || 'Global'}</span>
         },
         {
             accessorKey: "status",
             header: "Status",
+            cell: ({ row }) => (
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.original.isActive !== false ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                    {row.original.isActive !== false ? "Active" : "Inactive"}
+                </span>
+            )
         }
     ];
 
@@ -57,8 +73,9 @@ export default function StaffList() {
             <CardContent>
                 <DataTable
                     columns={columns}
-                    data={data}
+                    data={staffData}
                     isLoading={isLoading}
+                    searchKey="name"
                 />
             </CardContent>
         </Card>

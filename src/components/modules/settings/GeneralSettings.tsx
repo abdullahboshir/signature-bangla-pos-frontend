@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-export function GeneralSettings({ data, onChange }: { data: any, onChange: (key: string, value: any) => void }) {
+export function GeneralSettings({ data, onChange, isBusinessUnit = false }: { data: any, onChange: (key: string, value: any) => void, isBusinessUnit?: boolean }) {
     if (!data) return null;
 
     const updateDisplay = (key: string, value: any) => {
@@ -98,55 +98,57 @@ export function GeneralSettings({ data, onChange }: { data: any, onChange: (key:
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>SEO Settings</CardTitle>
-                    <CardDescription>Search engine optimization configuration</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid gap-2">
-                        <Label>Meta Robots</Label>
-                        <Select
-                            value={data.seo?.metaRobots || 'index, follow'}
-                            onValueChange={(val) => updateSeo('metaRobots', val)}
-                        >
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="index, follow">Index, Follow</SelectItem>
-                                <SelectItem value="noindex, follow">No Index, Follow</SelectItem>
-                                <SelectItem value="index, nofollow">Index, No Follow</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="flex items-center justify-between">
-                            <Label>Generate Sitemap</Label>
-                            <Switch
-                                checked={data.seo?.sitemap?.enabled}
-                                onCheckedChange={(c) => onChange('seo', { ...data.seo, sitemap: { ...data.seo?.sitemap, enabled: c } })}
-                            />
+            {!isBusinessUnit && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>SEO Settings</CardTitle>
+                        <CardDescription>Search engine optimization configuration</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid gap-2">
+                            <Label>Meta Robots</Label>
+                            <Select
+                                value={data.seo?.metaRobots || 'index, follow'}
+                                onValueChange={(val) => updateSeo('metaRobots', val)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="index, follow">Index, Follow</SelectItem>
+                                    <SelectItem value="noindex, follow">No Index, Follow</SelectItem>
+                                    <SelectItem value="index, nofollow">Index, No Follow</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
-                        <div className="flex items-center justify-between">
-                            <Label>Canonical URLs</Label>
-                            <Switch checked={data.seo?.canonicalUrls} onCheckedChange={(c) => updateSeo('canonicalUrls', c)} />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex items-center justify-between">
+                                <Label>Generate Sitemap</Label>
+                                <Switch
+                                    checked={data.seo?.sitemap?.enabled}
+                                    onCheckedChange={(c) => onChange('seo', { ...data.seo, sitemap: { ...data.seo?.sitemap, enabled: c } })}
+                                />
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <Label>Canonical URLs</Label>
+                                <Switch checked={data.seo?.canonicalUrls} onCheckedChange={(c) => updateSeo('canonicalUrls', c)} />
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <Label>Structured Data (JSON-LD)</Label>
+                                <Switch checked={data.seo?.structuredData} onCheckedChange={(c) => updateSeo('structuredData', c)} />
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <Label>Open Graph (Facebook)</Label>
+                                <Switch checked={data.seo?.openGraph} onCheckedChange={(c) => updateSeo('openGraph', c)} />
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <Label>Twitter Card</Label>
+                                <Switch checked={data.seo?.twitterCard} onCheckedChange={(c) => updateSeo('twitterCard', c)} />
+                            </div>
                         </div>
-                        <div className="flex items-center justify-between">
-                            <Label>Structured Data (JSON-LD)</Label>
-                            <Switch checked={data.seo?.structuredData} onCheckedChange={(c) => updateSeo('structuredData', c)} />
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <Label>Open Graph (Facebook)</Label>
-                            <Switch checked={data.seo?.openGraph} onCheckedChange={(c) => updateSeo('openGraph', c)} />
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <Label>Twitter Card</Label>
-                            <Switch checked={data.seo?.twitterCard} onCheckedChange={(c) => updateSeo('twitterCard', c)} />
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Prefixes Configuration */}
             <Card>

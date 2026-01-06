@@ -114,10 +114,37 @@ export default function LoginModal({ open = false, onOpenChange }: LoginModalPro
             if (!isLoginPage && onOpenChange) onOpenChange(false);
 
             // Navigate to dashboard
+            // Navigate to dashboard based on Role/Level
             if (res.redirect) {
                 router.push(res.redirect);
             } else {
-                router.push("/super-admin/telemedicine");
+                // FALLBACK INTELLIGENT ROUTING
+                let roleName = "";
+                const userRole = res?.user?.role as any;
+
+                if (typeof userRole === 'string') {
+                    roleName = userRole.toLowerCase();
+                } else if (userRole?.name) {
+                    roleName = userRole.name.toLowerCase();
+                }
+
+                if (['shareholder', 'investor', 'board_member'].includes(roleName)) {
+                    router.push('/governance');
+                } else if (roleName === 'super-admin') {
+                    router.push('/super-admin/dashboard');
+                } else if (res?.user?.businessAccess && res.user.businessAccess.length > 0) {
+                    // Go to first business unit
+                    const access = res.user.businessAccess[0];
+                    // Handle if businessUnit is populated object OR just ID string
+                    const slug = (typeof access.businessUnit === 'object' && access.businessUnit !== null)
+                        ? (access.businessUnit.slug || access.businessUnit.id)
+                        : access.businessUnit;
+
+                    router.push(`/${roleName}/${slug}/dashboard`);
+                } else {
+                    // Default safe fallback
+                    router.push("/global/companies");
+                }
             }
 
             setFormData({ firstName: "", lastName: "", email: "", password: "" });

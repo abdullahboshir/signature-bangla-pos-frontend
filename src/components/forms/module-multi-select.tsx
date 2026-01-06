@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
     Command,
     CommandEmpty,
@@ -110,6 +111,29 @@ export const ModuleMultiSelect = ({
                         <CommandList>
                             <CommandEmpty>No module found.</CommandEmpty>
                             <CommandGroup>
+                                <CommandItem
+                                    onSelect={() => {
+                                        if (value.length === options.length) {
+                                            onChange([]);
+                                        } else {
+                                            onChange(options.map((o) => o.value));
+                                        }
+                                    }}
+                                    className="font-medium border-b mb-1"
+                                >
+                                    <div
+                                        className={cn(
+                                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                            value.length === options.length
+                                                ? "bg-primary text-primary-foreground"
+                                                : "opacity-50 [&_svg]:invisible"
+                                        )}
+                                    >
+                                        <Check className={cn("h-4 w-4")} />
+                                    </div>
+                                    <span>Select All</span>
+                                </CommandItem>
+
                                 {options.map((option) => {
                                     const isSelected = value.includes(option.value);
                                     return (
@@ -144,7 +168,7 @@ export const ModuleMultiSelect = ({
     if (controlledValue !== undefined && controlledOnChange !== undefined) {
         return (
             <div className={cn("w-full", className)}>
-                {label && <FormLabel className="mb-2 block">{label}</FormLabel>}
+                {label && <Label className="mb-2 block text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{label}</Label>}
                 {renderSelect(controlledValue, controlledOnChange)}
             </div>
         );

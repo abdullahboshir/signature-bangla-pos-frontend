@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useParams } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useParams, useSearchParams, useRouter, usePathname } from "next/navigation"
 import { useGetOutletQuery } from "@/redux/api/organization/outletApi"
 import {
     Select,
@@ -14,9 +14,37 @@ import { DashboardGrid } from "@/components/dashboard/DashboardGrid"
 
 export default function DashboardPage() {
     const params = useParams()
+    const searchParams = useSearchParams()
+    const router = useRouter()
+    const pathname = usePathname()
+
     // Note: params key depends on folder structure [business-unit]
     const businessUnitId = params["business-unit"] as string
-    const [selectedOutletId, setSelectedOutletId] = useState<string>("all")
+
+    const outletParam = searchParams.get("outlet");
+    const [selectedOutletId, setSelectedOutletId] = useState<string>(outletParam || "all")
+
+    // Sync state with URL if it changes
+    useEffect(() => {
+        if (outletParam) {
+            setSelectedOutletId(outletParam);
+        } else {
+            setSelectedOutletId("all");
+        }
+    }, [outletParam]);
+
+    const handleOutletChange = (value: string) => {
+        setSelectedOutletId(value);
+
+        // Update URL to persist selection
+        const newParams = new URLSearchParams(searchParams.toString());
+        if (value === "all") {
+            newParams.delete("outlet");
+        } else {
+            newParams.set("outlet", value);
+        }
+        router.push(`${pathname}?${newParams.toString()}`);
+    };
 
     const { data: outletData, isLoading } = useGetOutletQuery({
         businessUnit: businessUnitId,
@@ -39,7 +67,7 @@ export default function DashboardPage() {
                 <div className="w-[200px]">
                     <Select
                         value={selectedOutletId}
-                        onValueChange={setSelectedOutletId}
+                        onValueChange={handleOutletChange}
                         disabled={isLoading}
                     >
                         <SelectTrigger>

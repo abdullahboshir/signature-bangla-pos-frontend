@@ -32,6 +32,8 @@ interface SidebarItemProps {
   role: string
 }
 
+import { usePermission } from "@/hooks/usePermission"
+
 export function SidebarItem({
   item,
   isCollapsed,
@@ -40,9 +42,28 @@ export function SidebarItem({
   businessUnit,
   role,
 }: SidebarItemProps) {
+  const { can } = usePermission();
   const [isOpen, setIsOpen] = useState(false)
 
-  const hasChildren = item.children && item.children.length > 0
+  // 🔒 Permission Check
+  if (item.resource) {
+    // Default action is 'read' (or 'view' depending on convention, usually 'read' in IAM)
+    // If sidebar-menu.ts uses 'view', change default here.
+    // Based on permission-keys.ts, ACTION_KEYS.READ/VIEW might be used.
+    // Assuming 'read' is the standard default for menu visibility.
+    const action = item.action || 'read';
+    if (!can(item.resource, action)) {
+      return null;
+    }
+  }
+
+  // Filter children based on permissions
+  const filteredChildren = item.children?.filter((child: any) => {
+    if (!child.resource) return true; // No resource check = public/allowed
+    return can(child.resource, child.action || 'read');
+  }) || [];
+
+  const hasChildren = filteredChildren.length > 0
   const Icon = item.icon
 
   // [FIX] Use the absolute path directly from sidebar-menu.ts
@@ -72,7 +93,7 @@ export function SidebarItem({
           <DropdownMenuContent side="right" align="start" className="w-48 ml-2">
             <DropdownMenuLabel>{item.title}</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {item.children.map((child: any, index: number) => {
+            {filteredChildren.map((child: any, index: number) => {
               // [FIX] Use absolute child path directly
               const childFullPath = child.path || '#';
               const isChildActive = currentPath === childFullPath
@@ -118,7 +139,7 @@ export function SidebarItem({
 
         <CollapsibleContent>
           <div className="ml-4 mt-1 space-y-1">
-            {item.children.map((child: any, index: number) => {
+            {filteredChildren.map((child: any, index: number) => {
               // [FIX] Use absolute child path directly
               const childFullPath = child.path || '#';
               const isChildActive = currentPath === childFullPath

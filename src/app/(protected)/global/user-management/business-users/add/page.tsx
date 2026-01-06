@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import { useCreateUserMutation } from "@/redux/api/iam/userApi"
@@ -9,6 +9,7 @@ import { UserForm } from "@/components/modules/user-management/UserForm"
 
 export default function AddBusinessUserPage() {
     const router = useRouter()
+    const params = useParams()
     const [createUser, { isLoading, error: userError }] = useCreateUserMutation()
 
     const handleSubmit = async (payload: any) => {
@@ -18,10 +19,13 @@ export default function AddBusinessUserPage() {
             router.back()
         } catch (error: any) {
             console.error("User creation error:", error)
-            if (error?.data?.errorSources) {
-                toast.error("Please check the form for errors.")
+            // Prioritize backend message (e.g. "User with this email already exists!")
+            if (error?.data?.message) {
+                toast.error(error.data.message);
+            } else if (error?.data?.errorSources) {
+                toast.error("Please check the form for errors.");
             } else {
-                toast.error(error?.data?.message || "Failed to create user")
+                toast.error(error?.message || "Failed to create user");
             }
         }
     }
@@ -47,6 +51,7 @@ export default function AddBusinessUserPage() {
                 apiError={userError}
                 isSubmitting={isLoading}
                 targetScope="BUSINESS"
+                initialBusinessUnitSlug={params && params['business-unit'] ? params['business-unit'] as string : undefined}
             />
         </div>
     )

@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
 
-export function SystemSettings({ data, onChange }: { data: any, onChange: (key: string, value: any) => void }) {
+export function SystemSettings({ data, onChange, isBusinessUnit = false }: { data: any, onChange: (key: string, value: any) => void, isBusinessUnit?: boolean }) {
     if (!data) return null;
 
     const updateSecurity = (key: string, value: any) => {
@@ -25,48 +25,57 @@ export function SystemSettings({ data, onChange }: { data: any, onChange: (key: 
 
     return (
         <div className="space-y-6">
-            {/* Security Settings */}
+            {/* Security Settings - Global Only for certain fields */}
             <Card>
                 <CardHeader>
                     <CardTitle>Security Settings</CardTitle>
                     <CardDescription>Manage security protocols and access controls</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label>Enable HTTPS Redirection</Label>
-                        </div>
-                        <Switch
-                            checked={data.security?.enableHttps}
-                            onCheckedChange={(c) => updateSecurity('enableHttps', c)}
-                        />
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label>Enable CAPTCHA on Login</Label>
-                        </div>
-                        <Switch
-                            checked={data.security?.enableCaptcha}
-                            onCheckedChange={(c) => updateSecurity('enableCaptcha', c)}
-                        />
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <Label>Block Failed Login Attempts</Label>
-                        </div>
-                        <Switch
-                            checked={data.security?.blockFailedLogins}
-                            onCheckedChange={(c) => updateSecurity('blockFailedLogins', c)}
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label>Session Timeout (Minutes)</Label>
-                        <Input
-                            type="number"
-                            value={data.security?.sessionTimeout || 30}
-                            onChange={(e) => updateSecurity('sessionTimeout', parseFloat(e.target.value))}
-                        />
-                    </div>
+                    {!isBusinessUnit && (
+                        <>
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label>Enable HTTPS Redirection</Label>
+                                </div>
+                                <Switch
+                                    checked={data.security?.enableHttps}
+                                    onCheckedChange={(c) => updateSecurity('enableHttps', c)}
+                                />
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label>Enable CAPTCHA on Login</Label>
+                                </div>
+                                <Switch
+                                    checked={data.security?.enableCaptcha}
+                                    onCheckedChange={(c) => updateSecurity('enableCaptcha', c)}
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    {!isBusinessUnit && (
+                        <>
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label>Block Failed Login Attempts</Label>
+                                </div>
+                                <Switch
+                                    checked={data.security?.blockFailedLogins}
+                                    onCheckedChange={(c) => updateSecurity('blockFailedLogins', c)}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label>Session Timeout (Minutes)</Label>
+                                <Input
+                                    type="number"
+                                    value={data.security?.sessionTimeout || 30}
+                                    onChange={(e) => updateSecurity('sessionTimeout', parseFloat(e.target.value))}
+                                />
+                            </div>
+                        </>
+                    )}
                 </CardContent>
             </Card>
 

@@ -1,16 +1,26 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, Plus, MinusIcon } from "lucide-react"
-import { useGetRolesQuery } from "@/redux/api/iam/roleApi"
+import { useGetRolesQuery, useGetPermissionsQuery, useGetPermissionGroupsQuery, useGetPermissionResourcesQuery } from "@/redux/api/iam/roleApi"
 import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi"
+import { useGetSystemSettingsQuery } from "@/redux/api/system/settingsApi";
 import { OutletMultiSelect } from "@/components/modules/user-management/OutletMultiSelect"
-import { DirectPermissionSelector } from "@/components/modules/user-management/DirectPermissionSelector"
+import { User } from "@/types/user";
+import { RESOURCE_KEYS, PLATFORM_RESOURCES, MODULE_RESOURCE_MAP } from "@/config/permission-keys";
+import { PermissionSelectorShared } from "@/components/modules/user-management/PermissionSelectorShared"
 import { toast } from "sonner"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
 export interface UserFormProps {
     initialData?: any;
@@ -19,13 +29,56 @@ export interface UserFormProps {
     isSubmitting: boolean;
     onCancel: () => void;
     apiError?: any;
+
     targetScope?: 'GLOBAL' | 'BUSINESS'; // New Prop for context awareness
+    initialBusinessUnitSlug?: string;
 }
 
-export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, apiError, targetScope }: UserFormProps) {
+export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, apiError, targetScope, initialBusinessUnitSlug }: UserFormProps) {
     // Query Hooks
-    const { data: rolesData } = useGetRolesQuery({})
+    const { data: rolesData } = useGetRolesQuery({}, { refetchOnMountOrArgChange: true })
     const { data: businessUnitsData } = useGetBusinessUnitsQuery(undefined)
+    const { data: permissionGroupsData } = useGetPermissionGroupsQuery({ limit: 1000 }) // Fetch more groups
+    const { data: permissionsDataForLookup } = useGetPermissionsQuery({ limit: 5000 }, { refetchOnMountOrArgChange: true }) // Fetch all for lookup
+    const { data: allResources } = useGetPermissionResourcesQuery(undefined);
+    const { data: systemSettings } = useGetSystemSettingsQuery(undefined);
+
+    const filteredResources = useMemo(() => {
+        if (!allResources) return [];
+
+        // 1. Filter by Active Modules (System Settings)
+        // If systemSettings is loaded, strictly hide modules that are OFF.
+        let resources = allResources;
+
+        if (systemSettings?.enabledModules) {
+            const activeModules = systemSettings.enabledModules;
+            const blockedResources = new Set<string>();
+
+            // Identify all blocked resources based on disabled modules
+            Object.entries(activeModules).forEach(([moduleKey, isEnabled]) => {
+                if (isEnabled === false) {
+                    // Check map for resources to block
+                    // We handle case-insensitivity just in case, though keys should match
+                    const resourcesToBlock = MODULE_RESOURCE_MAP[moduleKey] || MODULE_RESOURCE_MAP[moduleKey.toLowerCase()];
+                    if (resourcesToBlock) {
+                        resourcesToBlock.forEach(r => blockedResources.add(r));
+                    }
+                }
+            });
+
+            // Filter out any resource that is in the blocked set
+            resources = resources.filter((r: string) => !blockedResources.has(r));
+        }
+
+        // 2. Filter by Target Scope (Business vs Global)
+        // If Target Scope is GLOBAL, show ALL resources (including Platform) that survived step 1
+        if (targetScope === 'GLOBAL') {
+            return resources;
+        }
+
+        // Default / Business Context: Filter out platform resources
+        return resources.filter((r: string) => !PLATFORM_RESOURCES.includes(r as any) && !PLATFORM_RESOURCES.includes(r.toLowerCase() as any));
+    }, [allResources, targetScope, systemSettings]);
 
     const roles = Array.isArray(rolesData)
         ? rolesData
@@ -34,6 +87,10 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
     const businessUnits = Array.isArray(businessUnitsData)
         ? businessUnitsData
         : ((businessUnitsData as any)?.data?.result || (businessUnitsData as any)?.data || []);
+
+    const permissionGroups = Array.isArray(permissionGroupsData)
+        ? permissionGroupsData
+        : (permissionGroupsData as any)?.data?.result || (permissionGroupsData as any)?.data || permissionGroupsData?.result || [];
 
     // State
     const [formData, setFormData] = useState({
@@ -52,7 +109,32 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
     const [directPermissions, setDirectPermissions] = useState<string[]>([]);
     const [errors, setErrors] = useState<Record<string, string>>({})
 
+    // Compute Locked BU ID (Context Awareness)
+    const lockedBusinessUnitId = useMemo(() => {
+        if (!initialBusinessUnitSlug || !businessUnits || businessUnits.length === 0) return undefined;
+        // Match by slug (preferred) or ID
+        const matched = businessUnits.find((b: any) =>
+            (b.slug && b.slug.toLowerCase() === initialBusinessUnitSlug.toLowerCase()) ||
+            b.id === initialBusinessUnitSlug ||
+            b._id === initialBusinessUnitSlug
+        );
+        return matched?._id || matched?.id;
+    }, [initialBusinessUnitSlug, businessUnits]);
+
+    // Force initialization of Role Assignment with Locked BU
+    useEffect(() => {
+        if (mode === 'create' && roleAssignments.length === 0 && lockedBusinessUnitId) {
+            setRoleAssignments([{
+                role: "",
+                businessUnit: lockedBusinessUnitId,
+                outlets: [],
+                tempId: Math.random().toString(36).substr(2, 9)
+            }]);
+        }
+    }, [mode, lockedBusinessUnitId, roleAssignments.length]);
+
     // Error Handling Effect
+
     useEffect(() => {
         if (apiError && apiError.data && apiError.data.errorSources) {
             const newErrors: Record<string, string> = {};
@@ -75,7 +157,7 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
                 lastName: initialData.name?.lastName || "",
                 email: initialData.email || "",
                 phone: initialData.phone || "",
-                password: "", // Don't populate password
+                password: "",
             });
 
             // Populate Assignments (Grouping Logic)
@@ -142,6 +224,152 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
             }
         }
     }, [initialData, mode]);
+
+    // Auto-select permission groups from assigned roles
+    useEffect(() => {
+        // Collect all permission group IDs from all assigned roles
+        const autoSelectedGroupIds = new Set<string>();
+
+        roleAssignments.forEach(assignment => {
+            if (assignment.role) {
+                const role = roles.find((r: any) => r._id === assignment.role);
+                if (role?.permissionGroups) {
+                    role.permissionGroups.forEach((pgId: string) => {
+                        autoSelectedGroupIds.add(pgId);
+                    });
+                }
+            }
+        });
+
+        // Add auto-selected groups to direct permissions if not already there
+        if (autoSelectedGroupIds.size > 0) {
+            setDirectPermissions(prev => {
+                const newSelected = [...prev];
+                autoSelectedGroupIds.forEach(pgId => {
+                    if (!newSelected.includes(pgId)) {
+                        newSelected.push(pgId);
+                    }
+                });
+                return newSelected;
+            });
+        }
+    }, [roleAssignments, roles]);
+
+    // Collect all permission group IDs from assigned roles for highlighting
+    const rolePermissionGroupIds = useMemo(() => {
+        const groupIds = new Set<string>();
+        roleAssignments.forEach(assignment => {
+            if (assignment.role) {
+                const role = roles.find((r: any) => r._id === assignment.role);
+                if (role?.permissionGroups) {
+                    role.permissionGroups.forEach((pgId: string) => groupIds.add(pgId));
+                }
+            }
+        });
+        return Array.from(groupIds);
+    }, [roleAssignments, roles]);
+
+    // Collect all individual permission IDs and counts per resource from assigned roles
+    const { rolePermissionIds, rolePermissionCounts } = useMemo(() => {
+        const permIds = new Set<string>();
+        const counts: Record<string, number> = {};
+
+        // Normalize global permissions list for lookup
+        const allPermissions = Array.isArray(permissionsDataForLookup)
+            ? permissionsDataForLookup
+            : (permissionsDataForLookup as any)?.result || (permissionsDataForLookup as any)?.data || [];
+
+        // Helper to add count (case-insensitive key)
+        const addCount = (resource: string) => {
+            if (!resource) return;
+            const key = resource.toLowerCase();
+            counts[key] = (counts[key] || 0) + 1;
+        };
+
+        roleAssignments.forEach(assignment => {
+            if (assignment.role) {
+                const role = roles.find((r: any) => r._id === assignment.role);
+                if (!role) return;
+
+                // 1. Direct Role Permissions (Array of IDs strings or Objects)
+                if (role.permissions) {
+                    role.permissions.forEach((p: any) => {
+                        // Handle both populated objects and ID strings
+                        let permId = null;
+                        let resource = null;
+
+                        if (typeof p === 'object' && p !== null) {
+                            permId = p._id || p.id;
+                            // USE POPULATED RESOURCE IF AVAILABLE
+                            if (p.resource) {
+                                resource = p.resource;
+                            }
+                        } else {
+                            permId = p;
+                        }
+
+                        // Fallback: Find full permission object to get resource
+                        if (permId && !resource) {
+                            const perm = allPermissions.find((ap: any) => ap._id === permId);
+                            if (perm) {
+                                resource = perm.resource;
+                            }
+                        }
+
+                        if (permId) {
+                            permIds.add(permId);
+                            if (resource) addCount(resource);
+                        }
+                    });
+                }
+
+                // 2. Permission Groups
+                if (role.permissionGroups) {
+                    role.permissionGroups.forEach((pg: any) => {
+                        // Handle both populated objects and ID strings
+                        const pgId = (typeof pg === 'object' && pg !== null) ? (pg._id || pg.id) : pg;
+
+                        const group = permissionGroups.find((g: any) => (g._id || g.id) === pgId);
+                        if (group?.permissions) {
+                            group.permissions.forEach((perm: any) => {
+                                // Handle both string IDs and object permissions
+                                let permId, resource;
+
+                                if (typeof perm === 'string') {
+                                    permId = perm;
+                                    const found = allPermissions.find((p: any) => p._id === perm);
+                                    resource = found?.resource;
+                                } else {
+                                    permId = perm._id || perm.id;
+                                    resource = perm.resource;
+                                }
+
+                                if (permId) {
+                                    permIds.add(permId);
+                                    if (resource) addCount(resource);
+                                }
+                            });
+                        }
+                    });
+                }
+            }
+        });
+
+        return {
+            rolePermissionIds: Array.from(permIds),
+            rolePermissionCounts: counts
+        };
+    }, [roleAssignments, roles, permissionGroups, permissionsDataForLookup]);
+
+    // Auto-select permissions from assigned roles
+    useEffect(() => {
+        if (rolePermissionIds.length > 0) {
+            setDirectPermissions(prev => {
+                const combined = new Set([...prev, ...rolePermissionIds]);
+                return Array.from(combined);
+            });
+        }
+    }, [rolePermissionIds]);
 
     // Handlers
     const addRoleAssignment = () => {
@@ -215,7 +443,8 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
                         businessUnit: r.businessUnit,
                         outlet: null,
                         scope: 'BUSINESS',
-                        isPrimary: false
+                        isPrimary: false,
+                        status: 'ACTIVE'
                     });
                 }
             } else {
@@ -224,7 +453,8 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
                     businessUnit: null,
                     outlet: null,
                     scope: 'GLOBAL',
-                    isPrimary: false
+                    isPrimary: false,
+                    status: 'ACTIVE'
                 });
             }
         });
@@ -240,10 +470,11 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
             phone: formData.phone,
             permissions: permissionsPayload, // For Create Controller (Legacy)
             businessAccess: permissionsPayload, // For Update Service (New Model)
-            directPermissions: {
-                allow: directPermissions,
-                deny: []
-            },
+            directPermissions: directPermissions.map(permId => ({
+                permissionId: permId,
+                type: 'allow',
+                assignedScope: targetScope === 'BUSINESS' ? 'BUSINESS' : 'GLOBAL',
+            })),
             // Legacy Back-compat
             roles: permissionsPayload.map(p => p.role),
             businessUnits: permissionsPayload.map(p => p.businessUnit).filter(Boolean),
@@ -254,7 +485,7 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
         if (formData.password) {
             payload.password = formData.password;
         } else if (mode === 'create') {
-            payload.password = "DefaultPass123!"; // Fallback
+            payload.password = "@Abcd1234@";
         }
 
         await onSubmit(payload);
@@ -262,9 +493,9 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
 
     return (
         <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Details Column */}
-                <div className="lg:col-span-1 space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-6">
+                {/* Details Column - Narrower */}
+                <div className="space-y-6">
                     <Card>
                         <CardHeader>
                             <CardTitle>User Details</CardTitle>
@@ -355,7 +586,7 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
                                                     </Button>
                                                 </div>
 
-                                                <div className="space-y-3 text-sm">
+                                                <div className="space-y-3 text-sm ">
                                                     <div className="space-y-1">
                                                         <Label className="text-xs text-muted-foreground">Business Unit</Label>
                                                         {targetScope === 'GLOBAL' ? (
@@ -369,7 +600,10 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
                                                                 onChange={(e) => {
                                                                     updateRoleAssignment(assignment.tempId, "businessUnit", e.target.value);
                                                                     updateRoleAssignment(assignment.tempId, "outlets", []);
+                                                                    // Critial: Reset Role when switching Business Unit (changes context)
+                                                                    updateRoleAssignment(assignment.tempId, "role", "");
                                                                 }}
+                                                                disabled={!!lockedBusinessUnitId}
                                                             >
                                                                 <option value="">Global (No Business Unit)</option>
                                                                 {businessUnits.map((bu: any) => (
@@ -385,37 +619,69 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
                                                             <OutletMultiSelect
                                                                 businessUnitId={assignment.businessUnit}
                                                                 selectedOutlets={assignment.outlets}
-                                                                onChange={(newOutlets) => updateRoleAssignment(assignment.tempId, "outlets", newOutlets)}
+                                                                onChange={(newOutlets) => {
+                                                                    updateRoleAssignment(assignment.tempId, "outlets", newOutlets);
+                                                                    // Critial: Reset Role when outlets change (potential context switch Outlet <-> Business)
+                                                                    updateRoleAssignment(assignment.tempId, "role", "");
+                                                                }}
                                                             />
                                                         </div>
                                                     )}
 
                                                     <div className="space-y-1">
                                                         <Label className="text-xs text-muted-foreground">Role</Label>
-                                                        <select
-                                                            className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                                        <Select
                                                             value={assignment.role}
-                                                            onChange={(e) => updateRoleAssignment(assignment.tempId, "role", e.target.value)}
+                                                            onValueChange={(val) => updateRoleAssignment(assignment.tempId, "role", val)}
                                                         >
-                                                            <option value="" disabled>Select Role</option>
-                                                            <option value="" disabled>Select Role</option>
-                                                            {roles
-                                                                .filter((r: any) => {
-                                                                    // Default exclusion
-                                                                    if (r.id.toLowerCase() === 'super-admin') return false;
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select Role" />
+                                                            </SelectTrigger>
+                                                            <SelectContent className="max-h-116">
+                                                                {roles
+                                                                    .filter((r: any) => {
+                                                                        // 1. Default exclusion
+                                                                        if (r.id.toLowerCase() === 'super-admin') return false;
 
-                                                                    // Scope Filtering
-                                                                    if (targetScope === 'GLOBAL') {
-                                                                        return r.roleScope === 'GLOBAL';
-                                                                    } else if (targetScope === 'BUSINESS') {
-                                                                        return r.roleScope !== 'GLOBAL';
-                                                                    }
-                                                                    return true; // No filter if prop not passed
-                                                                })
-                                                                .map((role: any) => (
-                                                                    <option key={role._id} value={role._id}>{role.name}</option>
-                                                                ))}
-                                                        </select>
+                                                                        // 2. Strict Context Awareness (Industrial Standard)
+                                                                        const hasOutlets = assignment.outlets && assignment.outlets.length > 0;
+
+                                                                        if (hasOutlets) {
+                                                                            // IF Outlets Selected -> MUST be Outlet Role
+                                                                            return r.roleScope === 'OUTLET';
+                                                                        } else {
+                                                                            // IF NO Outlets (Business Level) -> MUST be Business Role (or Global)
+                                                                            // We hide Outlet roles here to prevent assigning 'Cashier' to whole business
+                                                                            if (targetScope === 'GLOBAL') {
+                                                                                return r.roleScope === 'GLOBAL';
+                                                                            }
+                                                                            // In Business Mode, show Business Roles. 
+                                                                            // Optionally show Global if allowed, but definitely HIDE Outlet roles.
+                                                                            return r.roleScope === 'BUSINESS' || r.roleScope === 'GLOBAL';
+                                                                        }
+                                                                    })
+                                                                    .map((role: any) => {
+                                                                        // Determine badge for role scope
+                                                                        let scopeBadge = null;
+                                                                        if (role.roleScope === 'GLOBAL') {
+                                                                            scopeBadge = <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-purple-500/20 text-purple-600 rounded">Global</span>;
+                                                                        } else if (role.roleScope === 'BUSINESS') {
+                                                                            scopeBadge = <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-blue-500/20 text-blue-600 rounded">Business</span>;
+                                                                        } else if (role.roleScope === 'OUTLET') {
+                                                                            scopeBadge = <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-green-500/20 text-green-600 rounded">Outlet</span>;
+                                                                        }
+
+                                                                        return (
+                                                                            <SelectItem key={role._id} value={role._id}>
+                                                                                <div className="flex items-center justify-between w-full">
+                                                                                    <span>{role.name}</span>
+                                                                                    {scopeBadge}
+                                                                                </div>
+                                                                            </SelectItem>
+                                                                        );
+                                                                    })}
+                                                            </SelectContent>
+                                                        </Select>
                                                     </div>
                                                 </div>
                                             </div>
@@ -427,13 +693,45 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
                     </Card>
                 </div>
 
-                {/* Permissions Column */}
-                <div className="lg:col-span-2 space-y-6">
-                    <DirectPermissionSelector
-                        selectedPermissionIds={directPermissions}
-                        onTogglePermission={toggleDirectPermission}
-                        onToggleGroup={toggleGroup}
-                    />
+                {/* Permissions Column - Right Side */}
+                <div className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Direct Permissions</CardTitle>
+                            <CardDescription>
+                                Select individual permissions for this user
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <PermissionSelectorShared
+                                selectedPermissionIds={directPermissions}
+                                onTogglePermission={toggleDirectPermission}
+                                showSelectAll={true}
+                                rolePermissionIds={rolePermissionIds}
+                                rolePermissionCounts={rolePermissionCounts}
+                                gridCols={2}
+                                allowedResources={filteredResources}
+                            />
+                            {/* DEBUG SECTION */}
+                            <div className="p-4 text-xs text-muted-foreground bg-gray-900 rounded m-2 overflow-auto max-h-40">
+                                <p className="font-bold text-red-500">DEBUG INFO (Take Screenshot if not working):</p>
+                                <p>Role Assignments: {roleAssignments.length || 0}</p>
+                                {roleAssignments.map((ra, idx) => {
+                                    const r = roles.find((role: any) => role._id === ra.role);
+                                    return (
+                                        <div key={idx} className="mt-2 border-t pt-2 border-gray-700">
+                                            <p>Role: {r?.name || ra.role}</p>
+                                            <p>Permissions Count: {r?.permissions?.length || 0}</p>
+                                            <p>Groups Count: {r?.permissionGroups?.length || 0}</p>
+                                            <p>First Perm: {JSON.stringify(r?.permissions?.[0] || 'none')}</p>
+                                            <p>RolePermIds Calc: {rolePermissionIds.length}</p>
+                                            <p>Counts Keys: {Object.keys(rolePermissionCounts).join(', ')}</p>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </CardContent>
+                    </Card>
 
                     <div className="flex justify-end gap-2">
                         <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>

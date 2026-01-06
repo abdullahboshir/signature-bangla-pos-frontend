@@ -14,7 +14,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Edit, Trash, Store, ArrowRight, Eye } from "lucide-react";
+import { MoreHorizontal, Edit, Trash, Store, Eye, MapPin } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useCurrentRole } from "@/hooks/useCurrentRole";
 import { DataPageLayout } from "@/components/shared/DataPageLayout";
@@ -68,6 +68,17 @@ export default function BusinessUnitList() {
             cell: ({ row }) => (
                 <div className="text-sm">
                     {row.original.location?.city ? `${row.original.location.city}, ${row.original.location.country}` : "Global"}
+                </div>
+            )
+        },
+        {
+            accessorKey: "outlets",
+            header: "Outlets",
+            cell: ({ row }) => (
+                <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="font-normal">
+                        {row.original.outlets?.length || 0} Outlets
+                    </Badge>
                 </div>
             )
         },
@@ -129,6 +140,33 @@ export default function BusinessUnitList() {
                 columns={columns}
                 data={businessUnits}
                 isLoading={isLoading}
+                renderSubComponent={({ original }: { original: any }) => (
+                    <div className="p-4 bg-muted/30 rounded-md">
+                        <h4 className="font-semibold mb-3 flex items-center gap-2">
+                            <Store className="h-4 w-4" />
+                            Outlets ({original.outlets?.length || 0})
+                        </h4>
+                        {original.outlets && original.outlets.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {original.outlets.map((outlet: any) => (
+                                    <div key={outlet._id} className="bg-background p-3 rounded border text-sm">
+                                        <div className="font-medium flex items-center gap-2">
+                                            <MapPin className="h-3 w-3 text-muted-foreground" />
+                                            {outlet.name}
+                                            <Badge variant="outline" className="ml-auto text-[10px] h-5">{outlet.code}</Badge>
+                                        </div>
+                                        <div className="text-muted-foreground text-xs mt-1 pl-5">
+                                            <div>{outlet.city}, {outlet.address}</div>
+                                            <div className="mt-0.5">{outlet.phone}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-muted-foreground text-sm italic">No outlets found for this business unit.</div>
+                        )}
+                    </div>
+                )}
             />
         </DataPageLayout>
     );

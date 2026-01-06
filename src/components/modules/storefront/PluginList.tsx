@@ -39,9 +39,9 @@ export default function PluginList() {
                 <div>
                     <CardTitle className="flex items-center gap-2">
                         <Plug className="h-5 w-5" />
-                        Plugins
+                        Plugins (Coming Soon)
                     </CardTitle>
-                    <CardDescription>Manage store plugins and extensions.</CardDescription>
+                    <CardDescription>Manage store plugins and extensions. Feature currently in development.</CardDescription>
                 </div>
                 {hasPermission(PERMISSION_KEYS.PLUGIN.CREATE) && (
                     <Button>

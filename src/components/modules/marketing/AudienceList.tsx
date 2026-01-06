@@ -7,12 +7,16 @@ import { Users, Plus } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
 import { PERMISSION_KEYS } from "@/config/permission-keys"
 import { ColumnDef } from "@tanstack/react-table"
+import { useGetAudiencesQuery } from "@/redux/api/platform/marketingApi"
+import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
 
 export default function AudienceList() {
     const { hasPermission } = usePermissions();
+    const { data: rawData, isLoading } = useGetAudiencesQuery({});
 
-    const data: any[] = [];
-    const isLoading = false;
+    // Safe casting
+    const tableData = Array.isArray((rawData as any)?.data) ? (rawData as any).data : (Array.isArray(rawData) ? rawData : []);
 
     const columns: ColumnDef<any>[] = [
         {
@@ -22,10 +26,12 @@ export default function AudienceList() {
         {
             accessorKey: "size",
             header: "Audience Size",
+            cell: ({ row }) => <span>{row.original.size?.toLocaleString()} users</span>
         },
         {
             accessorKey: "platform",
             header: "Platform",
+            cell: ({ row }) => <Badge variant="outline">{row.original.platform}</Badge>
         }
     ];
 
@@ -44,7 +50,7 @@ export default function AudienceList() {
                     <CardDescription>Manage marketing audiences.</CardDescription>
                 </div>
                 {hasPermission(PERMISSION_KEYS.AUDIENCE.CREATE) && (
-                    <Button>
+                    <Button onClick={() => toast.info("Audience Builder (Mock)")}>
                         <Plus className="mr-2 h-4 w-4" />
                         Create Audience
                     </Button>
@@ -53,8 +59,9 @@ export default function AudienceList() {
             <CardContent>
                 <DataTable
                     columns={columns}
-                    data={data}
+                    data={tableData}
                     isLoading={isLoading}
+                    searchKey="name"
                 />
             </CardContent>
         </Card>

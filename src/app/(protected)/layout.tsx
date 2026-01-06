@@ -49,8 +49,8 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
 
             // Force Redirect
             const targetPath = `/${roleSlug}/${buSlug}/outlets/${targetOutletId}`;
-            // Avoid infinite redirect loop if matched
-            if (pathname !== targetPath && !pathname.startsWith(targetPath)) {
+            // Avoid infinite redirect loop if matched or is sub-route
+            if (!pathname.startsWith(targetPath)) {
               console.log("Restricting User to Outlet:", targetPath);
               router.replace(targetPath);
             }

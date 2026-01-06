@@ -79,11 +79,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setActiveBusinessUnitState(id);
     };
 
+
     const login = async (formData: any): Promise<LoginResponse> => {
         try {
             const res: any = await loginMutation(formData).unwrap();
 
-            console.log("LOGIN RESPONSE DEBUG:", res);
+            // console.log("LOGIN RESPONSE DEBUG:", res);
 
             const data = res.data || res;
             const accessToken = data?.accessToken;
@@ -95,9 +96,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Set cookie
             setAuthSession(accessToken);
             const decoded = jwtDecode(accessToken) as any;
+            console.log("JWT DECODED INFO:", decoded);
 
-            // Determine redirect
-            const redirect = getRedirectPath(accessToken);
+            let redirect = "/global/dashboard";
+            const context = decoded?.context;
+            const roles = Array.isArray(decoded?.role) ? decoded.role : [decoded?.role || ""];
+
+            // Helper to check management roles
+            const isManagementRole = roles.some((r: string) =>
+                ["admin", "super-admin", "manager", "owner", "ceo", "director", "business-admin"].includes(r.toLowerCase())
+            );
+
+            if (decoded?.isSuperAdmin) {
+                redirect = "/global/dashboard";
+            } else if (context?.primary) {
+                const { businessUnit, outlet } = context.primary;
+                const slug = businessUnit?.slug || "unknown";
+
+                // Find the full details in available list to check outlet counts
+                const availableEntry = context.available?.find((a: any) =>
+                    a.businessUnit._id === businessUnit._id || a.businessUnit.id === businessUnit.id
+                );
+
+                const outletCount = availableEntry?.outletCount || 0;
+
+                // LOGIC UPDATE: Management Roles go to Business Dashboard regardless of outlet count
+                // Operational Roles (Cashier, Sales) go to Outlet Dashboard if single context
+                if (!isManagementRole && (outletCount === 1 && availableEntry?.outlets?.length > 0)) {
+                    // Operational Staff -> Direct Outlet Login
+                    const singleOutletId = availableEntry.outlets[0]._id;
+                    redirect = `/${slug}/outlets/${singleOutletId}`;
+                } else if (!isManagementRole && outlet) {
+                    // Operational Staff with specific outlet context -> Direct Outlet
+                    redirect = `/${slug}/outlets/${outlet._id}`;
+                } else {
+                    // Managers/Admins OR Multiple Outlets -> Business Dashboard (Head Office View)
+                    redirect = `/${slug}/dashboard`;
+                }
+
+                // Store active BU in local storage
+                if (businessUnit._id) {
+                    setActiveBusinessUnit(businessUnit._id);
+                }
+            } else if (context?.available?.length > 0) {
+                // Fallback if no primary is set but BUs exist - pick first
+                const first = context.available[0];
+                const slug = first.businessUnit.slug;
+
+                // Same Logic for Non-Primary Context
+                if (!isManagementRole && first.outletCount === 1) {
+                    redirect = `/${slug}/outlets/${first.outlets[0]._id}`;
+                } else {
+                    redirect = `/${slug}/dashboard`;
+                }
+
+                if (first.businessUnit._id) {
+                    setActiveBusinessUnit(first.businessUnit._id);
+                }
+            }
 
             return {
                 success: true,

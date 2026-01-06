@@ -39,9 +39,9 @@ export default function ThemeList() {
                 <div>
                     <CardTitle className="flex items-center gap-2">
                         <Palette className="h-5 w-5" />
-                        Themes
+                        Themes (Coming Soon)
                     </CardTitle>
-                    <CardDescription>Manage online store themes.</CardDescription>
+                    <CardDescription>Manage online store themes. Feature currently in development.</CardDescription>
                 </div>
                 {hasPermission(PERMISSION_KEYS.THEME.CREATE) && (
                     <Button>

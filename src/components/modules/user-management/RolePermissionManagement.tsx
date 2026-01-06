@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import PermissionGroupManagement from './PermissionGroupManagement';
+import { PermissionSelectorShared } from './PermissionSelectorShared';
 import { ModuleMultiSelect } from "@/components/forms/module-multi-select";
 import {
     RESOURCE_KEYS,
@@ -82,16 +83,62 @@ export interface Role {
     permissionGroups?: string[]; // List of Permission Group IDs (strings)
     inheritedRoles?: string[] | Role[]; // List of Role IDs
     hierarchyLevel?: number;
-    maxDataAccess?: {
-        products?: number;
-        orders?: number;
-        customers?: number;
+    limits?: {
+        financial: {
+            maxDiscountPercent: number;
+            maxDiscountAmount: number;
+            maxRefundAmount: number;
+            maxCreditLimit: number;
+            maxCashTransaction: number;
+        };
+        dataAccess: {
+            maxProducts: number;
+            maxOrders: number;
+            maxCustomers: number;
+            maxOutlets: number;
+            maxWarehouses: number;
+        };
+        security: {
+            maxLoginSessions: number;
+            ipWhitelistEnabled: boolean;
+            loginTimeRestricted: boolean;
+        };
+        approval: {
+            maxPurchaseOrderAmount: number;
+            maxExpenseEntry: number;
+        };
     };
     usersCount?: number;
     isSystemRole?: boolean; // If true, maybe uneditable
     isDefault?: boolean; // Only one per hierarchy level
     roleScope?: RoleScopeType;
     associatedModules?: string[]; // New module field
+}
+
+export interface IRoleLimits {
+    financial: {
+        maxDiscountPercent: number;
+        maxDiscountAmount: number;
+        maxRefundAmount: number;
+        maxCreditLimit: number;
+        maxCashTransaction: number;
+    };
+    dataAccess: {
+        maxProducts: number;
+        maxOrders: number;
+        maxCustomers: number;
+        maxOutlets: number;
+        maxWarehouses: number;
+    };
+    security: {
+        maxLoginSessions: number;
+        ipWhitelistEnabled: boolean;
+        loginTimeRestricted: boolean;
+    };
+    approval: {
+        maxPurchaseOrderAmount: number;
+        maxExpenseEntry: number;
+    };
 }
 
 // Helper to map resource to icon
@@ -231,6 +278,32 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
     const { data: rolesData, isLoading: isRolesLoading, error: rolesError } = useGetRolesQuery({ limit: 1000 });
     const { data: resourceList, isLoading: isResourcesLoading } = useGetPermissionResourcesQuery(undefined);
 
+    // Filter resources based on View Scope
+    const filteredResourceList = React.useMemo(() => {
+        if (!resourceList) return [];
+
+        // Define Platform-only resources
+        // Ideally these should be constants, but defining here for scope isolation
+        const platformResources = [
+            RESOURCE_KEYS.SYSTEM,
+            RESOURCE_KEYS.GLOBAL,
+            RESOURCE_KEYS.API_KEY,
+            RESOURCE_KEYS.WEBHOOK,
+            RESOURCE_KEYS.BACKUP,
+            RESOURCE_KEYS.AUDIT_LOG,
+            RESOURCE_KEYS.SUBSCRIPTION,
+            RESOURCE_KEYS.PLUGIN,
+            RESOURCE_KEYS.THEME // Assuming global themes
+        ];
+
+        if (viewScope === 'business') {
+            // Filter out platform resources (case insensitive check)
+            return resourceList.filter((r: string) => !platformResources.includes(r as any) && !platformResources.includes(r.toLowerCase() as any));
+        }
+
+        return resourceList;
+    }, [resourceList, viewScope]);
+
     // State for Resource Selection & Searching
     const [selectedResource, setSelectedResource] = useState<string | null>(null);
     const [permissionSearchQuery, setPermissionSearchQuery] = useState('');
@@ -259,22 +332,38 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
 
     // Initial Resource Selection
     useEffect(() => {
-        if (resourceList && resourceList.length > 0 && !selectedResource) {
-            setSelectedResource(resourceList[0]);
+        if (filteredResourceList && filteredResourceList.length > 0 && !selectedResource) {
+            setSelectedResource(filteredResourceList[0]);
         }
-    }, [resourceList]);
+    }, [filteredResourceList]);
 
     // Create Role State
     const [newRoleName, setNewRoleName] = useState('');
     const [newRoleDesc, setNewRoleDesc] = useState('');
     const [newIsDefault, setNewIsDefault] = useState(false);
     const [newHierarchy, setNewHierarchy] = useState(1);
-    const [newDataAccess, setNewDataAccess] = useState({ products: 0, orders: 0, customers: 0 });
+    const [newLimits, setNewLimits] = useState<IRoleLimits>({
+        financial: { maxDiscountPercent: 0, maxDiscountAmount: 0, maxRefundAmount: 0, maxCreditLimit: 0, maxCashTransaction: 0 },
+        dataAccess: { maxProducts: 0, maxOrders: 0, maxCustomers: 0, maxOutlets: 0, maxWarehouses: 0 },
+        security: { maxLoginSessions: 1, ipWhitelistEnabled: false, loginTimeRestricted: false },
+        approval: { maxPurchaseOrderAmount: 0, maxExpenseEntry: 0 }
+    });
     const [viewingGroup, setViewingGroup] = useState<PermissionGroup | null>(null);
     const [groupSearchQuery, setGroupSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState("direct");
-    const [newRoleScope, setNewRoleScope] = useState<RoleScopeType>(RoleScope.BUSINESS);
+    const [newRoleScope, setNewRoleScope] = useState<RoleScopeType>(
+        viewScope === 'platform' ? RoleScope.GLOBAL : RoleScope.BUSINESS
+    );
     const [newAssociatedModules, setNewAssociatedModules] = useState<string[]>([]);
+
+    // Sync newRoleScope with viewScope when it changes
+    useEffect(() => {
+        if (viewScope === 'platform') {
+            setNewRoleScope(RoleScope.GLOBAL);
+        } else if (viewScope === 'business') {
+            setNewRoleScope(RoleScope.BUSINESS);
+        }
+    }, [viewScope]);
 
 
     // Sync RTK Data to Local State
@@ -322,36 +411,13 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
 
             // Filter Roles based on View Scope
             // Filter Roles based on View Scope
-            const BUSINESS_ROLES_IDS = ['manager', 'store-manager', 'cashier', 'sales-associate', 'staff', 'delivery-man', 'vendor', 'customer', 'store_keeper'];
-
+            // Filter Roles based on View Scope using valid roleScope property
             if (viewScope === 'platform') {
-                fetchedRoles = fetchedRoles.filter(r => {
-                    const rId = r.id ? r.id.toLowerCase() : '';
-                    const rName = r.name ? r.name.toLowerCase() : '';
-
-                    // Super Admin is always Platform
-                    if (rId === 'super-admin' || rName === 'super admin') return true;
-
-                    // Exclude known Business Roles even if they are system roles
-                    if (BUSINESS_ROLES_IDS.some(br => rId.includes(br) || rName.includes(br))) return false;
-
-                    // Otherwise, include System Roles (Support, etc.) or explicitly global ones
-                    return r.isSystemRole;
-                });
+                fetchedRoles = fetchedRoles.filter(r => r.roleScope === RoleScope.GLOBAL);
+            } else if (viewScope === 'company') {
+                fetchedRoles = fetchedRoles.filter(r => r.roleScope === RoleScope.COMPANY);
             } else if (viewScope === 'business') {
-                fetchedRoles = fetchedRoles.filter(r => {
-                    const rId = r.id ? r.id.toLowerCase() : '';
-                    const rName = r.name ? r.name.toLowerCase() : '';
-
-                    // Exclude Super Admin
-                    if (rId === 'super-admin' || rName === 'super admin') return false;
-
-                    // Include explicitly known Business Roles
-                    if (BUSINESS_ROLES_IDS.some(br => rId.includes(br) || rName.includes(br))) return true;
-
-                    // Include custom roles (non-system)
-                    return !r.isSystemRole;
-                });
+                fetchedRoles = fetchedRoles.filter(r => r.roleScope === RoleScope.BUSINESS || r.roleScope === RoleScope.OUTLET);
             }
 
             setRoles(fetchedRoles);
@@ -404,6 +470,59 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
         }, {} as Record<string, Permission[]>);
     }, [permissions, permissionSearchQuery, activeTab]);
 
+    // Calculate permission counts from selected role (Direct + Groups) for sorting in PermissionSelectorShared
+    const rolePermissionCounts = React.useMemo(() => {
+        const counts: Record<string, number> = {};
+
+        // Helper to add count (case-insensitive key)
+        const addCount = (resource: string) => {
+            if (!resource) return;
+            // Use lowercase key to be safe, PermissionSelectorShared checks both
+            const key = resource.toLowerCase();
+            counts[key] = (counts[key] || 0) + 1;
+        };
+
+        // 1. Direct Permissions
+        if (selectedRole?.permissions && permissions) {
+            selectedRole.permissions.forEach(permId => {
+                const perm = permissions.find(p => p._id === permId);
+                if (perm?.resource) {
+                    addCount(perm.resource);
+                }
+            });
+        }
+
+        // 2. Group Permissions (Inherited)
+        if (selectedRole?.permissionGroups && groupsData) {
+            // Normalize groups data
+            const allGroups = Array.isArray(groupsData)
+                ? groupsData
+                : groupsData?.result || groupsData?.data || [];
+
+            selectedRole.permissionGroups.forEach(groupId => {
+                const group = allGroups.find((g: any) => g._id === groupId);
+                if (group?.permissions) {
+                    group.permissions.forEach((p: any) => {
+                        // Handle populated object or ID lookup
+                        let resource = p.resource;
+
+                        // If p is just an ID (string), try to find it in global permissions list
+                        if (!resource && typeof p === 'string') {
+                            const foundPerm = permissions.find(perm => perm._id === p);
+                            resource = foundPerm?.resource;
+                        }
+
+                        if (resource) {
+                            addCount(resource);
+                        }
+                    });
+                }
+            });
+        }
+
+        return counts;
+    }, [selectedRole?.permissions, selectedRole?.permissionGroups, permissions, groupsData]);
+
 
 
     const isSuperAdmin = (role: Role | null | undefined) => {
@@ -435,7 +554,7 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                 permissions: [],
                 permissionGroups: [],
                 hierarchyLevel: newHierarchy,
-                maxDataAccess: newDataAccess,
+                limits: newLimits,
                 isDefault: newIsDefault,
                 roleScope: newRoleScope,
                 associatedModules: newAssociatedModules
@@ -454,7 +573,12 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
             setNewIsDefault(false);
             setNewHierarchy(1);
             setNewHierarchy(1);
-            setNewDataAccess({ products: 0, orders: 0, customers: 0 });
+            setNewLimits({
+                financial: { maxDiscountPercent: 0, maxDiscountAmount: 0, maxRefundAmount: 0, maxCreditLimit: 0, maxCashTransaction: 0 },
+                dataAccess: { maxProducts: 0, maxOrders: 0, maxCustomers: 0, maxOutlets: 0, maxWarehouses: 0 },
+                security: { maxLoginSessions: 1, ipWhitelistEnabled: false, loginTimeRestricted: false },
+                approval: { maxPurchaseOrderAmount: 0, maxExpenseEntry: 0 }
+            });
             setNewRoleScope(RoleScope.BUSINESS);
             setNewAssociatedModules([]);
 
@@ -614,7 +738,12 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
     const [editingRoleDesc, setEditingRoleDesc] = useState('');
     const [editingIsDefault, setEditingIsDefault] = useState(false);
     const [editingHierarchy, setEditingHierarchy] = useState(1);
-    const [editingDataAccess, setEditingDataAccess] = useState({ products: 0, orders: 0, customers: 0 });
+    const [editingLimits, setEditingLimits] = useState<IRoleLimits>({
+        financial: { maxDiscountPercent: 0, maxDiscountAmount: 0, maxRefundAmount: 0, maxCreditLimit: 0, maxCashTransaction: 0 },
+        dataAccess: { maxProducts: 0, maxOrders: 0, maxCustomers: 0, maxOutlets: 0, maxWarehouses: 0 },
+        security: { maxLoginSessions: 1, ipWhitelistEnabled: false, loginTimeRestricted: false },
+        approval: { maxPurchaseOrderAmount: 0, maxExpenseEntry: 0 }
+    });
     const [editingAssociatedModules, setEditingAssociatedModules] = useState<string[]>([]);
 
     const handleEditRole = () => {
@@ -623,10 +752,11 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
         setEditingRoleDesc(selectedRole.description || '');
         setEditingHierarchy(selectedRole.hierarchyLevel || 1);
         setEditingIsDefault(selectedRole.isDefault || false);
-        setEditingDataAccess({
-            products: selectedRole.maxDataAccess?.products ?? 0,
-            orders: selectedRole.maxDataAccess?.orders ?? 0,
-            customers: selectedRole.maxDataAccess?.customers ?? 0
+        setEditingLimits(selectedRole.limits || {
+            financial: { maxDiscountPercent: 0, maxDiscountAmount: 0, maxRefundAmount: 0, maxCreditLimit: 0, maxCashTransaction: 0 },
+            dataAccess: { maxProducts: 0, maxOrders: 0, maxCustomers: 0, maxOutlets: 0, maxWarehouses: 0 },
+            security: { maxLoginSessions: 1, ipWhitelistEnabled: false, loginTimeRestricted: false },
+            approval: { maxPurchaseOrderAmount: 0, maxExpenseEntry: 0 }
         });
         setEditingAssociatedModules(selectedRole.associatedModules || []);
         setIsEditDialogOpen(true);
@@ -640,7 +770,7 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                 name: editingRoleName,
                 description: editingRoleDesc,
                 hierarchyLevel: editingHierarchy,
-                maxDataAccess: editingDataAccess,
+                limits: editingLimits,
                 isDefault: editingIsDefault,
                 associatedModules: editingAssociatedModules
             }).unwrap();
@@ -710,6 +840,8 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
         return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
     }
 
+
+
     return (
         <div className="space-y-2 h-[calc(100vh-80px)] flex flex-col">
             <Tabs defaultValue="roles" className="flex-1 flex flex-col h-full overflow-hidden">
@@ -736,14 +868,14 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                     </Button>
                                 )}
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-[500px]">
+                            <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col">
                                 <DialogHeader>
                                     <DialogTitle>Create New Role</DialogTitle>
                                     <DialogDescription>
                                         Add a new custom role.
                                     </DialogDescription>
                                 </DialogHeader>
-                                <div className="grid gap-4 py-4">
+                                <div className="grid gap-4 py-4 overflow-y-auto flex-1 scrollbar-hide">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="grid gap-2">
                                             <Label htmlFor="name">Role Name</Label>
@@ -756,13 +888,18 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                         </div>
                                         <div className="grid gap-2">
                                             <Label htmlFor="roleScope">Role Scope</Label>
-                                            <Select value={newRoleScope} onValueChange={(v: RoleScopeType) => setNewRoleScope(v)}>
+                                            <Select
+                                                value={newRoleScope}
+                                                onValueChange={(v: RoleScopeType) => setNewRoleScope(v)}
+                                                disabled={viewScope !== 'all'}
+                                            >
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Select Scope" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value={RoleScope.BUSINESS}>Business (Standard)</SelectItem>
                                                     <SelectItem value={RoleScope.GLOBAL}>Global (Platform)</SelectItem>
+                                                    <SelectItem value={RoleScope.COMPANY}>Company (Tenant)</SelectItem>
+                                                    <SelectItem value={RoleScope.BUSINESS}>Business (Standard)</SelectItem>
                                                     <SelectItem value={RoleScope.OUTLET}>Outlet (Branch)</SelectItem>
                                                 </SelectContent>
                                             </Select>
@@ -781,39 +918,105 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                     </div>
 
                                     <div className="border p-3 rounded-md space-y-2">
-                                        <Label>Max Data Access Limit (0 = Unlimited)</Label>
-                                        <div className="grid grid-cols-3 gap-2">
-                                            <div className="grid gap-1">
-                                                <Label htmlFor="access-products" className="text-xs">Products</Label>
-                                                <Input
-                                                    id="access-products"
-                                                    type="number"
-                                                    min={0}
-                                                    value={newDataAccess.products}
-                                                    onChange={(e) => setNewDataAccess({ ...newDataAccess, products: parseInt(e.target.value) })}
-                                                />
-                                            </div>
-                                            <div className="grid gap-1">
-                                                <Label htmlFor="access-orders" className="text-xs">Orders</Label>
-                                                <Input
-                                                    id="access-orders"
-                                                    type="number"
-                                                    min={0}
-                                                    value={newDataAccess.orders}
-                                                    onChange={(e) => setNewDataAccess({ ...newDataAccess, orders: parseInt(e.target.value) })}
-                                                />
-                                            </div>
-                                            <div className="grid gap-1">
-                                                <Label htmlFor="access-customers" className="text-xs">Customers</Label>
-                                                <Input
-                                                    id="access-customers"
-                                                    type="number"
-                                                    min={0}
-                                                    value={newDataAccess.customers}
-                                                    onChange={(e) => setNewDataAccess({ ...newDataAccess, customers: parseInt(e.target.value) })}
-                                                />
-                                            </div>
+                                        <div className="flex justify-between items-center">
+                                            <Label>Role Limits & Controls</Label>
+                                            <Badge variant="outline" className="text-xs font-normal">0 = Unlimited</Badge>
                                         </div>
+                                        <Tabs defaultValue="data" className="w-full">
+                                            <TabsList className="grid w-full grid-cols-4 h-auto">
+                                                <TabsTrigger value="data" className="text-xs">Data</TabsTrigger>
+                                                <TabsTrigger value="financial" className="text-xs">Financial</TabsTrigger>
+                                                <TabsTrigger value="security" className="text-xs">Security</TabsTrigger>
+                                                <TabsTrigger value="approval" className="text-xs">Approval</TabsTrigger>
+                                            </TabsList>
+
+                                            {/* DATA ACCESS */}
+                                            <TabsContent value="data" className="space-y-3 pt-2">
+                                                <div className="grid grid-cols-5 gap-3">
+                                                    <div className="grid gap-1">
+                                                        <Label className="text-[10px] uppercase text-muted-foreground">Products</Label>
+                                                        <Input type="number" min={0} value={newLimits.dataAccess.maxProducts} onChange={(e) => setNewLimits({ ...newLimits, dataAccess: { ...newLimits.dataAccess, maxProducts: parseInt(e.target.value) || 0 } })} className="h-8" />
+                                                    </div>
+                                                    <div className="grid gap-1">
+                                                        <Label className="text-[10px] uppercase text-muted-foreground">Orders</Label>
+                                                        <Input type="number" min={0} value={newLimits.dataAccess.maxOrders} onChange={(e) => setNewLimits({ ...newLimits, dataAccess: { ...newLimits.dataAccess, maxOrders: parseInt(e.target.value) || 0 } })} className="h-8" />
+                                                    </div>
+                                                    <div className="grid gap-1">
+                                                        <Label className="text-[10px] uppercase text-muted-foreground">Customers</Label>
+                                                        <Input type="number" min={0} value={newLimits.dataAccess.maxCustomers} onChange={(e) => setNewLimits({ ...newLimits, dataAccess: { ...newLimits.dataAccess, maxCustomers: parseInt(e.target.value) || 0 } })} className="h-8" />
+                                                    </div>
+                                                    <div className="grid gap-1">
+                                                        <Label className="text-[10px] uppercase text-muted-foreground">Outlets</Label>
+                                                        <Input type="number" min={0} value={newLimits.dataAccess.maxOutlets} onChange={(e) => setNewLimits({ ...newLimits, dataAccess: { ...newLimits.dataAccess, maxOutlets: parseInt(e.target.value) || 0 } })} className="h-8" />
+                                                    </div>
+                                                    <div className="grid gap-1">
+                                                        <Label className="text-[10px] uppercase text-muted-foreground">Warehouses</Label>
+                                                        <Input type="number" min={0} value={newLimits.dataAccess.maxWarehouses} onChange={(e) => setNewLimits({ ...newLimits, dataAccess: { ...newLimits.dataAccess, maxWarehouses: parseInt(e.target.value) || 0 } })} className="h-8" />
+                                                    </div>
+                                                </div>
+                                            </TabsContent>
+
+                                            {/* FINANCIAL */}
+                                            <TabsContent value="financial" className="space-y-3 pt-2">
+                                                <div className="grid grid-cols-5 gap-3">
+                                                    <div className="grid gap-1">
+                                                        <Label className="text-[10px] uppercase text-muted-foreground">Max Discount %</Label>
+                                                        <div className="relative">
+                                                            <Input type="number" min={0} max={100} value={newLimits.financial.maxDiscountPercent} onChange={(e) => setNewLimits({ ...newLimits, financial: { ...newLimits.financial, maxDiscountPercent: parseInt(e.target.value) || 0 } })} className="h-8 pr-6" />
+                                                            <span className="absolute right-2 top-2 text-xs text-muted-foreground">%</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="grid gap-1">
+                                                        <Label className="text-[10px] uppercase text-muted-foreground">Discount Amt</Label>
+                                                        <Input type="number" min={0} value={newLimits.financial.maxDiscountAmount} onChange={(e) => setNewLimits({ ...newLimits, financial: { ...newLimits.financial, maxDiscountAmount: parseInt(e.target.value) || 0 } })} className="h-8" />
+                                                    </div>
+                                                    <div className="grid gap-1">
+                                                        <Label className="text-[10px] uppercase text-muted-foreground">Refund (Auto)</Label>
+                                                        <Input type="number" min={0} value={newLimits.financial.maxRefundAmount} onChange={(e) => setNewLimits({ ...newLimits, financial: { ...newLimits.financial, maxRefundAmount: parseInt(e.target.value) || 0 } })} className="h-8" />
+                                                    </div>
+                                                    <div className="grid gap-1">
+                                                        <Label className="text-[10px] uppercase text-muted-foreground">Credit Limit</Label>
+                                                        <Input type="number" min={0} value={newLimits.financial.maxCreditLimit} onChange={(e) => setNewLimits({ ...newLimits, financial: { ...newLimits.financial, maxCreditLimit: parseInt(e.target.value) || 0 } })} className="h-8" />
+                                                    </div>
+                                                    <div className="grid gap-1">
+                                                        <Label className="text-[10px] uppercase text-muted-foreground">Cash Limit</Label>
+                                                        <Input type="number" min={0} value={newLimits.financial.maxCashTransaction} onChange={(e) => setNewLimits({ ...newLimits, financial: { ...newLimits.financial, maxCashTransaction: parseInt(e.target.value) || 0 } })} className="h-8" />
+                                                    </div>
+                                                </div>
+                                            </TabsContent>
+
+                                            {/* SECURITY */}
+                                            <TabsContent value="security" className="space-y-3 pt-2">
+                                                <div className="grid grid-cols-3 gap-4 items-center">
+                                                    <div className="grid gap-1">
+                                                        <Label className="text-[10px] uppercase text-muted-foreground">Max Sessions</Label>
+                                                        <Input type="number" min={1} value={newLimits.security.maxLoginSessions} onChange={(e) => setNewLimits({ ...newLimits, security: { ...newLimits.security, maxLoginSessions: parseInt(e.target.value) || 1 } })} className="h-8" />
+                                                    </div>
+                                                    <div className="flex items-center space-x-2 pt-4">
+                                                        <Checkbox id="ip-whitelist" checked={newLimits.security.ipWhitelistEnabled} onCheckedChange={(c) => setNewLimits({ ...newLimits, security: { ...newLimits.security, ipWhitelistEnabled: !!c } })} />
+                                                        <Label htmlFor="ip-whitelist" className="text-xs font-normal">Enable IP Whitelist</Label>
+                                                    </div>
+                                                    <div className="flex items-center space-x-2 pt-4">
+                                                        <Checkbox id="time-restrict" checked={newLimits.security.loginTimeRestricted} onCheckedChange={(c) => setNewLimits({ ...newLimits, security: { ...newLimits.security, loginTimeRestricted: !!c } })} />
+                                                        <Label htmlFor="time-restrict" className="text-xs font-normal">Restrict Login Time</Label>
+                                                    </div>
+                                                </div>
+                                            </TabsContent>
+
+                                            {/* APPROVAL */}
+                                            <TabsContent value="approval" className="space-y-3 pt-2">
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div className="grid gap-1">
+                                                        <Label className="text-[10px] uppercase text-muted-foreground">PO Auto-Approve Limit</Label>
+                                                        <Input type="number" min={0} value={newLimits.approval.maxPurchaseOrderAmount} onChange={(e) => setNewLimits({ ...newLimits, approval: { ...newLimits.approval, maxPurchaseOrderAmount: parseInt(e.target.value) || 0 } })} className="h-8" />
+                                                    </div>
+                                                    <div className="grid gap-1">
+                                                        <Label className="text-[10px] uppercase text-muted-foreground">Expense Entry Limit</Label>
+                                                        <Input type="number" min={0} value={newLimits.approval.maxExpenseEntry} onChange={(e) => setNewLimits({ ...newLimits, approval: { ...newLimits.approval, maxExpenseEntry: parseInt(e.target.value) || 0 } })} className="h-8" />
+                                                    </div>
+                                                </div>
+                                            </TabsContent>
+                                        </Tabs>
                                     </div>
 
 
@@ -868,14 +1071,14 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
 
                     {/* Edit Role Dialog (Hidden logic, triggered by state) */}
                     <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                        <DialogContent className="sm:max-w-[500px]">
+                        <DialogContent className="sm:max-w-[750px] max-h-[90vh] flex flex-col">
                             <DialogHeader>
                                 <DialogTitle>Edit Role</DialogTitle>
                                 <DialogDescription>
                                     Update role details.
                                 </DialogDescription>
                             </DialogHeader>
-                            <div className="grid gap-4 py-4">
+                            <div className="grid gap-4 py-4 overflow-y-auto flex-1 scrollbar-hide">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="grid gap-2">
                                         <Label htmlFor="edit-name">Role Name</Label>
@@ -910,39 +1113,104 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                 </div>
 
                                 <div className="border p-3 rounded-md space-y-2">
-                                    <Label>Max Data Access Limit (0 = Unlimited)</Label>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        <div className="grid gap-1">
-                                            <Label htmlFor="edit-access-products" className="text-xs">Products</Label>
-                                            <Input
-                                                id="edit-access-products"
-                                                type="number"
-                                                min={0}
-                                                value={editingDataAccess.products}
-                                                onChange={(e) => setEditingDataAccess({ ...editingDataAccess, products: parseInt(e.target.value) })}
-                                            />
-                                        </div>
-                                        <div className="grid gap-1">
-                                            <Label htmlFor="edit-access-orders" className="text-xs">Orders</Label>
-                                            <Input
-                                                id="edit-access-orders"
-                                                type="number"
-                                                min={0}
-                                                value={editingDataAccess.orders}
-                                                onChange={(e) => setEditingDataAccess({ ...editingDataAccess, orders: parseInt(e.target.value) })}
-                                            />
-                                        </div>
-                                        <div className="grid gap-1">
-                                            <Label htmlFor="edit-access-customers" className="text-xs">Customers</Label>
-                                            <Input
-                                                id="edit-access-customers"
-                                                type="number"
-                                                min={0}
-                                                value={editingDataAccess.customers}
-                                                onChange={(e) => setEditingDataAccess({ ...editingDataAccess, customers: parseInt(e.target.value) })}
-                                            />
-                                        </div>
+                                    <div className="flex justify-between items-center">
+                                        <Label>Role Limits & Controls</Label>
+                                        <Badge variant="outline" className="text-xs font-normal">0 = Unlimited</Badge>
                                     </div>
+                                    <Tabs defaultValue="data" className="w-full">
+                                        <TabsList className="grid w-full grid-cols-4 h-auto">
+                                            <TabsTrigger value="data" className="text-xs">Data</TabsTrigger>
+                                            <TabsTrigger value="financial" className="text-xs">Financial</TabsTrigger>
+                                            <TabsTrigger value="security" className="text-xs">Security</TabsTrigger>
+                                            <TabsTrigger value="approval" className="text-xs">Approval</TabsTrigger>
+                                        </TabsList>
+
+                                        <TabsContent value="data" className="space-y-3 pt-2">
+                                            <div className="grid grid-cols-5 gap-3">
+                                                <div className="grid gap-1">
+                                                    <Label className="text-[10px] uppercase text-muted-foreground">Products</Label>
+                                                    <Input type="number" min={0} value={editingLimits.dataAccess.maxProducts} onChange={(e) => setEditingLimits({ ...editingLimits, dataAccess: { ...editingLimits.dataAccess, maxProducts: parseInt(e.target.value) || 0 } })} className="h-8" />
+                                                </div>
+                                                <div className="grid gap-1">
+                                                    <Label className="text-[10px] uppercase text-muted-foreground">Orders</Label>
+                                                    <Input type="number" min={0} value={editingLimits.dataAccess.maxOrders} onChange={(e) => setEditingLimits({ ...editingLimits, dataAccess: { ...editingLimits.dataAccess, maxOrders: parseInt(e.target.value) || 0 } })} className="h-8" />
+                                                </div>
+                                                <div className="grid gap-1">
+                                                    <Label className="text-[10px] uppercase text-muted-foreground">Customers</Label>
+                                                    <Input type="number" min={0} value={editingLimits.dataAccess.maxCustomers} onChange={(e) => setEditingLimits({ ...editingLimits, dataAccess: { ...editingLimits.dataAccess, maxCustomers: parseInt(e.target.value) || 0 } })} className="h-8" />
+                                                </div>
+                                                <div className="grid gap-1">
+                                                    <Label className="text-[10px] uppercase text-muted-foreground">Outlets</Label>
+                                                    <Input type="number" min={0} value={editingLimits.dataAccess.maxOutlets} onChange={(e) => setEditingLimits({ ...editingLimits, dataAccess: { ...editingLimits.dataAccess, maxOutlets: parseInt(e.target.value) || 0 } })} className="h-8" />
+                                                </div>
+                                                <div className="grid gap-1">
+                                                    <Label className="text-[10px] uppercase text-muted-foreground">Warehouses</Label>
+                                                    <Input type="number" min={0} value={editingLimits.dataAccess.maxWarehouses} onChange={(e) => setEditingLimits({ ...editingLimits, dataAccess: { ...editingLimits.dataAccess, maxWarehouses: parseInt(e.target.value) || 0 } })} className="h-8" />
+                                                </div>
+                                            </div>
+                                        </TabsContent>
+
+                                        {/* FINANCIAL */}
+                                        <TabsContent value="financial" className="space-y-3 pt-2">
+                                            <div className="grid grid-cols-5 gap-3">
+                                                <div className="grid gap-1">
+                                                    <Label className="text-[10px] uppercase text-muted-foreground">Max Discount %</Label>
+                                                    <div className="relative">
+                                                        <Input type="number" min={0} max={100} value={editingLimits.financial.maxDiscountPercent} onChange={(e) => setEditingLimits({ ...editingLimits, financial: { ...editingLimits.financial, maxDiscountPercent: parseInt(e.target.value) || 0 } })} className="h-8 pr-6" />
+                                                        <span className="absolute right-2 top-2 text-xs text-muted-foreground">%</span>
+                                                    </div>
+                                                </div>
+                                                <div className="grid gap-1">
+                                                    <Label className="text-[10px] uppercase text-muted-foreground">Discount Amt</Label>
+                                                    <Input type="number" min={0} value={editingLimits.financial.maxDiscountAmount} onChange={(e) => setEditingLimits({ ...editingLimits, financial: { ...editingLimits.financial, maxDiscountAmount: parseInt(e.target.value) || 0 } })} className="h-8" />
+                                                </div>
+                                                <div className="grid gap-1">
+                                                    <Label className="text-[10px] uppercase text-muted-foreground">Refund (Auto)</Label>
+                                                    <Input type="number" min={0} value={editingLimits.financial.maxRefundAmount} onChange={(e) => setEditingLimits({ ...editingLimits, financial: { ...editingLimits.financial, maxRefundAmount: parseInt(e.target.value) || 0 } })} className="h-8" />
+                                                </div>
+                                                <div className="grid gap-1">
+                                                    <Label className="text-[10px] uppercase text-muted-foreground">Credit Limit</Label>
+                                                    <Input type="number" min={0} value={editingLimits.financial.maxCreditLimit} onChange={(e) => setEditingLimits({ ...editingLimits, financial: { ...editingLimits.financial, maxCreditLimit: parseInt(e.target.value) || 0 } })} className="h-8" />
+                                                </div>
+                                                <div className="grid gap-1">
+                                                    <Label className="text-[10px] uppercase text-muted-foreground">Cash Limit</Label>
+                                                    <Input type="number" min={0} value={editingLimits.financial.maxCashTransaction} onChange={(e) => setEditingLimits({ ...editingLimits, financial: { ...editingLimits.financial, maxCashTransaction: parseInt(e.target.value) || 0 } })} className="h-8" />
+                                                </div>
+                                            </div>
+                                        </TabsContent>
+
+                                        {/* SECURITY */}
+                                        <TabsContent value="security" className="space-y-3 pt-2">
+                                            <div className="grid grid-cols-3 gap-4 items-center">
+                                                <div className="grid gap-1">
+                                                    <Label className="text-[10px] uppercase text-muted-foreground">Max Sessions</Label>
+                                                    <Input type="number" min={1} value={editingLimits.security.maxLoginSessions} onChange={(e) => setEditingLimits({ ...editingLimits, security: { ...editingLimits.security, maxLoginSessions: parseInt(e.target.value) || 1 } })} className="h-8" />
+                                                </div>
+                                                <div className="flex items-center space-x-2 pt-4">
+                                                    <Checkbox id="edit-ip-whitelist" checked={editingLimits.security.ipWhitelistEnabled} onCheckedChange={(c) => setEditingLimits({ ...editingLimits, security: { ...editingLimits.security, ipWhitelistEnabled: !!c } })} />
+                                                    <Label htmlFor="edit-ip-whitelist" className="text-xs font-normal">Enable IP Whitelist</Label>
+                                                </div>
+                                                <div className="flex items-center space-x-2 pt-4">
+                                                    <Checkbox id="edit-time-restrict" checked={editingLimits.security.loginTimeRestricted} onCheckedChange={(c) => setEditingLimits({ ...editingLimits, security: { ...editingLimits.security, loginTimeRestricted: !!c } })} />
+                                                    <Label htmlFor="edit-time-restrict" className="text-xs font-normal">Restrict Login Time</Label>
+                                                </div>
+                                            </div>
+                                        </TabsContent>
+
+                                        {/* APPROVAL */}
+                                        <TabsContent value="approval" className="space-y-3 pt-2">
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="grid gap-1">
+                                                    <Label className="text-[10px] uppercase text-muted-foreground">PO Auto-Approve Limit</Label>
+                                                    <Input type="number" min={0} value={editingLimits.approval.maxPurchaseOrderAmount} onChange={(e) => setEditingLimits({ ...editingLimits, approval: { ...editingLimits.approval, maxPurchaseOrderAmount: parseInt(e.target.value) || 0 } })} className="h-8" />
+                                                </div>
+                                                <div className="grid gap-1">
+                                                    <Label className="text-[10px] uppercase text-muted-foreground">Expense Entry Limit</Label>
+                                                    <Input type="number" min={0} value={editingLimits.approval.maxExpenseEntry} onChange={(e) => setEditingLimits({ ...editingLimits, approval: { ...editingLimits.approval, maxExpenseEntry: parseInt(e.target.value) || 0 } })} className="h-8" />
+                                                </div>
+                                            </div>
+                                        </TabsContent>
+                                    </Tabs>
                                 </div>
 
                                 <div className="grid gap-2">
@@ -1020,17 +1288,20 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                                             `}
                                                             >
                                                                 <div className="flex items-center justify-between mb-1">
-                                                                    <div className="flex items-center gap-2 overflow-hidden">
+                                                                    <div className="flex flex-col overflow-hidden">
                                                                         <span className="font-medium truncate">{role.name}</span>
-                                                                        {role.roleScope === RoleScope.GLOBAL && <Badge className="text-[10px] h-5 bg-purple-600">Global</Badge>}
-                                                                        {role.roleScope === RoleScope.OUTLET && <Badge className="text-[10px] h-5 bg-orange-500">Outlet</Badge>}
-                                                                        {role.id === 'super-admin' ?
-                                                                            <Badge className="text-[10px] h-5 bg-purple-600">Super Admin</Badge>
-                                                                            : isSystemRole(role) ?
-                                                                                <Badge className="text-[10px] h-5" variant="secondary">System</Badge>
-                                                                                : null
-                                                                        }
-                                                                        {role.isDefault && <Badge variant="outline" className="text-[10px] h-5 border-blue-500 text-blue-500">Default</Badge>}
+                                                                        <div className='w-full flex gap-1'>
+                                                                            {role.roleScope === RoleScope.GLOBAL && <Badge className="text-[10px] h-5 bg-purple-600">Global</Badge>}
+                                                                            {role.roleScope === RoleScope.COMPANY && <Badge className="text-[10px] h-5 bg-blue-600">Company</Badge>}
+                                                                            {role.roleScope === RoleScope.OUTLET && <Badge className="text-[10px] h-5 bg-orange-500">Outlet</Badge>}
+                                                                            {role.id === 'super-admin' ?
+                                                                                <Badge className="text-[10px] h-5 bg-purple-600">Super Admin</Badge>
+                                                                                : isSystemRole(role) ?
+                                                                                    <Badge className="text-[10px] h-5" variant="secondary">System</Badge>
+                                                                                    : null
+                                                                            }
+                                                                            {role.isDefault && <Badge variant="outline" className="text-[10px] h-5 border-blue-500 text-blue-500">Default</Badge>}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                                 <p className="text-xs text-muted-foreground line-clamp-2">
@@ -1109,15 +1380,17 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                                 </div>
 
 
-                                                <div className="relative w-64 mt-2">
-                                                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                                    <Input
-                                                        placeholder={activeTab === 'direct' ? "Search permissions..." : "Search groups..."}
-                                                        className="pl-8 h-9"
-                                                        value={permissionSearchQuery}
-                                                        onChange={(e) => setPermissionSearchQuery(e.target.value)}
-                                                    />
-                                                </div>
+                                                {activeTab !== 'direct' && (
+                                                    <div className="relative w-64 mt-2">
+                                                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                                        <Input
+                                                            placeholder={activeTab === 'direct' ? "Search permissions..." : "Search groups..."}
+                                                            className="pl-8 h-9"
+                                                            value={permissionSearchQuery}
+                                                            onChange={(e) => setPermissionSearchQuery(e.target.value)}
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="flex flex-col items-end gap-3">
@@ -1143,148 +1416,17 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                     );
                                 })()}
 
-                                <TabsContent value="direct" className="flex-1 overflow-hidden p-0 m-0 border-0 bg-muted/10 flex">
-                                    {/* --- 1. Resource Sidebar (Modules) --- */}
-                                    <div className="w-48 sm:w-52 border-r bg-background flex flex-col h-full overflow-hidden">
-                                        <div className="p-3 border-b font-medium text-xs text-muted-foreground bg-muted/10">
-                                            Modules ({resourceList?.length || 0})
-                                        </div>
-                                        <ScrollArea className="flex-1">
-                                            <div className="p-2 space-y-1">
-                                                {isLoading && !resourceList ? (
-                                                    <div className="p-4 text-center text-xs text-muted-foreground">Loading modules...</div>
-                                                ) : (
-                                                    resourceList?.map((resource: string) => {
-                                                        const ModuleIcon = getResourceIcon(resource);
-                                                        const isActive = selectedResource === resource;
-                                                        return (
-                                                            <button
-                                                                key={resource}
-                                                                onClick={() => setSelectedResource(resource)}
-                                                                className={`
-                                                                    w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors text-left
-                                                                    ${isActive
-                                                                        ? 'bg-primary/10 text-primary font-medium'
-                                                                        : 'hover:bg-muted text-muted-foreground hover:text-foreground'}
-                                                                `}
-                                                            >
-                                                                <ModuleIcon className={`h-4 w-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
-                                                                <span className="truncate capitalize">{resource}</span>
-                                                            </button>
-                                                        )
-                                                    })
-                                                )}
-                                            </div>
-                                        </ScrollArea>
-                                    </div>
-
-                                    {/* --- 2. Permissions Content (Right Side) --- */}
-                                    <div className="flex-1 flex flex-col h-full overflow-hidden">
-                                        {/* Header for selected module */}
-                                        <div className="px-4 py-2 border-b bg-background flex items-center justify-between shadow-sm z-10">
-                                            <div className="flex items-center gap-2">
-                                                <div className="p-1.5 bg-primary/10 rounded-md">
-                                                    {/* Dynamically get icon for selected resource */}
-                                                    {(() => {
-                                                        const Icon = getResourceIcon(selectedResource || '');
-                                                        return <Icon className="h-5 w-5 text-primary" />;
-                                                    })()}
-                                                </div>
-                                                <div>
-                                                    <h3 className="font-semibold capitalize text-lg leading-none">
-                                                        {permissionSearchQuery ? `Search Results: "${permissionSearchQuery}"` : selectedResource}
-                                                    </h3>
-                                                    <p className="text-xs text-muted-foreground mt-1">
-                                                        {isPermsLoading
-                                                            ? 'Loading permissions...'
-                                                            : `${permissions?.length || 0} permissions available`
-                                                        }
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            {!isSuperAdmin(selectedRole) && permissions.length > 0 && (
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => handleSelectAll(permissions)}
-                                                    className="h-8"
-                                                >
-                                                    {permissions.every(p => selectedRole?.permissions?.includes(p._id))
-                                                        ? 'Deselect Module'
-                                                        : 'Select Module'
-                                                    }
-                                                </Button>
-                                            )}
-                                        </div>
-
-                                        {/* Permissions Grid */}
-                                        <div className="flex-1 overflow-auto p-6 bg-muted/5">
-                                            {isPermsLoading || isPermsFetching ? (
-                                                <div className="flex h-full items-center justify-center">
-                                                    <Loader2 className="h-8 w-8 animate-spin text-primary/50" />
-                                                </div>
-                                            ) : (
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                                                    {permissions.length === 0 ? (
-                                                        <div className="col-span-full py-10 text-center text-muted-foreground">
-                                                            No permissions found for this module.
-                                                        </div>
-                                                    ) : (
-                                                        permissions.map((perm) => {
-                                                            const isSelected = isSuperAdmin(selectedRole) || selectedRole?.permissions?.includes(perm._id);
-                                                            const isSuper = isSuperAdmin(selectedRole);
-
-                                                            return (
-                                                                <div
-                                                                    key={perm._id}
-                                                                    onClick={() => !isSuper && handleTogglePermission(perm._id)}
-                                                                    className={`
-                                                                        flex items-start space-x-3 p-3 rounded-xl border text-sm transition-all duration-200
-                                                                        ${isSelected
-                                                                            ? 'bg-card border-primary/40 shadow-sm'
-                                                                            : 'bg-card/50 border-transparent hover:border-border hover:bg-card'}
-                                                                        ${isSuper ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'}
-                                                                    `}
-                                                                >
-                                                                    <div className={`
-                                                                        mt-0.5 h-5 w-5 rounded-md border flex items-center justify-center transition-all duration-200 shrink-0
-                                                                        ${isSelected ? 'bg-primary border-primary text-primary-foreground shadow-sm' : 'border-muted-foreground/30 bg-background'}
-                                                                    `}>
-                                                                        {isSelected && <Check className="h-3.5 w-3.5" />}
-                                                                    </div>
-                                                                    <div className="flex flex-col gap-0.5">
-                                                                        <span className={`font-medium ${isSelected ? 'text-foreground' : 'text-muted-foreground'}`}>
-                                                                            {perm.action.replace(/_/g, ' ').toUpperCase()}
-                                                                        </span>
-                                                                        <span className="text-xs text-muted-foreground/70 leading-relaxed line-clamp-2">
-                                                                            {perm.description}
-                                                                        </span>
-
-                                                                        {/* Tags */}
-                                                                        {(perm.scope || perm.operator) && (
-                                                                            <div className="flex flex-wrap gap-1.5 mt-2">
-                                                                                {perm.scope && (
-                                                                                    <Badge variant="secondary" className="text-[10px] h-5 py-0 px-1.5 font-normal bg-blue-50 text-blue-700 hover:bg-blue-100">
-                                                                                        {perm.scope}
-                                                                                    </Badge>
-                                                                                )}
-                                                                                {perm.operator && (
-                                                                                    <Badge variant="secondary" className="text-[10px] h-5 py-0 px-1.5 font-normal bg-orange-50 text-orange-700 hover:bg-orange-100">
-                                                                                        {perm.operator}
-                                                                                    </Badge>
-                                                                                )}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
+                                <TabsContent value="direct" className="flex-1 overflow-hidden p-0 m-0 border-0 bg-muted/10 flex flex-col">
+                                    <PermissionSelectorShared
+                                        selectedPermissionIds={selectedRole?.permissions || []}
+                                        onTogglePermission={handleTogglePermission}
+                                        disabled={isSuperAdmin(selectedRole) || !hasPermission(PERMISSION_KEYS.ROLE.UPDATE)}
+                                        showSelectAll={true}
+                                        // Use counts for sorting, but don't pass IDs for highlighting to avoid 'From Role' badges
+                                        rolePermissionCounts={rolePermissionCounts}
+                                        rolePermissionIds={[]}
+                                        allowedResources={filteredResourceList}
+                                    />
                                 </TabsContent>
 
                                 <TabsContent value="groups" className="flex-1 overflow-auto p-0 m-0 border-0 bg-muted/10">

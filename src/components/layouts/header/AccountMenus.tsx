@@ -1,14 +1,13 @@
-// components/layout/header/AccountMenus.tsx
 "use client"
 
 import { useState } from "react"
-import { 
-  User, 
-  Settings, 
-  LogOut, 
-  Bell, 
-  Building, 
-  CreditCard, 
+import {
+  User,
+  Settings,
+  LogOut,
+  Bell,
+  Building,
+  CreditCard,
   HelpCircle,
   Moon,
   Sun,
@@ -46,42 +45,42 @@ interface AccountMenusProps {
 export function AccountMenus({ className, variant = "default" }: AccountMenusProps) {
   const [isOpen, setIsOpen] = useState(false)
   const { theme, setTheme } = useTheme()
-//   const { user, logout, isLoading } = useAuth()
-//   const { currentBusinessUnit, businessUnits } = useCurrentBusinessUnit()
+  //   const { user, logout, isLoading } = useAuth()
+  //   const { currentBusinessUnit, businessUnits } = useCurrentBusinessUnit()
   const router = useRouter()
 
-//   if (isLoading || !user) {
-//     return (
-//       <div className="flex items-center gap-4">
-//         <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
-//         <div className="hidden md:flex flex-col">
-//           <div className="h-4 w-20 animate-pulse bg-muted rounded" />
-//           <div className="h-3 w-16 animate-pulse bg-muted rounded mt-1" />
-//         </div>
-//       </div>
-//     )
-//   }
+  //   if (isLoading || !user) {
+  //     return (
+  //       <div className="flex items-center gap-4">
+  //         <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
+  //         <div className="hidden md:flex flex-col">
+  //           <div className="h-4 w-20 animate-pulse bg-muted rounded" />
+  //           <div className="h-3 w-16 animate-pulse bg-muted rounded mt-1" />
+  //         </div>
+  //       </div>
+  //     )
+  //   }
 
-//   const handleProfile = () => {
-//     router.push(`/${currentBusinessUnit?.slug}/${user.role}/profile`)
-//     setIsOpen(false)
-//   }
+  //   const handleProfile = () => {
+  //     router.push(`/${currentBusinessUnit?.slug}/${user.role}/profile`)
+  //     setIsOpen(false)
+  //   }
 
-//   const handleSettings = () => {
-//     router.push(`/${currentBusinessUnit?.slug}/${user.role}/settings`)
-//     setIsOpen(false)
-//   }
+  //   const handleSettings = () => {
+  //     router.push(`/${currentBusinessUnit?.slug}/${user.role}/settings`)
+  //     setIsOpen(false)
+  //   }
 
-//   const handleBilling = () => {
-//     router.push(`/${currentBusinessUnit?.slug}/${user.role}/billing`)
-//     setIsOpen(false)
-//   }
+  //   const handleBilling = () => {
+  //     router.push(`/${currentBusinessUnit?.slug}/${user.role}/billing`)
+  //     setIsOpen(false)
+  //   }
 
-//   const handleLogout = async () => {
-//     await logout()
-//     setIsOpen(false)
-//     router.push("/auth/login")
-//   }
+  //   const handleLogout = async () => {
+  //     await logout()
+  //     setIsOpen(false)
+  //     router.push("/auth/login")
+  //   }
 
   const getInitials = (name: string) => {
     return name
@@ -96,7 +95,7 @@ export function AccountMenus({ className, variant = "default" }: AccountMenusPro
     <div className={`flex items-center gap-2 ${className}`}>
       {/* Notifications Menu */}
       {/* <NotificationMenu /> */}
-      
+
       {/* Business Unit Switcher - Only show if user has multiple business units */}
       {/* {businessUnits.length > 1 && (
         <BusinessUnitSwitcher />
@@ -127,7 +126,7 @@ export function AccountMenus({ className, variant = "default" }: AccountMenusPro
                 {getInitials(user.name)}
               </AvatarFallback>
             </Avatar> */}
-            
+
             {variant === "default" && (
               <>
                 {/* <div className="hidden flex-col items-start sm:flex">
@@ -144,9 +143,9 @@ export function AccountMenus({ className, variant = "default" }: AccountMenusPro
           </Button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent 
-          className="w-56" 
-          align="end" 
+        <DropdownMenuContent
+          className="w-56"
+          align="end"
           forceMount
         >
           {/* User Info */}
@@ -197,7 +196,7 @@ export function AccountMenus({ className, variant = "default" }: AccountMenusPro
           <DropdownMenuSeparator />
 
           {/* Theme Toggle for Mobile */}
-          <DropdownMenuItem 
+          <DropdownMenuItem
             onClick={() => setTheme(theme === "light" ? "dark" : "light")}
             className="sm:hidden"
           >
@@ -214,7 +213,7 @@ export function AccountMenus({ className, variant = "default" }: AccountMenusPro
             )}
           </DropdownMenuItem>
 
-          <DropdownMenuItem onClick={() => {/* Help action */}}>
+          <DropdownMenuItem onClick={() => {/* Help action */ }}>
             <HelpCircle className="mr-2 h-4 w-4" />
             <span>Help & Support</span>
           </DropdownMenuItem>

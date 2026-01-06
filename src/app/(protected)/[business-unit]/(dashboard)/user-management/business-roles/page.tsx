@@ -6,7 +6,7 @@ import { RolePermissionManagement } from "@/components/modules/user-management/R
 export default function BusinessRolesPage() {
     return (
         <div className="container mx-auto p-4 max-w-[1600px]">
-            <RolePermissionManagement />
+            <RolePermissionManagement viewScope="business" />
         </div>
     )
 }

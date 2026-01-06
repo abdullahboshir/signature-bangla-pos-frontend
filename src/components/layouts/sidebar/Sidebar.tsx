@@ -1,7 +1,7 @@
 // components/layout/sidebar/Sidebar.tsx
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useParams, usePathname, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { getSidebarMenu } from "@/config/sidebar-menu"
@@ -50,15 +50,21 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
     "profile"
   ];
 
-  // If we are in super-admin/[slug] route, extracting from slug or path
-  if (!businessUnit && pathname.startsWith('/super-admin/')) {
-    const segments = pathname.split('/');
-    // /super-admin/nokhshangon -> ["", "super-admin", "nokhshangon"]
-    if (segments.length > 2) {
-      const distinctSegment = segments[2];
-      // Only set if NOT a reserved global path
-      if (!RESERVED_PATHS.includes(distinctSegment)) {
-        businessUnit = distinctSegment;
+  // Generic Fallback: Extract from Path if params missing
+  // Pattern: /[role]/[business-unit]/...
+  if (!businessUnit) {
+    const segments = pathname.split('/').filter(Boolean); // Remove empty strings
+    if (segments.length >= 2) {
+      const firstSegment = segments[0];
+      const secondSegment = segments[1];
+
+      // Check if first segment looks like a role or context root
+      // AND second segment is NOT a reserved global path
+      if (
+        !["auth", "global", "home", "api", "_next"].includes(firstSegment) &&
+        !RESERVED_PATHS.includes(secondSegment)
+      ) {
+        businessUnit = secondSegment;
       }
     }
   }
@@ -87,130 +93,114 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
   // Resolve Outlet ID from Path or Query Params (for Context Persistence)
   const outletId = (params.outletId as string) || searchParams.get('outlet');
 
+  // [NEW] Get Current Company Modules for Toggle Visibility
+  // Safely access company from user object, fallback to System Global settings
+  const activeModules = (user as any)?.company?.activeModules || systemSettings?.enabledModules || {};
+
   const rawMenuItems = getSidebarMenu(role, businessUnit || "", outletId as string)
 
+  // 1. [CONFIG FILTER] Filter based on Company's Active Modules (Settings)
+  // 1. [CONFIG FILTER] Filter based on Company's Active Modules (Settings)
+  const configuredMenuItems = useMemo(() => {
+    // Helper to recursively filter without mutation
+    const filterByConfig = (items: any[]): any[] => {
+      return items.reduce((acc: any[], item: any) => {
+        // Module Toggle Check 🛡️
+        if (item.module) {
+          const moduleKey = item.module.toLowerCase(); // e.g. 'pos' from 'POS'
+          // Strictly check for false. If undefined (legacy), allow it?
+          // Or strictly check truthy?
+          // Given our CompanyForm sets all keys, checking truthy is safer for correctness.
+          // But strict false allows older records to work.
+          // Let's use strict truthy check if we are confident, or activeModules[key] !== false.
+          // Let's checking if explicitly disabled:
+          if (activeModules[moduleKey] === false) {
+            return acc;
+          }
+        }
+
+        // Create shallow copy to avoid mutating original config
+        const newItem = { ...item };
+
+        if (newItem.children) {
+          newItem.children = filterByConfig(newItem.children);
+        }
+
+        acc.push(newItem);
+        return acc;
+      }, []);
+    };
+    return filterByConfig(rawMenuItems);
+  }, [rawMenuItems, activeModules]);
 
 
-  // Filter menu items based on permissions
-  const menuItems = useMemo(() => {
+
+
+
+
+
+
+  // 2. [PERMISSION FILTER] Filter based on User Roles/Permissions
+  const permittedMenuItems = useMemo(() => {
     if (!user) return [];
 
     const isSuperAdmin = checkIsSuperAdmin(user);
 
-    // Flatten permissions from roles
-    // Scoped Permissions Logic
-    // Scoped Permissions Logic
-    const currentUnitSlug = params["business-unit"] || params.businessUnit;
-    const currentUnitId = (user.businessAccess || [])
-      .map((acc: any) => acc.businessUnit)
-      .find((u: any) => u && (u.id === currentUnitSlug || u.slug === currentUnitSlug || u._id === currentUnitSlug))?._id;
-
-    console.log("SIDEBAR DEBUGgggggggggggg:", {
-      user,
-      currentUnitSlug,
-      currentUnitId,
-      userPermissions: user.permissions,
-      userRoles: user.roles,
-      userBUs: user.businessUnits
-    });
-
-    console.log("SIDEBAR ROLE DEBUG:", role);
-
+    // Fetch effective permissions
     let aggregatedPermissions: any[] = [];
-
-    // 1. Use Effective Permissions from Backend (Performance & Accuracy)
-    if (user.effectivePermissions && Array.isArray(user.effectivePermissions)) {
-      aggregatedPermissions = user.effectivePermissions;
-    } else if (user.permissions && Array.isArray(user.permissions) && typeof user.permissions[0] === 'string') {
-      // Fallback to legacy string array if present
+    if ((user as any).effectivePermissions && Array.isArray((user as any).effectivePermissions)) {
+      aggregatedPermissions = (user as any).effectivePermissions;
+    } else if (user.permissions && Array.isArray(user.permissions)) {
       aggregatedPermissions = user.permissions;
     }
 
-    // Legacy fallback handled by Backend now, so complex manual merging removed.
-
-
-    console.log("Aggregated Permissions:", aggregatedPermissions.length, aggregatedPermissions[0]);
-
-    // Recursive filter function that returns new array
-    const filterItems = (items: any[]): any[] => {
+    const filterByPermission = (items: any[]): any[] => {
       try {
         return items.reduce((acc: any[], item: any) => {
 
-          // 0. 🏁 Feature Toggle / Module Check
-          if (item.module && systemSettings?.enabledModules) {
-            const moduleKey = item.module.toLowerCase();
-            // Check if specifically disabled
-            if (systemSettings.enabledModules[moduleKey] === false) { // Strict check for false
-              return acc; // Skip this item
-            }
-          }
+          // [System Toggle Check - Redundant if configuredMenuItems works, but safe to keep]
+          // Removing it here to rely on configuredMenuItems for simplicity and consistency
 
-          // 1. Check direct permission
           let hasAccess = true;
 
           if (isSuperAdmin) {
             hasAccess = true;
           } else if (item.resource) {
-            // Logic adapted from role-validator.ts
+            // Permission Checking Logic
             hasAccess = aggregatedPermissions.some((p: any) => {
               if (!p) return false;
-              // Support both string IDs (legacy) and Object permissions
               if (typeof p === 'string') {
-                const resource = item.resource.toLowerCase(); // item resource is lower case usually
+                const resource = item.resource.toLowerCase();
                 const action = item.action ? item.action.toLowerCase() : null;
                 const pStr = p.toLowerCase();
-
-                // Check for colon separator (New Backend Standard) "resource:action"
                 if (action) {
                   return pStr === `${resource}:${action}` || pStr === `${resource}_${action}` || pStr === `*`;
                 }
-
-                // If no action required for menu, match prefix OR exact resource
                 return pStr.startsWith(`${resource}:`) || pStr.startsWith(`${resource}_`) || pStr === resource;
               }
 
-              // Support Object Structure { resource, action }
-              const permResource = p.resource || p.source || p.module; // Robust check
+              const permResource = p.resource || p.source || p.module;
               const permAction = p.action;
-
-              // 🟢 FIX 1: Loose Resource Matching (normalize case and separators)
-              // This fixes issues like 'ad-campaign' vs 'adCampaign'
               const normalize = (s: string) => s ? s.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
 
-              const resourceMatch =
-                normalize(permResource) === normalize(item.resource) ||
-                permResource === '*';
-
-              // If item has no action, view access usually sufficient or just resource match
-              const actionMatch = item.action
-                ? (permAction === item.action || permAction === '*')
-                : true;
+              const resourceMatch = normalize(permResource) === normalize(item.resource) || permResource === '*';
+              const actionMatch = item.action ? (permAction === item.action || permAction === '*') : true;
 
               return resourceMatch && actionMatch;
             });
           }
 
-          // 2. Process children
           if (hasAccess) {
             const newItem = { ...item };
-
             if (newItem.children) {
-              newItem.children = filterItems(newItem.children);
-
-              // 🟢 FIX 2: Strict Parent Hiding
-              // If item was a Group (had children), but all children were filtered out, 
-              // we MUST hide the parent, even if it had a path.
-              // We check 'item.children' (original) to know if it STARTED as a group.
+              newItem.children = filterByPermission(newItem.children);
+              // Hide parent if all children are hidden
               if (item.children && newItem.children.length === 0) {
                 hasAccess = false;
               }
             }
-
-            if (hasAccess) {
-              acc.push(newItem);
-            }
+            if (hasAccess) acc.push(newItem);
           }
-
           return acc;
         }, []);
       } catch (err) {
@@ -219,20 +209,21 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
       }
     };
 
-    return filterItems(rawMenuItems);
+    return filterByPermission(configuredMenuItems);
 
-  }, [rawMenuItems, user, systemSettings]);
+  }, [configuredMenuItems, user]);
 
 
-  // 🔍 Search Filter Logic
-  const filteredMenuItems = useMemo(() => {
-    if (!searchQuery.trim()) return menuItems;
+  // 3. [SEARCH FILTER] Final Output for Render
+  const finalMenuItems = useMemo(() => {
+    if (!searchQuery.trim()) return permittedMenuItems;
 
     const lowerQuery = searchQuery.toLowerCase();
 
     const searchFilter = (items: any[]): any[] => {
       return items.reduce((acc: any[], item: any) => {
-        const matchesTitle = item.title.toLowerCase().includes(lowerQuery);
+        const title = item.title || "";
+        const matchesTitle = title.toLowerCase().includes(lowerQuery);
 
         let matchingChildren = [];
         if (item.children) {
@@ -250,11 +241,8 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
       }, []);
     };
 
-    return searchFilter(menuItems);
-  }, [menuItems, searchQuery]);
-
-
-
+    return searchFilter(permittedMenuItems);
+  }, [permittedMenuItems, searchQuery]);
 
 
   return (
@@ -283,7 +271,7 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
 
       <div className="flex-1 overflow-auto">
         <SidebarMenu
-          items={filteredMenuItems}
+          items={finalMenuItems}
           isCollapsed={isCollapsed}
           onItemClick={onItemClick}
           currentPath={pathname}

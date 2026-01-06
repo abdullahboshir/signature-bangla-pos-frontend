@@ -576,6 +576,7 @@ export function ProductList() {
                 { value: PRODUCT_STATUS.PUBLISHED, label: "Published" },
                 { value: PRODUCT_STATUS.DRAFT, label: "Draft" },
                 { value: "low_stock", label: "Low Stock" },
+                { value: PRODUCT_STATUS.ARCHIVED, label: "Trash" },
             ]}
             activeTab={activeTab}
             onTabChange={setActiveTab}
@@ -611,7 +612,9 @@ export function ProductList() {
             <TabsContent value="low_stock" className="mt-0">
                 <DataTable columns={columns} data={displayedProducts} renderSubComponent={renderExpandedRow} isLoading={isLoading} disablePagination={true} />
             </TabsContent>
+            <TabsContent value={PRODUCT_STATUS.ARCHIVED} className="mt-0">
+                <DataTable columns={columns} data={displayedProducts} renderSubComponent={renderExpandedRow} isLoading={isLoading} disablePagination={true} />
+            </TabsContent>
         </DataPageLayout>
     );
 }
-

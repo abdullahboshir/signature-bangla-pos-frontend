@@ -6,12 +6,15 @@ import { Activity } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
 import { PERMISSION_KEYS } from "@/config/permission-keys"
 import { ColumnDef } from "@tanstack/react-table"
+import { useGetEventsQuery } from "@/redux/api/platform/marketingApi"
+import { Badge } from "@/components/ui/badge"
 
 export default function EventList() {
     const { hasPermission } = usePermissions();
+    const { data: rawData, isLoading } = useGetEventsQuery({});
 
-    const data: any[] = [];
-    const isLoading = false;
+    // Safe casting
+    const tableData = Array.isArray((rawData as any)?.data) ? (rawData as any).data : (Array.isArray(rawData) ? rawData : []);
 
     const columns: ColumnDef<any>[] = [
         {
@@ -21,10 +24,12 @@ export default function EventList() {
         {
             accessorKey: "source",
             header: "Source",
+            cell: ({ row }) => <Badge variant="secondary">{row.original.source}</Badge>
         },
         {
             accessorKey: "occurrences",
             header: "Count",
+            cell: ({ row }) => <span className="font-mono">{row.original.occurrences}</span>
         }
     ];
 
@@ -44,8 +49,9 @@ export default function EventList() {
             <CardContent>
                 <DataTable
                     columns={columns}
-                    data={data}
+                    data={tableData}
                     isLoading={isLoading}
+                    searchKey="name"
                 />
             </CardContent>
         </Card>

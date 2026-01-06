@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -25,6 +25,17 @@ export default function AddUserPage() {
   const router = useRouter()
   const params = useParams()
   const paramBusinessUnit = params["business-unit"] as string
+
+  // Compute Locked BU ID
+  const lockedBusinessUnitId = useMemo(() => {
+    if (!paramBusinessUnit || !businessUnits || businessUnits.length === 0) return undefined;
+    const matched = businessUnits.find((b: any) =>
+      (b.slug && b.slug.toLowerCase() === paramBusinessUnit.toLowerCase()) ||
+      b.id === paramBusinessUnit ||
+      b._id === paramBusinessUnit
+    );
+    return matched?._id || matched?.id;
+  }, [paramBusinessUnit, businessUnits]);
 
   // Query Hooks
   const { data: rolesData, isLoading: isLoadingRoles } = useGetRolesQuery({})
@@ -295,6 +306,7 @@ export default function AddUserPage() {
                           businessUnits={businessUnits}
                           onUpdate={updateRoleAssignment}
                           onRemove={removeRoleAssignment}
+                          lockedBusinessUnitId={lockedBusinessUnitId}
                         />
                       ))
                     )}

@@ -18,6 +18,7 @@ import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitA
 import { CommandPalette } from "@/components/shared/CommandPalette";
 import { useGetOutletQuery } from "@/redux/api/organization/outletApi";
 import { useCurrentRole } from "@/hooks/useCurrentRole";
+import { useGetSystemSettingsQuery } from "@/redux/api/system/settingsApi";
 
 interface DashboardHeaderProps {
   onMenuClick?: () => void;
@@ -56,8 +57,18 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
   // Determine Outlet Context
-  const outletId = searchParams.get('outlet');
-  const { data: outletData } = useGetOutletQuery(outletId, { skip: !outletId });
+  let outletId = searchParams.get('outlet');
+
+  // Fallback: Check pathname for /outlets/[id]
+  if (!outletId && pathname.includes('/outlets/')) {
+    const parts = pathname.split('/outlets/');
+    if (parts.length > 1) {
+      const potentialId = parts[1].split('/')[0]; // Handle /outlets/ID/edit etc.
+      if (potentialId) outletId = potentialId;
+    }
+  }
+  const isValidOutletId = outletId && outletId !== 'undefined' && outletId !== 'null' && outletId !== '[object Object]';
+  const { data: outletData } = useGetOutletQuery(outletId, { skip: !isValidOutletId });
 
   // Fetch all units if Super Admin
   const isSuperAdmin = user?.isSuperAdmin || (user?.globalRoles || []).some((r: any) => {
@@ -69,24 +80,36 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
     skip: !isSuperAdmin
   });
 
-  // Extract BUs from new Consumer Access Model
-  const userBusinessUnits = (user?.businessAccess || [])
-    .map((acc: any) => acc.businessUnit)
-    .filter((bu: any) => bu);
+  // Extract BUs from new Consumer Access Model or Context
+  const contextAvailable = user?.context?.available || [];
 
-  const uniqueUserBUs = [...new Map(userBusinessUnits.map((bu: any) => [bu._id || bu.id, bu])).values()];
+  let uniqueUserBUs: any[] = [];
+
+  if (contextAvailable.length > 0) {
+    uniqueUserBUs = contextAvailable.map((ctx: any) => ({
+      ...ctx.businessUnit,
+      outlets: ctx.outlets
+    }));
+  } else {
+    // Fallback to legacy businessAccess parsing
+    const userBusinessUnits = (user?.businessAccess || [])
+      .map((acc: any) => acc.businessUnit)
+      .filter((bu: any) => bu);
+    uniqueUserBUs = [...new Map(userBusinessUnits.map((bu: any) => [bu._id || bu.id, bu])).values()];
+  }
 
   // Combine or select appropriate source of units
   const availableUnits = isSuperAdmin
     ? (allBusinessUnits || [])
     : (uniqueUserBUs || []);
 
-  console.log('HEADER DEBUG:', {
-    isSuperAdmin,
-    globalRoles: user?.globalRoles,
-    businessAccessCount: user?.businessAccess?.length,
-    availableUnitsCount: availableUnits?.length,
-  });
+  // console.log('HEADER DEBUG:', {
+  //   isSuperAdmin,
+  //   globalRoles: user?.globalRoles,
+  //   businessAccessCount: user?.businessAccess?.length,
+  //   contextAvailableCount: contextAvailable.length,
+  //   availableUnitsCount: availableUnits?.length,
+  // });
 
   // Sync active business unit from URL to Context (for API headers)
   useEffect(() => {
@@ -145,6 +168,10 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
     }
   };
 
+  // [NEW] Get Current Company Modules for Header Visibility
+  const { data: systemSettings } = useGetSystemSettingsQuery(undefined);
+  const activeModules = (user as any)?.company?.activeModules || systemSettings?.enabledModules || {};
+
   return (
     <>
       <header
@@ -171,14 +198,6 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
               currentRole={role}
               availableUnits={availableUnits}
             />
-
-            {/* Outlet Badge Indicator */}
-            {outletId && outletData && (
-              <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-full text-xs font-medium border border-primary/20 animate-in fade-in zoom-in-95 duration-200">
-                <MapPin className="h-3.5 w-3.5" />
-                <span>{outletData.name}</span>
-              </div>
-            )}
           </div>
 
           {/* Center: Search (POS Style) */}
@@ -196,27 +215,32 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
           {/* Right: Actions & User */}
           <div className="flex items-center justify-end gap-2 lg:min-w-[200px]">
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="hidden sm:flex gap-2 border-primary/20 hover:bg-primary/5 text-primary"
-              onClick={() => setIsOpenRegisterOpen(true)}
-              type="button"
-            >
-              <Calculator className="w-4 h-4" />
-              <span className="hidden xl:inline">Open Register</span>
-            </Button>
+            {/* POS Shortcut Actions - Only visible if POS module is active */}
+            {activeModules.pos !== false && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="hidden sm:flex gap-2 border-primary/20 hover:bg-primary/5 text-primary"
+                  onClick={() => setIsOpenRegisterOpen(true)}
+                  type="button"
+                >
+                  <Calculator className="w-4 h-4" />
+                  <span className="hidden xl:inline">Open Register</span>
+                </Button>
 
-            <Button
-              variant="default"
-              size="sm"
-              className="hidden sm:flex gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20"
-              onClick={handleNewSale}
-              type="button"
-            >
-              <MonitorPlay className="w-4 h-4" />
-              <span className="hidden xl:inline">New Sale</span>
-            </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="hidden sm:flex gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20"
+                  onClick={handleNewSale}
+                  type="button"
+                >
+                  <MonitorPlay className="w-4 h-4" />
+                  <span className="hidden xl:inline">Sale</span>
+                </Button>
+              </>
+            )}
 
             <div className="h-6 w-px bg-border mx-1" />
 

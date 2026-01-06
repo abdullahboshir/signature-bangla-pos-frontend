@@ -52,4 +52,16 @@ export interface User {
   
   createdAt?: string;
   updatedAt?: string;
+  context?: {
+    primary?: {
+      businessUnit?: { _id: string; slug: string; id: string };
+      outlet?: { _id: string; name: string };
+      role?: string;
+    };
+    available?: Array<{
+      businessUnit: { _id: string; slug: string; id: string; name: string };
+      outlets: Array<{ _id: string; name: string }>;
+      outletCount: number;
+    }>;
+  };
 }

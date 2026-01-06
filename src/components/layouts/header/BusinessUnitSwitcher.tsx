@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useGetOutletsQuery } from "@/redux/api/organization/outletApi";
 import { useState, useEffect } from "react";
 import { Store } from "lucide-react";
@@ -24,25 +24,59 @@ export function BusinessUnitSwitcher({ currentBusinessUnit, currentRole, availab
   const { setActiveBusinessUnit } = useAuth();
   const [activeOutletId, setActiveOutletId] = useState<string | null>(null);
 
-  // Find current unit object to display safely
-  const activeUnit = availableUnits.find((u: any) => u.id === currentBusinessUnit || u.slug === currentBusinessUnit);
-  const activeUnitId = activeUnit?._id;
+  const activeUnit = availableUnits.find((u: any) => u.id === currentBusinessUnit || u.slug === currentBusinessUnit || u._id === currentBusinessUnit);
 
-  // Fetch outlets for the active business unit
-  // Skip if no active unit
+  const activeUnitId = activeUnit?._id || activeUnit?.id || activeUnit?.slug;
+  // Check if active unit already has outlets (from filtered context)
+  const preloadedOutlets = activeUnit?.outlets;
+  const hasPreloadedOutlets = Array.isArray(preloadedOutlets) && preloadedOutlets.length > 0;
+
+  // Fetch outlets for the active business unit if not preloaded
+  // Skip if no active unit OR if we already have preloaded outlets
   const { data: outletsData, isLoading: loadingOutlets } = useGetOutletsQuery(
     { businessUnit: activeUnitId },
-    { skip: !activeUnitId }
+    { skip: !activeUnitId || hasPreloadedOutlets }
   );
 
-  const outlets = outletsData?.data || [];
+  // handled by createCrudApi transformList, so outletsData should be the array
+  // Priority: Preloaded (Filtered) > API Data (Full List)
+  const outlets = hasPreloadedOutlets
+    ? preloadedOutlets
+    : (Array.isArray(outletsData) ? outletsData : (outletsData?.data || outletsData?.result || []));
+
+  const pathname = usePathname();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    let outletId = params.get('outlet');
+
+    if (!outletId && pathname?.includes('/outlets/')) {
+      const parts = pathname.split('/outlets/');
+      if (parts.length > 1) {
+        outletId = parts[1].split('/')[0];
+      }
+    }
+
+    if (outletId) {
+      setActiveOutletId(outletId);
+    } else {
+      setActiveOutletId(null);
+    }
+
+    if (activeUnit && activeUnit._id) {
+      localStorage.setItem("active-business-unit", activeUnit._id);
+    }
+  }, [activeUnit, pathname]);
 
   const handleSwitchUnit = (unitId: string) => {
     const unit = availableUnits.find((u: any) => u.id === unitId || u.slug === unitId || u._id === unitId);
 
     if (unit) {
       // Update Context
-      if (unit._id) setActiveBusinessUnit(unit._id);
+      if (unit._id) {
+        setActiveBusinessUnit(unit._id);
+        localStorage.setItem("active-business-unit", unit._id);
+      }
 
       // Reset Outlet when switching Unit
       setActiveOutletId(null);
@@ -50,26 +84,21 @@ export function BusinessUnitSwitcher({ currentBusinessUnit, currentRole, availab
 
       // Redirect
       const targetSlug = unit.slug || unit.id;
-      // [UPDATED] Removed role prefix
-      router.push(`/${targetSlug}/overview`);
+      router.push(`/${targetSlug}/dashboard`);
     }
   };
 
   const handleSwitchOutlet = (outletId: string) => {
-    setActiveOutletId(outletId);
-    // Persist outlet choice (optional, or use context)
-    localStorage.setItem("active-outlet-id", outletId);
+    const targetSlug = activeUnit?.slug || activeUnit?.id || currentBusinessUnit;
 
-    // Force reload or just let context handle it? 
-    // ideally reload to apply header filter if we use request interceptor
-    window.location.reload();
+    if (outletId === 'all') {
+      setActiveOutletId(null);
+      router.push(`/${targetSlug}/dashboard`);
+    } else {
+      setActiveOutletId(outletId);
+      router.push(`/${targetSlug}/outlets/${outletId}`);
+    }
   };
-
-  // Sync state on mount
-  useEffect(() => {
-    const storedOutlet = localStorage.getItem("active-outlet-id");
-    if (storedOutlet) setActiveOutletId(storedOutlet);
-  }, []);
 
 
   if (!availableUnits || availableUnits.length === 0) return null;
@@ -77,7 +106,7 @@ export function BusinessUnitSwitcher({ currentBusinessUnit, currentRole, availab
   return (
     <div className="flex items-center gap-2">
       <Select value={activeUnit ? (activeUnit.id || activeUnit.slug) : ''} onValueChange={handleSwitchUnit}>
-        <SelectTrigger className="w-[180px] h-8 text-sm bg-muted/50 border-muted-foreground/20">
+        <SelectTrigger className="w-auto h-8 text-sm bg-muted/50 border-muted-foreground/20 [&>span]:truncate [&>span]:block [&>span]:w-full [&>span]:text-left">
           <SelectValue placeholder="Select Business Unit" />
         </SelectTrigger>
         <SelectContent>
@@ -92,10 +121,12 @@ export function BusinessUnitSwitcher({ currentBusinessUnit, currentRole, availab
       {/* Outlet Switcher - Only show if unit selected and outlets exist */}
       {activeUnit && outlets.length > 0 && (
         <Select value={activeOutletId || "all"} onValueChange={handleSwitchOutlet}>
-          <SelectTrigger className="w-[150px] h-8 text-sm bg-muted/50 border-muted-foreground/20">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Store className="h-3 w-3" />
-              <SelectValue placeholder="All Outlets" />
+          <SelectTrigger className="w-auto h-8 text-sm bg-muted/50 border-muted-foreground/20 [&>span]:truncate [&>span]:block [&>span]:w-full [&>span]:text-left">
+            <div className="flex items-center gap-2 text-muted-foreground overflow-hidden w-full">
+              <Store className="h-3 w-3 shrink-0" />
+              <div className="truncate">
+                <SelectValue placeholder="All Outlets" />
+              </div>
             </div>
           </SelectTrigger>
           <SelectContent>

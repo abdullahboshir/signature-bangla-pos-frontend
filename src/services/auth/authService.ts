@@ -52,7 +52,7 @@ export const clearAuthSession = () => {
 // -----------------------------
 // Redirect Logic
 // -----------------------------
-export const getRedirectPath = (token: string): string => {
+export const getRedirectPath = (token: string, user?: any): string => {
     try {
         const decoded = jwtDecode(token) as any;
         // Handle role as array or string
@@ -66,14 +66,36 @@ export const getRedirectPath = (token: string): string => {
         }
         
         // For business unit users, redirect to their first business unit
-        const firstBusinessUnit = decoded?.businessUnits?.[0];
-        if (firstBusinessUnit) {
-            const buSlug = firstBusinessUnit.slug || firstBusinessUnit.id || "default";
-            // New structure: /[business-unit]/overview (no role in URL)
-            return `/${buSlug}/overview`;
+        // Priority 1: Check User Object (More robust)
+        let buSlug = null;
+        
+        // Check businessAccess first (Standard for Business Access)
+        if (user?.businessAccess && user.businessAccess.length > 0) {
+            // Find first valid BU
+            const first = user.businessAccess[0];
+            // Format might be { businessUnit: { _id, slug } } or just { _id, slug } depending on populate
+            // Based on User interface `businessAccess` is `any[]`.
+            // Let's assume it has populated businessUnit or is the BU itself.
+            const bu = first.businessUnit || first; 
+            buSlug = bu?.slug || bu?._id || bu?.id;
+        } 
+        // Fallback: Check businessUnits array
+        else if (user?.businessUnits && user.businessUnits.length > 0) {
+             const first = user.businessUnits[0];
+             buSlug = first?.slug || first?._id || first?.id;
+        }
+        // Fallback: Check Token
+        else if (decoded?.businessUnits?.[0]) {
+             const first = decoded.businessUnits[0];
+             buSlug = first?.slug || first?.id;
+        }
+
+        if (buSlug) {
+            // New structure: /[business-unit]/dashboard
+            return `/${buSlug}/dashboard`;
         }
         
-        // Fallback to global if no business unit
+        // Fallback to global if no business unit found
         return "/global/dashboard";
     } catch (error) {
         return "/";

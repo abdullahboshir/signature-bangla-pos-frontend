@@ -431,6 +431,24 @@ export const SupplierList = () => {
             ),
         },
         {
+            accessorKey: "status",
+            header: "Status",
+            cell: ({ row }) => (
+                <Badge variant={row.original.status === SUPPLIER_STATUS.ACTIVE ? "default" : "secondary"}>
+                    {row.original.status}
+                </Badge>
+            ),
+        },
+        {
+            accessorKey: "module",
+            header: "Module",
+            cell: ({ row }) => (
+                <Badge variant="outline" className="capitalize">
+                    {row.original.module}
+                </Badge>
+            ),
+        },
+        {
             id: "actions",
             header: "Actions",
             cell: ({ row }) => (

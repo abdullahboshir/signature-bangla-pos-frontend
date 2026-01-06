@@ -17,7 +17,8 @@ import {
     useDeleteExpenseMutation
 } from "@/redux/api/pos/expenseApi"
 import { useGetExpenseCategoriesQuery } from "@/redux/api/accounting/expenseCategoryApi"
-import { PAYMENT_METHOD_OPTIONS } from "@/constant/finance.constant"
+import { PAYMENT_METHOD_OPTIONS, EXPENSE_STATUS } from "@/constant/finance.constant"
+import { Badge } from "@/components/ui/badge"
 
 export default function ExpenseList() {
     const { hasPermission: can } = usePermissions()
@@ -91,6 +92,24 @@ export default function ExpenseList() {
             accessorKey: "reference",
             header: "Reference",
             cell: ({ row }: any) => row.original.reference || '-'
+        },
+        {
+            accessorKey: "status",
+            header: "Status",
+            cell: ({ row }: any) => (
+                <Badge variant={row.original.status === EXPENSE_STATUS.APPROVED ? "default" : "secondary"}>
+                    {row.original.status}
+                </Badge>
+            )
+        },
+        {
+            accessorKey: "paymentMethod",
+            header: "Payment Method",
+            cell: ({ row }: any) => (
+                <Badge variant="outline" className="capitalize">
+                    {row.original.paymentMethod?.replace('_', ' ')}
+                </Badge>
+            )
         },
         {
             id: "actions",

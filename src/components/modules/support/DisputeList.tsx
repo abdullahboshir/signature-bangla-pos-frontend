@@ -37,9 +37,9 @@ export default function DisputeList() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Scale className="h-5 w-5" />
-                    Disputes
+                    Disputes (Coming Soon)
                 </CardTitle>
-                <CardDescription>Manage order disputes and chargebacks.</CardDescription>
+                <CardDescription>Manage order disputes and chargebacks. Feature currently in development.</CardDescription>
             </CardHeader>
             <CardContent>
                 <DataTable

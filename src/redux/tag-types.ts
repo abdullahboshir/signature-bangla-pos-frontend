@@ -42,6 +42,16 @@ export enum tagTypes {
   PurchaseReport = "PurchaseReport",
   StockReport = "StockReport",
   ProfitLossReport = "ProfitLossReport",
+  package = "package",
+  license = "license",
+  integration = "integration",
+  coupon = "coupon",
+  attendance = "attendance",
+  shareholder = "shareholder",
+  voting = "voting",
+  meeting = "meeting",
+  compliance = "compliance",
+  company = "company",
 }
 
 export const tagTypesList = Object.values(tagTypes);

@@ -21,7 +21,12 @@ export function ModuleToggleSettings() {
         hrm: true,
         ecommerce: true,
         crm: true,
-        logistics: true
+        logistics: true,
+        finance: true,
+        marketing: true,
+        integrations: true,
+        governance: false,
+        saas: true
     });
     const [licenseKey, setLicenseKey] = useState("");
 
@@ -34,6 +39,11 @@ export function ModuleToggleSettings() {
                 ecommerce: settings.enabledModules.ecommerce ?? true,
                 crm: settings.enabledModules.crm ?? true,
                 logistics: settings.enabledModules.logistics ?? true,
+                finance: settings.enabledModules.finance ?? true,
+                marketing: settings.enabledModules.marketing ?? true,
+                integrations: settings.enabledModules.integrations ?? true,
+                governance: settings.enabledModules.governance ?? false,
+                saas: settings.enabledModules.saas ?? true,
             });
             if (settings.licenseKey) {
                 setLicenseKey(settings.licenseKey);
@@ -68,11 +78,11 @@ export function ModuleToggleSettings() {
     }
 
     return (
-        <Card className="mb-6 border-blue-200 bg-blue-50/30">
+        <Card className="mb-6 border-blue-200 bg-blue-50/30 dark:bg-blue-950/20 dark:border-blue-800/50">
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <div>
-                        <CardTitle className="text-blue-900 flex items-center gap-2">
+                        <CardTitle className="text-blue-900 dark:text-blue-100 flex items-center gap-2">
                             <ShieldCheck className="h-5 w-5" />
                             System Modules & Licensing
                         </CardTitle>
@@ -83,7 +93,7 @@ export function ModuleToggleSettings() {
                     <Button
                         onClick={handleSave}
                         disabled={isUpdating}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-700 dark:hover:bg-blue-600"
                     >
                         {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         Save Changes
@@ -93,7 +103,7 @@ export function ModuleToggleSettings() {
             <CardContent className="space-y-6">
 
                 {/* License Key Section */}
-                <div className="bg-white p-4 rounded-lg border border-blue-100 space-y-3">
+                <div className="bg-background p-4 rounded-lg border border-blue-100 dark:border-blue-900/50 space-y-3">
                     <Label className="text-sm font-semibold flex items-center gap-2">
                         <Key className="h-4 w-4 text-orange-500" />
                         Commercial License Key
@@ -105,12 +115,12 @@ export function ModuleToggleSettings() {
                             value={licenseKey}
                             onChange={(e) => setLicenseKey(e.target.value)}
                         />
-                        <Button variant="outline" className="shrink-0 text-green-600 border-green-200 bg-green-50">
+                        <Button variant="outline" className="shrink-0 text-green-600 border-green-200 bg-green-50 dark:bg-green-950/30 dark:border-green-900 dark:text-green-400">
                             Verified
                         </Button>
                     </div>
                     <p className="text-[10px] text-muted-foreground">
-                        License Type: <span className="font-medium text-blue-700">Enterprise Global Unlimited</span> • Valid until Dec 2030
+                        License Type: <span className="font-medium text-blue-700 dark:text-blue-400">Enterprise Global Unlimited</span> • Valid until Dec 2030
                     </p>
                 </div>
 
@@ -122,34 +132,61 @@ export function ModuleToggleSettings() {
                         onCheckedChange={(c) => handleToggle('pos', c)}
                     />
                     <ModuleSwitch
-                        label="ERP Core"
-                        description="Inventory, Purchasing, Accounts"
+                        label="ERP Core (All-in-One)"
+                        description="Includes: Inventory, Finance, Accounts, Logistics, Purchasing"
                         checked={modules.erp}
-                        onCheckedChange={(c) => handleToggle('erp', c)}
+                        onCheckedChange={(c) => {
+                            setModules(prev => ({
+                                ...prev,
+                                erp: c,
+                                finance: c,
+                                logistics: c // Auto-toggle dependencies
+                            }));
+                        }}
                     />
                     <ModuleSwitch
                         label="HRM & Payroll"
-                        description="Staff, Attendance, Payroll"
+                        description="Staff, Attendance, Payroll, Departments"
                         checked={modules.hrm}
                         onCheckedChange={(c) => handleToggle('hrm', c)}
                     />
                     <ModuleSwitch
                         label="E-Commerce"
-                        description="Online Storefront & CMS"
+                        description="Online Storefront, Themes & CMS"
                         checked={modules.ecommerce}
                         onCheckedChange={(c) => handleToggle('ecommerce', c)}
                     />
                     <ModuleSwitch
-                        label="CRM & Support"
-                        description="Customers, Marketing, Tickets"
+                        label="CRM Suite"
+                        description="Includes: Customers, Marketing Hub, Support Tickets"
                         checked={modules.crm}
-                        onCheckedChange={(c) => handleToggle('crm', c)}
+                        onCheckedChange={(c) => {
+                            setModules(prev => ({
+                                ...prev,
+                                crm: c,
+                                marketing: c // Auto-toggle dependencies
+                            }));
+                        }}
+                    />
+                    {/* Internal Modules Hidden: Logistics, Finance, Marketing */}
+
+                    <ModuleSwitch
+                        label="Integrations (Add-on)"
+                        description="APIs, Webhooks & Gateways"
+                        checked={modules.integrations}
+                        onCheckedChange={(c) => handleToggle('integrations', c)}
                     />
                     <ModuleSwitch
-                        label="Logistics"
-                        description="Couriers, Shipments, Tracking"
-                        checked={modules.logistics}
-                        onCheckedChange={(c) => handleToggle('logistics', c)}
+                        label="Governance"
+                        description="Board-level management. Enable for Shareholder & Investor access."
+                        checked={modules.governance}
+                        onCheckedChange={(c) => handleToggle('governance', c)}
+                    />
+                    <ModuleSwitch
+                        label="SaaS Platform"
+                        description="Subscription Management, Licensing, Tenants"
+                        checked={modules.saas}
+                        onCheckedChange={(c) => handleToggle('saas', c)}
                     />
                 </div>
             </CardContent>
@@ -159,7 +196,7 @@ export function ModuleToggleSettings() {
 
 function ModuleSwitch({ label, description, checked, onCheckedChange }: { label: string, description: string, checked: boolean, onCheckedChange: (c: boolean) => void }) {
     return (
-        <div className="flex items-center justify-between p-3 border rounded-lg bg-white shadow-sm">
+        <div className="flex items-center justify-between p-3 border rounded-lg bg-card shadow-sm dark:border-muted">
             <div className="space-y-0.5">
                 <Label className="text-base font-semibold">{label}</Label>
                 <p className="text-xs text-muted-foreground">{description}</p>

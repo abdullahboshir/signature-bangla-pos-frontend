@@ -1,177 +1,206 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Loader2, Search, Package, ShoppingCart, Monitor, FileText, Users, Shield, Building2, Settings, BoxIcon, Warehouse, CreditCard, Megaphone, TrendingUp, MessageSquare, Truck, Globe } from 'lucide-react';
-import { useGetPermissionsQuery } from "@/redux/api/iam/roleApi";
-import { RESOURCE_KEYS } from "@/config/permission-keys";
-
-// Helper to map resource to icon
-const getResourceIcon = (resource: string) => {
-    switch (resource) {
-        case RESOURCE_KEYS.PRODUCT: case RESOURCE_KEYS.CATEGORY: case RESOURCE_KEYS.BRAND: case RESOURCE_KEYS.ATTRIBUTE: case RESOURCE_KEYS.UNIT:
-            return Package;
-        case RESOURCE_KEYS.ORDER: case RESOURCE_KEYS.RETURN: case RESOURCE_KEYS.CART:
-            return ShoppingCart;
-        case RESOURCE_KEYS.TERMINAL: case RESOURCE_KEYS.CASH_REGISTER:
-            return Monitor;
-        case RESOURCE_KEYS.INVOICE:
-            return FileText;
-        case RESOURCE_KEYS.USER: case RESOURCE_KEYS.STAFF: case RESOURCE_KEYS.ATTENDANCE: case RESOURCE_KEYS.PAYROLL: case RESOURCE_KEYS.LEAVE: case RESOURCE_KEYS.DESIGNATION: case RESOURCE_KEYS.DEPARTMENT:
-            return Users;
-        case RESOURCE_KEYS.ROLE: case RESOURCE_KEYS.PERMISSION:
-            return Shield;
-        case RESOURCE_KEYS.BUSINESS_UNIT: case RESOURCE_KEYS.OUTLET:
-            return Building2;
-        case RESOURCE_KEYS.SYSTEM:
-            return Settings;
-        case RESOURCE_KEYS.INVENTORY: case RESOURCE_KEYS.PURCHASE: case RESOURCE_KEYS.SUPPLIER: case RESOURCE_KEYS.TRANSFER: case RESOURCE_KEYS.ADJUSTMENT:
-            return BoxIcon;
-        case RESOURCE_KEYS.WAREHOUSE:
-            return Warehouse;
-        case RESOURCE_KEYS.PAYMENT: case RESOURCE_KEYS.EXPENSE: case RESOURCE_KEYS.EXPENSE_CATEGORY: case RESOURCE_KEYS.BUDGET: case RESOURCE_KEYS.ACCOUNT: case RESOURCE_KEYS.TRANSACTION: case RESOURCE_KEYS.SETTLEMENT: case RESOURCE_KEYS.PAYOUT:
-            return CreditCard;
-        case RESOURCE_KEYS.STOREFRONT: case RESOURCE_KEYS.AD_CAMPAIGN: case RESOURCE_KEYS.PROMOTION: case RESOURCE_KEYS.COUPON: case RESOURCE_KEYS.AFFILIATE: case RESOURCE_KEYS.LOYALTY: case RESOURCE_KEYS.PIXEL: case RESOURCE_KEYS.AUDIENCE:
-            return Megaphone;
-        case RESOURCE_KEYS.CONTENT: case RESOURCE_KEYS.LANDING_PAGE: case RESOURCE_KEYS.EMAIL_TEMPLATE: case RESOURCE_KEYS.SMS_TEMPLATE:
-            return FileText;
-        case RESOURCE_KEYS.REPORT: case RESOURCE_KEYS.ANALYTICS: case RESOURCE_KEYS.SALES_REPORT: case RESOURCE_KEYS.PURCHASE_REPORT: case RESOURCE_KEYS.STOCK_REPORT: case RESOURCE_KEYS.PROFIT_LOSS_REPORT: case RESOURCE_KEYS.AUDIT_LOG:
-            return TrendingUp;
-        case RESOURCE_KEYS.TICKET: case RESOURCE_KEYS.CHAT: case RESOURCE_KEYS.DISPUTE: case RESOURCE_KEYS.QUESTION:
-            return MessageSquare;
-        case RESOURCE_KEYS.SHIPPING: case RESOURCE_KEYS.DELIVERY: case RESOURCE_KEYS.COURIER: case RESOURCE_KEYS.PARCEL:
-            return Truck;
-        case RESOURCE_KEYS.FRAUD_DETECTION: case RESOURCE_KEYS.BLACKLIST: case RESOURCE_KEYS.RISK_RULE: case RESOURCE_KEYS.RISK_PROFILE:
-            return Shield;
-        default:
-            return Shield;
-    }
-};
+import { Button } from "@/components/ui/button";
+import { Loader2, Search, ChevronDown, ChevronRight } from 'lucide-react';
+import { useGetPermissionGroupsQuery } from "@/redux/api/iam/roleApi";
 
 interface DirectPermissionSelectorProps {
     selectedPermissionIds: string[];
     onTogglePermission: (id: string) => void;
     onToggleGroup: (resource: string, ids: string[], allSelected: boolean) => void;
+    rolePermissionGroupIds?: string[];
 }
 
-const DirectPermissionSelector = React.memo(({ selectedPermissionIds, onTogglePermission, onToggleGroup }: DirectPermissionSelectorProps) => {
+const DirectPermissionSelector = React.memo(({
+    selectedPermissionIds,
+    onTogglePermission,
+    onToggleGroup,
+    rolePermissionGroupIds = []
+}: DirectPermissionSelectorProps) => {
     const [permSearch, setPermSearch] = useState("");
+    const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
 
-    // Fetch permissions internally to decouple from parent re-renders
-    const { data: permissionsData, isLoading: isLoadingPerms } = useGetPermissionsQuery({ limit: 5000 });
+    const { data: permissionGroupsData, isLoading } = useGetPermissionGroupsQuery({ limit: 1000 });
 
-    const allPermissions = useMemo(() => {
-        return Array.isArray(permissionsData)
-            ? permissionsData
-            : ((permissionsData as any)?.result || permissionsData?.data || []);
-    }, [permissionsData]);
+    const permissionGroups = useMemo(() => {
+        return Array.isArray(permissionGroupsData)
+            ? permissionGroupsData
+            : (permissionGroupsData as any)?.data?.result || (permissionGroupsData as any)?.data || permissionGroupsData?.result || [];
+    }, [permissionGroupsData]);
 
-    // Filter permissions
-    const filteredPermissions = useMemo(() => {
-        return allPermissions.filter((p: any) =>
-            p.id.toLowerCase().includes(permSearch.toLowerCase()) ||
-            p.description?.toLowerCase().includes(permSearch.toLowerCase()) ||
-            p.resource?.toLowerCase().includes(permSearch.toLowerCase())
+    const sortedGroups = useMemo(() => {
+        let filtered = permissionGroups.filter((pg: any) =>
+            pg.name?.toLowerCase().includes(permSearch.toLowerCase()) ||
+            pg.description?.toLowerCase().includes(permSearch.toLowerCase())
         );
-    }, [allPermissions, permSearch]);
 
-    // Group permissions
-    const groupedPermissions = useMemo(() => {
-        return filteredPermissions.reduce((acc: any, perm: any) => {
-            const resource = perm.resource || 'Other';
-            if (!acc[resource]) {
-                acc[resource] = [];
-            }
-            acc[resource].push(perm);
-            return acc;
-        }, {} as Record<string, any[]>);
-    }, [filteredPermissions]);
+        return filtered.sort((a: any, b: any) => {
+            const aMatched = rolePermissionGroupIds.includes(a._id || a.id);
+            const bMatched = rolePermissionGroupIds.includes(b._id || b.id);
 
-    const handleGroupToggle = (resource: string) => {
-        const permsInGroup = groupedPermissions[resource] || [];
-        const idsInGroup = permsInGroup.map((p: any) => p._id);
-        const allSelected = idsInGroup.every((id: string) => selectedPermissionIds.includes(id));
-        onToggleGroup(resource, idsInGroup, allSelected);
+            if (aMatched && !bMatched) return -1;
+            if (!aMatched && bMatched) return 1;
+            return (a.name || '').localeCompare(b.name || '');
+        });
+    }, [permissionGroups, permSearch, rolePermissionGroupIds]);
+
+    const toggleGroupExpansion = (groupId: string) => {
+        setExpandedGroup(prev => prev === groupId ? null : groupId);
+    };
+
+    const handleGroupToggle = (group: any) => {
+        const permissionIds = (group.permissions || []).map((p: any) => p._id || p.id || p);
+        const allSelected = permissionIds.every((id: string) => selectedPermissionIds.includes(id));
+        onToggleGroup(group.name, permissionIds, allSelected);
     };
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-3">
             <div className="flex items-center justify-between">
                 <div>
-                    <h3 className="text-xl font-bold tracking-tight">Direct Permission Overrides</h3>
-                    <p className="text-sm text-muted-foreground">Grant specific exceptional permissions (grouped by resource).</p>
+                    <h3 className="text-base font-semibold">Direct Permission Overrides</h3>
+                    <p className="text-xs text-muted-foreground">
+                        Grant specific permissions by group. Groups from assigned roles are highlighted.
+                    </p>
                 </div>
-                <div className="w-[300px]">
+                <div className="w-[250px]">
                     <div className="relative">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Search permissions..."
+                            placeholder="Search groups..."
                             value={permSearch}
                             onChange={(e) => setPermSearch(e.target.value)}
-                            className="pl-8"
+                            className="pl-8 h-9"
                         />
                     </div>
                 </div>
             </div>
 
-            <ScrollArea className="h-[800px] pr-4 border rounded-md bg-muted/10 p-2">
-                {isLoadingPerms ? (
-                    <div className="text-center py-10"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /></div>
+            <ScrollArea className="h-[700px] pr-3 border rounded-md bg-muted/10 p-3">
+                {isLoading ? (
+                    <div className="text-center py-10">
+                        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                    </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {(Object.entries(groupedPermissions) as [string, any[]][]).map(([resource, perms]) => {
-                            const Icon = getResourceIcon(resource);
-                            const allSelected = perms.every(p => selectedPermissionIds.includes(p._id));
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {sortedGroups.map((group: any, index: number) => {
+                            const groupId = group._id || group.id;
+                            const uniqueKey = `${groupId}-${index}`;
+                            const isExpanded = expandedGroup === uniqueKey;
+                            const isMatched = rolePermissionGroupIds.includes(groupId);
 
-                            const displayName = resource.replace(/_/g, " ").toUpperCase();
+                            const permissionIds = (group.permissions || []).map((p: any) => {
+                                if (typeof p === 'string') return p;
+                                return p._id || p.id || p;
+                            });
+
+                            const selectedCount = permissionIds.filter((id: string) =>
+                                selectedPermissionIds.includes(id)
+                            ).length;
+                            const totalCount = permissionIds.length;
+                            const allSelected = totalCount > 0 && selectedCount === totalCount;
 
                             return (
-                                <Card key={resource} className="flex flex-col overflow-hidden border-muted shadow-sm hover:shadow-md transition-shadow">
-                                    <CardHeader className="bg-muted/30 py-3 px-4 flex flex-row items-center justify-between space-y-0">
-                                        <div className="flex items-center gap-2">
-                                            <div className="p-1.5 bg-primary/10 rounded-md">
-                                                <Icon className="h-4 w-4 text-primary" />
+                                <Card
+                                    key={uniqueKey}
+                                    className={`transition-all ${isMatched
+                                            ? 'border-primary/50 bg-primary/5 shadow-sm'
+                                            : 'border-muted'
+                                        }`}
+                                >
+                                    <CardHeader className="py-0 px-3">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-5 w-5 p-0 shrink-0"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        toggleGroupExpansion(uniqueKey);
+                                                    }}
+                                                >
+                                                    {isExpanded ? (
+                                                        <ChevronDown className="h-3 w-3" />
+                                                    ) : (
+                                                        <ChevronRight className="h-3 w-3" />
+                                                    )}
+                                                </Button>
+
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                        <CardTitle className="text-sm font-semibold truncate">
+                                                            {group.name}
+                                                        </CardTitle>
+                                                        {isMatched && (
+                                                            <Badge variant="secondary" className="text-[9px] h-4 px-1.5 shrink-0">
+                                                                Role
+                                                            </Badge>
+                                                        )}
+                                                        <Badge variant="outline" className="text-[9px] h-4 px-1.5 shrink-0">
+                                                            {selectedCount}/{totalCount}
+                                                        </Badge>
+                                                    </div>
+                                                    {group.description && (
+                                                        <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
+                                                            {group.description}
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <CardTitle className="text-base font-semibold">{displayName}</CardTitle>
-                                            <Badge variant="secondary" className="text-[10px] h-5">{perms.length}</Badge>
-                                        </div>
-                                        <div className="flex items-center gap-2">
+
                                             <Checkbox
-                                                id={`group-${resource}`}
                                                 checked={allSelected}
-                                                onCheckedChange={() => handleGroupToggle(resource)}
+                                                onCheckedChange={() => handleGroupToggle(group)}
+                                                className="h-4 w-4 shrink-0 ml-2"
                                             />
                                         </div>
                                     </CardHeader>
 
-                                    <div className="p-3 grid gap-2">
-                                        {perms.map((perm: any) => (
-                                            <div key={perm._id} className="flex items-start space-x-2 p-2 rounded-md hover:bg-muted/50 transition-colors border border-transparent hover:border-border">
-                                                <Checkbox
-                                                    id={`perm-${perm._id}`}
-                                                    checked={selectedPermissionIds.includes(perm._id)}
-                                                    onCheckedChange={() => onTogglePermission(perm._id)}
-                                                    className="mt-0.5"
-                                                />
-                                                <div className="grid gap-0.5 leading-none">
-                                                    <Label
-                                                        htmlFor={`perm-${perm._id}`}
-                                                        className="text-sm font-medium cursor-pointer"
-                                                    >
-                                                        {perm.id}
-                                                    </Label>
-                                                    <p className="text-[10px] text-muted-foreground line-clamp-1" title={perm.description}>
-                                                        {perm.description || "No description"}
-                                                    </p>
-                                                </div>
+                                    {isExpanded && (
+                                        <CardContent className="pt-0 pb-2 px-3">
+                                            <div className="grid gap-1.5 pl-7">
+                                                {(group.permissions || []).map((perm: any) => {
+                                                    const permId = typeof perm === 'string' ? perm : (perm._id || perm.id);
+                                                    const permName = typeof perm === 'string' ? perm : (perm.id || perm.name);
+                                                    const permDesc = typeof perm === 'object' ? perm.description : '';
+
+                                                    return (
+                                                        <div
+                                                            key={permId}
+                                                            className="flex items-start space-x-2 p-1.5 rounded-md hover:bg-muted/50 transition-colors border border-transparent hover:border-border"
+                                                        >
+                                                            <Checkbox
+                                                                id={`perm-${permId}`}
+                                                                checked={selectedPermissionIds.includes(permId)}
+                                                                onCheckedChange={() => onTogglePermission(permId)}
+                                                                className="mt-0.5 h-3.5 w-3.5"
+                                                            />
+                                                            <div className="grid gap-0.5 leading-none flex-1 min-w-0">
+                                                                <label
+                                                                    htmlFor={`perm-${permId}`}
+                                                                    className="text-xs font-medium cursor-pointer truncate"
+                                                                >
+                                                                    {permName}
+                                                                </label>
+                                                                {permDesc && (
+                                                                    <p className="text-[9px] text-muted-foreground line-clamp-1">
+                                                                        {permDesc}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
-                                        ))}
-                                    </div>
+                                        </CardContent>
+                                    )}
                                 </Card>
                             );
                         })}

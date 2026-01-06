@@ -42,9 +42,9 @@ export default function TicketList() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Ticket className="h-5 w-5" />
-                    Support Tickets
+                    Support Tickets (Coming Soon)
                 </CardTitle>
-                <CardDescription>Manage customer support requests.</CardDescription>
+                <CardDescription>Manage customer support requests. Feature currently in development.</CardDescription>
             </CardHeader>
             <CardContent>
                 <DataTable

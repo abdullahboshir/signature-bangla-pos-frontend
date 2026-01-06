@@ -6,7 +6,7 @@ import * as z from "zod";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useCreateBusinessUnitMutation } from "@/redux/api/organization/businessUnitApi";
+import { useCreateBusinessUnitMutation, useUpdateBusinessUnitMutation, useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi";
 import { useGetCategoriesQuery } from "@/redux/api/catalog/categoryApi";
 
 import { Button } from "@/components/ui/button";
@@ -97,10 +97,29 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export function BusinessUnitForm() {
+interface BusinessUnitFormProps {
+    slug?: string; // Optional: if provided, form is in edit mode
+}
+
+export function BusinessUnitForm({ slug }: BusinessUnitFormProps = {}) {
     const router = useRouter();
-    const [createBusinessUnit, { isLoading }] = useCreateBusinessUnitMutation();
+    const isEditMode = !!slug;
+
+    const [createBusinessUnit, { isLoading: isCreating }] = useCreateBusinessUnitMutation();
+    const [updateBusinessUnit, { isLoading: isUpdating }] = useUpdateBusinessUnitMutation();
     const { data: categories = [], isLoading: loadingCategories } = useGetCategoriesQuery({ limit: 100 });
+
+    // Fetch business units for edit mode
+    const { data: businessUnits = [], isLoading: loadingBU } = useGetBusinessUnitsQuery({}, {
+        skip: !isEditMode // Only fetch if in edit mode
+    });
+
+    // Find business unit by slug
+    const businessUnit = isEditMode
+        ? businessUnits.find((bu: any) => bu.slug === slug || bu.id === slug)
+        : null;
+
+    const isLoading = isCreating || isUpdating;
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema) as any,
@@ -128,7 +147,7 @@ export function BusinessUnitForm() {
             hasShipping: true,
             hasSeo: true,
             hasBundles: true,
-            activeModules: [MODULES.POS, MODULES.ERP], // Default modules
+            activeModules: [MODULES.POS, MODULES.ERP],
             returnPolicy: "",
             shippingPolicy: "",
         },
@@ -147,11 +166,49 @@ export function BusinessUnitForm() {
         }
     }, [watchName, dirtyFields, form]);
 
+    // Pre-populate form in edit mode
+    useEffect(() => {
+        if (isEditMode && businessUnit) {
+            const activeModulesList = Object.entries(businessUnit.activeModules || {})
+                .filter(([_, isActive]) => isActive)
+                .map(([module]) => module);
+
+            form.reset({
+                name: businessUnit.name || "",
+                id: businessUnit.id || "",
+                slug: businessUnit.slug || "",
+                operationalModel: businessUnit.operationalModel || BUSINESS_MODEL.RETAIL,
+                industry: businessUnit.industry || BUSINESS_INDUSTRY.GENERAL,
+                contactEmail: businessUnit.contact?.email || "",
+                contactPhone: businessUnit.contact?.phone || "",
+                website: businessUnit.contact?.website || "",
+                brandingName: businessUnit.branding?.name || businessUnit.name || "",
+                brandingDescription: businessUnit.branding?.description || "",
+                address: businessUnit.location?.address || "",
+                city: businessUnit.location?.city || "Dhaka",
+                country: businessUnit.location?.country || "Bangladesh",
+                postalCode: businessUnit.location?.postalCode || "",
+                primaryCategory: businessUnit.primaryCategory || "",
+                currency: businessUnit.settings?.currency || "BDT",
+                language: businessUnit.settings?.language || "en",
+                timezone: businessUnit.location?.timezone || businessUnit.settings?.timezone || "Asia/Dhaka",
+                hasInventory: businessUnit.features?.hasInventory ?? true,
+                hasVariants: businessUnit.features?.hasVariants ?? true,
+                hasShipping: businessUnit.features?.hasShipping ?? true,
+                hasSeo: businessUnit.features?.hasSeo ?? true,
+                hasBundles: businessUnit.features?.hasBundles ?? true,
+                activeModules: activeModulesList,
+                returnPolicy: businessUnit.policies?.returnPolicy || "",
+                shippingPolicy: businessUnit.policies?.shippingPolicy || "",
+            });
+        }
+    }, [isEditMode, businessUnit, form]);
+
     const onSubmit = async (values: FormValues) => {
         try {
             const payload = {
                 name: values.name,
-                id: values.id,
+                ...(isEditMode ? {} : { id: values.id }),
                 slug: values.slug,
                 operationalModel: values.operationalModel,
                 industry: values.industry,
@@ -198,14 +255,42 @@ export function BusinessUnitForm() {
                 visibility: "public"
             };
 
-            await createBusinessUnit(payload).unwrap();
-            toast.success("Business Unit created successfully");
+            if (isEditMode) {
+                await updateBusinessUnit({ id: businessUnit?._id, body: payload }).unwrap();
+                toast.success("Business unit updated successfully!");
+            } else {
+                await createBusinessUnit(payload).unwrap();
+                toast.success("Business unit created successfully!");
+            }
             router.push("/global/business-units");
         } catch (error: any) {
-            toast.error(error.data?.message || "Failed to create business unit");
-            console.error(error);
+            console.error(`${isEditMode ? 'Update' : 'Create'} error:`, error);
+            toast.error(error?.data?.message || `Failed to ${isEditMode ? 'update' : 'create'} business unit`);
         }
     };
+
+    // Loading state for edit mode
+    if (isEditMode && loadingBU) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        );
+    }
+
+    // Not found state for edit mode
+    if (isEditMode && !businessUnit) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px]">
+                <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
+                <h2 className="text-2xl font-semibold mb-2">Business Unit Not Found</h2>
+                <p className="text-muted-foreground mb-4">The requested business unit doesn't exist.</p>
+                <Button onClick={() => router.push("/global/business-units")}>
+                    Back to Business Units
+                </Button>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">

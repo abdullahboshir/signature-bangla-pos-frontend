@@ -25,23 +25,16 @@ export function usePermission() {
 
     if (!permissions.length) return false;
 
-    // Find matching permission
-    // Since backend already sends 'effectivePermissions' which are ALLOWED,
-    // we just need to check if an entry exists for this resource/action.
-    // However, backend validation is complex (conditions, etc).
-    // For frontend UI toggle, a simple existence check of an 'allow' permission is usually enough.
-    // BUT wait, backend returns a list of PERMISSIONS (definitions), not just "allowed actions".
-    // We need to check if there is an active permission with effect='allow'.
-    
-    // NOTE: The backend 'getAuthorizationContext' returns ALL permissions assigned to the user.
-    // Use the same logic as backend 'resolvePermissions' (simplified) or trust that backend sends valid ones?
-    // Actually, backend sends definitions. We must evaluate them.
-    // Frontend evaluation is lighter:
-    // 1. Filter by resource/action.
-    // 2. Sort by priority.
-    // 3. Check deny/allow.
-    
-    const matching = permissions.filter(p => 
+    // Handle String Format (New Backend Standard: "resource:action")
+    if (typeof permissions[0] === 'string') {
+      const key = `${resource}:${action}`;
+      // Also allow wildcard action match if backend supports it (e.g. "product:*") - Optional
+      // For now, exact match logic:
+      return permissions.includes(key);
+    }
+
+    // Handle Object Format (Legacy/Fallback)
+    const matching = permissions.filter((p: any) => 
       p.resource === resource && 
       p.action === action && 
       p.isActive
