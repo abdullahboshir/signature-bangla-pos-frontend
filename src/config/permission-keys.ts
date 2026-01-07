@@ -1,150 +1,146 @@
 export const RESOURCE_KEYS = {
   // Business
+  // Platform & Infrastructure
   BUSINESS_UNIT: "businessUnit",
-  OUTLET: "outlet",
-  
-  // Catalog
+  SYSTEM_CONFIG: "systemConfig",
+  PLATFORM_SETTING: "platformSetting",
+  COMPANY_SETTING: "companySetting",
+  BUSINESS_SETTING: "businessSetting",
+  OUTLET_SETTING: "outletSetting",
+  BACKUP: "backup",
+  AUDIT_LOG: "auditLog",
+  API_KEY: "apiKey",
+  WEBHOOK: "webhook",
+  THEME: "theme",
+  PLUGIN: "plugin",
+  LANGUAGE: "language",
+  CURRENCY: "currency",
+  ZONE: "zone",
+  BLACKLIST: "blacklist",
+  FEATURE: "feature",
+  INTEGRATION: "integration",
+
+  // Core Commerce
   PRODUCT: "product",
   CATEGORY: "category",
   BRAND: "brand",
   VARIANT: "variant",
   ATTRIBUTE: "attribute",
-  UNIT: "unit",
-  WARRANTY: "warranty",
   ATTRIBUTE_GROUP: "attributeGroup",
+  UNIT: "unit",
   TAX: "tax",
+  WARRANTY: "warranty",
 
-  // Sales
+  // Sales & Orders
   ORDER: "order",
-  CUSTOMER: "customer",
+  QUOTATION: "quotation",
+  INVOICE: "invoice",
   RETURN: "return",
-  SHIPPING: "shipping",
-  DELIVERY: "delivery",
-  
-  // Inventory
+  REVIEW: "review",
+  COUPON: "coupon",
+  PROMOTION: "promotion",
+  ABANDONED_CART: "abandonedCart",
+  CONTENT: "content",
+
+  // Customers & Users
+  CUSTOMER: "customer",
+  USER: "user",
+  ROLE: "role",
+  PERMISSION: "permission",
+  AUTH: "auth",
+  WISHLIST: "wishlist",
+  CART: "cart",
+
+  // Inventory & Supply
   INVENTORY: "inventory",
-  SUPPLIER: "supplier",
-  PURCHASE: "purchase",
-  TRANSFER: "transfer", // backend key
-  STOCK_TRANSFER: "stockTransfer", // legacy or alias? Keeping both for now if needed, but 'transfer' is the new one
   WAREHOUSE: "warehouse",
-  
-  // HRM
-  STAFF: "staff",
-  DEPARTMENT: "department",
-  DESIGNATION: "designation",
-  ATTENDANCE: "attendance",
-  LEAVE: "leave",
-  PAYROLL: "payroll",
-  ASSET: "asset",
-
-  // Accounting
-  ACCOUNT: "account",
-  TRANSACTION: "transaction",
-  PAYMENT: "payment",
-  EXPENSE: "expense",
-  EXPENSE_CATEGORY: "expenseCategory",
-  BUDGET: "budget",
-
-  // Vendors
+  PURCHASE: "purchase",
+  SUPPLIER: "supplier",
   VENDOR: "vendor",
-  PAYOUT: "payout",
+  ADJUSTMENT: "adjustment",
+  TRANSFER: "transfer",
 
-  // POS
+  // Outlet / POS
+  OUTLET: "outlet",
+  STOREFRONT: "storefront",
   TERMINAL: "terminal",
   CASH_REGISTER: "cashRegister",
 
-  // System
-  SYSTEM: "system",
-  ANALYTICS: "analytics",
-  NOTIFICATION: "notification",
-  AUDIT_LOG: "auditLog",
+  // Finance & Accounting
+  ACCOUNT: "account",
+  TRANSACTION: "transaction",
+  PAYMENT: "payment",
+  BUDGET: "budget",
+  SETTLEMENT: "settlement",
+  PAYOUT: "payout",
+  RECONCILIATION: "reconciliation",
+  EXPENSE: "expense",
+  EXPENSE_CATEGORY: "expenseCategory",
+
+  // Logistics & Delivery
+  SHIPPING: "shipping",
+  COURIER: "courier",
+  DELIVERY: "delivery",
+  PARCEL: "parcel",
+  DRIVER: "driver",
+  VEHICLE: "vehicle",
+  TRACK: "track",
+  DISPATCH: "dispatch",
+
+  // Reports & Analytics
   REPORT: "report",
+  ANALYTICS_REPORT: "analyticsReport",
   SALES_REPORT: "salesReport",
   PURCHASE_REPORT: "purchaseReport",
   STOCK_REPORT: "stockReport",
   PROFIT_LOSS_REPORT: "profitLossReport",
-  FRAUD_DETECTION: "fraudDetection",
-  SETTLEMENT: "settlement",
-  USER: "user",
-  ROLE: "role",
-  PERMISSION: "permission",
-  LANGUAGE: "language",
-  CURRENCY: "currency",
-  ZONE: "zone",
-  BACKUP: "backup",
-  API_KEY: "apiKey",
-  WEBHOOK: "webhook",
-  EMAIL_TEMPLATE: "emailTemplate",
-  SMS_TEMPLATE: "smsTemplate",
-  
-  // Storefront
-  WISHLIST: "wishlist",
-  CART: "cart",
-  THEME: "theme",
-  PLUGIN: "plugin",
-  SEO: "seo",
+  DASHBOARD: "dashboard",
 
-  // Others
+  // HRM & Payroll
+  STAFF: "staff",
+  ATTENDANCE: "attendance",
+  LEAVE: "leave",
+  PAYROLL: "payroll",
+  DEPARTMENT: "department",
+  DESIGNATION: "designation",
+  ASSET: "asset",
+
+  // Marketing & Growth
+  AFFILIATE: "affiliate",
+  AD_CAMPAIGN: "adCampaign",
   LOYALTY: "loyalty",
   SUBSCRIPTION: "subscription",
-  REVIEW: "review",
-
-  // Marketing
-  PROMOTION: "promotion",
-  COUPON: "coupon",
-  AD_CAMPAIGN: "adCampaign",
-  AFFILIATE: "affiliate",
-
-  // Content
-  CONTENT: "content",
-
-  // Support
-  TICKET: "ticket",
-  CHAT: "chat",
-  DISPUTE: "dispute",
-
-  // Storefront
-  STOREFRONT: "storefront",
-  LANDING_PAGE: "landingPage",
-  ABANDONED_CART: "abandonedCart",
-  QUESTION: "question",
-
-  // Logistics
-  COURIER: "courier",
-  PARCEL: "parcel",
-  DRIVER: "driver",
-  VEHICLE: "vehicle",
-
-  // Risk & Fraud
-  BLACKLIST: "blacklist",
-  RISK_RULE: "riskRule",
-  RISK_PROFILE: "riskProfile",
-  
-  // Marketing & Tools
+  AUDIENCE: "audience",
   PIXEL: "pixel",
   EVENT: "event",
-  AUDIENCE: "audience",
+  LANDING_PAGE: "landingPage",
+  SEO: "seo",
 
-  // Finance
-  INVOICE: "invoice",
-  RECONCILIATION: "reconciliation",
-  ADJUSTMENT: "adjustment", // Backend match
-  
-  // Dashboard
-  DASHBOARD: "dashboard",
-  GLOBAL: "global",
-  
-  // Platform/SaaS
+  // Communication & Support
+  NOTIFICATION: "notification",
+  CHAT: "chat",
+  EMAIL_TEMPLATE: "emailTemplate",
+  SMS_TEMPLATE: "smsTemplate",
+  TICKET: "ticket",
+  DISPUTE: "dispute",
+  QUESTION: "question",
+
+  // Automation & Risk
+  AUTOMATION: "automation",
+  WORKFLOW: "workflow",
+  FRAUD_DETECTION: "fraudDetection",
+  RISK_RULE: "riskRule",
+  RISK_PROFILE: "riskProfile",
+
+  // Governance & Compliance
+  SHAREHOLDER: "shareholder",
+  MEETING: "meeting",
+  VOTING: "voting",
+  COMPLIANCE: "compliance",
   LICENSE: "license",
-  FEATURE: "feature",
-  INTEGRATION: "integration",
-  
-  // Governance
-  GOVERNANCE_SHAREHOLDER: "shareholder",
-  GOVERNANCE_VOTING: "voting",
-  GOVERNANCE_MEETING: "meeting",
-  GOVERNANCE_COMPLIANCE: "compliance",
+
+  // Global Contexts
+  GLOBAL: "global",
 } as const;
 
 // Mapping of High-Level System Modules (Toggleable) to specific Resource Keys
@@ -152,20 +148,30 @@ export const RESOURCE_KEYS = {
 // Mapping of High-Level System Modules (Toggleable) to specific Resource Keys
 // If a module is Disabled, these resources will be hidden.
 export const MODULE_RESOURCE_MAP: Record<string, string[]> = {
-  pos: [RESOURCE_KEYS.TERMINAL, RESOURCE_KEYS.CASH_REGISTER],
+  iam: [RESOURCE_KEYS.AUTH, RESOURCE_KEYS.USER, RESOURCE_KEYS.ROLE, RESOURCE_KEYS.PERMISSION],
+  pos: [
+    RESOURCE_KEYS.TERMINAL, RESOURCE_KEYS.CASH_REGISTER, RESOURCE_KEYS.STOREFRONT,
+    RESOURCE_KEYS.CART, RESOURCE_KEYS.WISHLIST, RESOURCE_KEYS.ABANDONED_CART,
+    RESOURCE_KEYS.OUTLET, RESOURCE_KEYS.OUTLET_SETTING
+  ],
   
   // ERP CORE (Includes: Products, Inventory, Finance, Logistics, Suppliers)
   erp: [
     // Inventory
     RESOURCE_KEYS.INVENTORY, RESOURCE_KEYS.PURCHASE, RESOURCE_KEYS.SUPPLIER, 
-    RESOURCE_KEYS.WAREHOUSE, RESOURCE_KEYS.TRANSFER, RESOURCE_KEYS.STOCK_TRANSFER,
+    RESOURCE_KEYS.WAREHOUSE, RESOURCE_KEYS.TRANSFER,
     RESOURCE_KEYS.ADJUSTMENT,
     // Finance
     RESOURCE_KEYS.ACCOUNT, RESOURCE_KEYS.TRANSACTION, RESOURCE_KEYS.PAYMENT, 
     RESOURCE_KEYS.EXPENSE, RESOURCE_KEYS.EXPENSE_CATEGORY, RESOURCE_KEYS.BUDGET, 
     RESOURCE_KEYS.TAX, RESOURCE_KEYS.INVOICE, RESOURCE_KEYS.RECONCILIATION,
     RESOURCE_KEYS.SETTLEMENT, RESOURCE_KEYS.PAYOUT,
-    // Logistics
+    // Risk & Automation
+    RESOURCE_KEYS.FRAUD_DETECTION, RESOURCE_KEYS.RISK_RULE, RESOURCE_KEYS.RISK_PROFILE,
+    RESOURCE_KEYS.AUTOMATION, RESOURCE_KEYS.WORKFLOW
+  ],
+
+  logistics: [
     RESOURCE_KEYS.COURIER, RESOURCE_KEYS.PARCEL, RESOURCE_KEYS.DRIVER, 
     RESOURCE_KEYS.VEHICLE, RESOURCE_KEYS.DELIVERY, RESOURCE_KEYS.SHIPPING
   ],
@@ -177,17 +183,15 @@ export const MODULE_RESOURCE_MAP: Record<string, string[]> = {
   ],
 
   ecommerce: [
-    RESOURCE_KEYS.STOREFRONT, RESOURCE_KEYS.THEME, RESOURCE_KEYS.PLUGIN, 
-    RESOURCE_KEYS.SEO, RESOURCE_KEYS.WISHLIST, RESOURCE_KEYS.CART, 
-    RESOURCE_KEYS.REVIEW, RESOURCE_KEYS.LANDING_PAGE, RESOURCE_KEYS.ABANDONED_CART,
-    RESOURCE_KEYS.CONTENT
+    RESOURCE_KEYS.THEME, RESOURCE_KEYS.PLUGIN, 
+    RESOURCE_KEYS.SEO, RESOURCE_KEYS.REVIEW, RESOURCE_KEYS.LANDING_PAGE, 
+    RESOURCE_KEYS.CONTENT, RESOURCE_KEYS.QUESTION
   ],
 
   // CRM SUITE (Includes: Support, Marketing, Customers)
   crm: [
     RESOURCE_KEYS.CUSTOMER, RESOURCE_KEYS.TICKET, RESOURCE_KEYS.CHAT, RESOURCE_KEYS.DISPUTE, 
     RESOURCE_KEYS.AUDIENCE, RESOURCE_KEYS.PIXEL, RESOURCE_KEYS.EVENT, RESOURCE_KEYS.LOYALTY,
-    RESOURCE_KEYS.EMAIL_TEMPLATE, RESOURCE_KEYS.SMS_TEMPLATE,
     // Marketing
     RESOURCE_KEYS.PROMOTION, RESOURCE_KEYS.COUPON, RESOURCE_KEYS.AD_CAMPAIGN, 
     RESOURCE_KEYS.AFFILIATE
@@ -201,14 +205,27 @@ export const MODULE_RESOURCE_MAP: Record<string, string[]> = {
     RESOURCE_KEYS.SUBSCRIPTION, RESOURCE_KEYS.LICENSE, RESOURCE_KEYS.FEATURE
   ],
 
+  platform: [
+    RESOURCE_KEYS.BUSINESS_UNIT, RESOURCE_KEYS.PLATFORM_SETTING
+  ],
+
   governance: [
-    RESOURCE_KEYS.GOVERNANCE_SHAREHOLDER, RESOURCE_KEYS.GOVERNANCE_VOTING, RESOURCE_KEYS.GOVERNANCE_MEETING,
-    RESOURCE_KEYS.GOVERNANCE_COMPLIANCE
+    RESOURCE_KEYS.SHAREHOLDER, RESOURCE_KEYS.VOTING, RESOURCE_KEYS.MEETING,
+    RESOURCE_KEYS.COMPLIANCE
+  ],
+
+  system: [
+    RESOURCE_KEYS.SYSTEM_CONFIG, RESOURCE_KEYS.COMPANY_SETTING,
+    RESOURCE_KEYS.BUSINESS_SETTING, RESOURCE_KEYS.OUTLET_SETTING, RESOURCE_KEYS.BACKUP,
+    RESOURCE_KEYS.AUDIT_LOG, RESOURCE_KEYS.LANGUAGE, RESOURCE_KEYS.CURRENCY, RESOURCE_KEYS.ZONE,
+    RESOURCE_KEYS.BLACKLIST, RESOURCE_KEYS.NOTIFICATION, RESOURCE_KEYS.GLOBAL,
+    RESOURCE_KEYS.DASHBOARD, RESOURCE_KEYS.REPORT, RESOURCE_KEYS.ANALYTICS_REPORT,
+    RESOURCE_KEYS.EMAIL_TEMPLATE, RESOURCE_KEYS.SMS_TEMPLATE
   ]
 };
 
 export const PLATFORM_RESOURCES = [
-  RESOURCE_KEYS.SYSTEM,
+  RESOURCE_KEYS.SYSTEM_CONFIG,
   RESOURCE_KEYS.GLOBAL,
   RESOURCE_KEYS.API_KEY,
   RESOURCE_KEYS.WEBHOOK,
@@ -242,6 +259,15 @@ export const ACTION_KEYS = {
   CANCEL: "cancel",
   VERIFY: "verify",
   ESCALATE: "escalate",
+  RESOLVE: "resolve",
+  HOLD: "hold",
+  RELEASE: "release",
+  
+  // Security/Control
+  LOCK: "lock",
+  UNLOCK: "unlock",
+  EXECUTE: "execute",
+  CONTROL: "control",
   
   // Fulfillment
   SHIP: "ship",
@@ -275,6 +301,8 @@ export const PERMISSION_KEYS = Object.fromEntries(
 
 export const PERMISSION_SCOPES = {
   GLOBAL: "global",
+  COMPANY: "company",
+  BUSINESS: "business",
   VENDOR: "vendor",
   OUTLET: "outlet",
   CATEGORY: "category",
@@ -338,7 +366,7 @@ export const PLATFORM_PERMISSIONS = {
   VIEW_BUSINESS_UNITS: PERMISSION_KEYS.BUSINESS_UNIT.READ,
   
   // System Configuration
-  MANAGE_SYSTEM: PERMISSION_KEYS.SYSTEM.MANAGE,
+  MANAGE_SYSTEM: PERMISSION_KEYS.SYSTEM_CONFIG.MANAGE,
   VIEW_AUDIT_LOGS: PERMISSION_KEYS.AUDIT_LOG.VIEW,
   MANAGE_API_KEYS: PERMISSION_KEYS.API_KEY.MANAGE,
   MANAGE_WEBHOOKS: PERMISSION_KEYS.WEBHOOK.MANAGE,
@@ -354,15 +382,15 @@ export const PLATFORM_PERMISSIONS = {
   
   // 📦 Packages & Licensing (SaaS)
   MANAGE_PACKAGES: PERMISSION_KEYS.SUBSCRIPTION.MANAGE, // Using subscription as package proxy
-  MANAGE_FEATURES: PERMISSION_KEYS.SYSTEM.MANAGE, // Feature flags are system-level
-  MANAGE_LICENSES: PERMISSION_KEYS.SUBSCRIPTION.MANAGE, // License management
+  MANAGE_FEATURES: PERMISSION_KEYS.FEATURE.MANAGE, // Feature flags are system-level
+  MANAGE_LICENSES: PERMISSION_KEYS.LICENSE.MANAGE, // License management
   
   // 🔔 Notifications (Platform-wide)
   MANAGE_NOTIFICATIONS: PERMISSION_KEYS.NOTIFICATION.MANAGE,
   CREATE_ANNOUNCEMENTS: PERMISSION_KEYS.NOTIFICATION.CREATE,
   
   // 🔌 Integrations (Global services)
-  MANAGE_INTEGRATIONS: PERMISSION_KEYS.SYSTEM.MANAGE, // Third-party integrations
+  MANAGE_INTEGRATIONS: PERMISSION_KEYS.INTEGRATION.MANAGE, // Third-party integrations
   
   // Global Content/Marketing
   MANAGE_GLOBAL_THEMES: PERMISSION_KEYS.THEME.MANAGE,

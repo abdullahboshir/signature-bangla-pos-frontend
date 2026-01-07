@@ -64,8 +64,11 @@ export function UserMenu({ user }: UserMenuProps) {
 
   const roleStr = Array.isArray(user.role) ? user.role[0] : String(user.role || "");
   const businessUnitStr = Array.isArray(user.businessUnit)
-    ? user.businessUnit.map((unit: any) => (typeof unit === 'string' ? unit : unit.name).replace('-', ' ')).join(', ')
-    : String((typeof user.businessUnit === 'object' && user.businessUnit !== null ? (user.businessUnit as any).name : user.businessUnit) || "").replace('-', ' ');
+    ? user.businessUnit
+      .filter(Boolean)
+      .map((unit: any) => (typeof unit === 'string' ? unit : (unit?.name || "Global")).replace('-', ' '))
+      .join(', ')
+    : String((typeof user.businessUnit === 'object' && user.businessUnit !== null ? (user.businessUnit as any)?.name : user.businessUnit) || "").replace('-', ' ');
 
   const fullNameSafe = typeof user.fullName === 'string' ? user.fullName : "User";
 

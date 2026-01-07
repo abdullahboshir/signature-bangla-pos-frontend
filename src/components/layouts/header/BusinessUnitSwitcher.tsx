@@ -15,11 +15,12 @@ import { Store } from "lucide-react";
 
 interface BusinessUnitSwitcherProps {
   currentBusinessUnit: string;
+  effectiveCompanyId?: string | null;
   currentRole: string;
   availableUnits: any[];
 }
 
-export function BusinessUnitSwitcher({ currentBusinessUnit, currentRole, availableUnits }: BusinessUnitSwitcherProps) {
+export function BusinessUnitSwitcher({ currentBusinessUnit, effectiveCompanyId, currentRole, availableUnits }: BusinessUnitSwitcherProps) {
   const router = useRouter();
   const { setActiveBusinessUnit } = useAuth();
   const [activeOutletId, setActiveOutletId] = useState<string | null>(null);
@@ -82,21 +83,28 @@ export function BusinessUnitSwitcher({ currentBusinessUnit, currentRole, availab
       setActiveOutletId(null);
       localStorage.removeItem("active-outlet-id");
 
-      // Redirect
+      // Redirect with Context Persistence
       const targetSlug = unit.slug || unit.id;
-      router.push(`/${targetSlug}/dashboard`);
+      const params = new URLSearchParams();
+      if (effectiveCompanyId) params.set('company', effectiveCompanyId);
+
+      const queryString = params.toString();
+      router.push(`/${targetSlug}/dashboard${queryString ? `?${queryString}` : ''}`);
     }
   };
 
   const handleSwitchOutlet = (outletId: string) => {
     const targetSlug = activeUnit?.slug || activeUnit?.id || currentBusinessUnit;
+    const params = new URLSearchParams();
+    if (effectiveCompanyId) params.set('company', effectiveCompanyId);
 
     if (outletId === 'all') {
       setActiveOutletId(null);
-      router.push(`/${targetSlug}/dashboard`);
+      router.push(`/${targetSlug}/dashboard${params.toString() ? `?${params.toString()}` : ''}`);
     } else {
       setActiveOutletId(outletId);
-      router.push(`/${targetSlug}/outlets/${outletId}`);
+      params.set('outlet', outletId);
+      router.push(`/${targetSlug}/outlets/${outletId}${params.toString() ? `?${params.toString()}` : ''}`);
     }
   };
 

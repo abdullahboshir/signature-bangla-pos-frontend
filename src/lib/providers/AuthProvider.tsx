@@ -110,33 +110,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (decoded?.isSuperAdmin) {
                 redirect = "/global/dashboard";
             } else if (context?.primary) {
-                const { businessUnit, outlet } = context.primary;
-                const slug = businessUnit?.slug || "unknown";
+                const { businessUnit, outlet, scope } = context.primary;
 
-                // Find the full details in available list to check outlet counts
-                const availableEntry = context.available?.find((a: any) =>
-                    a.businessUnit._id === businessUnit._id || a.businessUnit.id === businessUnit.id
-                );
-
-                const outletCount = availableEntry?.outletCount || 0;
-
-                // LOGIC UPDATE: Management Roles go to Business Dashboard regardless of outlet count
-                // Operational Roles (Cashier, Sales) go to Outlet Dashboard if single context
-                if (!isManagementRole && (outletCount === 1 && availableEntry?.outlets?.length > 0)) {
-                    // Operational Staff -> Direct Outlet Login
-                    const singleOutletId = availableEntry.outlets[0]._id;
-                    redirect = `/${slug}/outlets/${singleOutletId}`;
-                } else if (!isManagementRole && outlet) {
-                    // Operational Staff with specific outlet context -> Direct Outlet
-                    redirect = `/${slug}/outlets/${outlet._id}`;
+                // LOGIC: Redirection based on Scope
+                if (scope === 'COMPANY') {
+                    // Company Owner/Manager -> Go to Global/Company View
+                    redirect = "/global/dashboard";
                 } else {
-                    // Managers/Admins OR Multiple Outlets -> Business Dashboard (Head Office View)
-                    redirect = `/${slug}/dashboard`;
+                    const slug = businessUnit?.slug || "unknown";
+
+                    // Find the full details in available list to check outlet counts
+                    const availableEntry = context.available?.find((a: any) =>
+                        (a.businessUnit?._id === businessUnit?._id || a.businessUnit?.id === businessUnit?.id) ||
+                        (a.company?._id === context.primary.company?._id)
+                    );
+
+                    const outletCount = availableEntry?.outletCount || 0;
+
+                    // Management Roles go to Business Dashboard regardless of outlet count
+                    if (!isManagementRole && (outletCount === 1 && availableEntry?.outlets?.length > 0)) {
+                        const singleOutletId = availableEntry.outlets[0]._id;
+                        redirect = `/${slug}/outlets/${singleOutletId}`;
+                    } else if (!isManagementRole && outlet) {
+                        redirect = `/${slug}/outlets/${outlet._id}`;
+                    } else {
+                        redirect = `/${slug}/dashboard`;
+                    }
                 }
 
-                // Store active BU in local storage
-                if (businessUnit._id) {
-                    setActiveBusinessUnit(businessUnit._id);
+                // Store active BU in local storage if exists
+                if (context.primary.businessUnit?._id) {
+                    setActiveBusinessUnit(context.primary.businessUnit._id);
+                } else {
+                    setActiveBusinessUnit(null);
                 }
             } else if (context?.available?.length > 0) {
                 // Fallback if no primary is set but BUs exist - pick first

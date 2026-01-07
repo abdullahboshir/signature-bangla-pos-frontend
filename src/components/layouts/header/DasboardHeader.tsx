@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Bell, Search, Menu, Calculator, MonitorPlay, MapPin } from "lucide-react";
+import { Bell, Search, Menu, Calculator, MonitorPlay, MapPin, ShieldAlert, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "./UserMenu";
 import { Notifications } from "./Notifications";
 import { BusinessUnitSwitcher } from "./BusinessUnitSwitcher";
+import { CompanySwitcher } from "./CompanySwitcher";
 import { cn } from "@/lib/utils";
 import { ModeToggle } from "@/components/mode-toggle";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,6 +20,7 @@ import { CommandPalette } from "@/components/shared/CommandPalette";
 import { useGetOutletQuery } from "@/redux/api/organization/outletApi";
 import { useCurrentRole } from "@/hooks/useCurrentRole";
 import { useGetSystemSettingsQuery } from "@/redux/api/system/settingsApi";
+import { useGetAllCompaniesQuery } from "@/redux/api/platform/companyApi";
 
 interface DashboardHeaderProps {
   onMenuClick?: () => void;
@@ -56,7 +58,8 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
   const [isOpenRegisterOpen, setIsOpenRegisterOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
-  // Determine Outlet Context
+  // Determine Context
+  const urlCompanyId = searchParams.get('company');
   let outletId = searchParams.get('outlet');
 
   // Fallback: Check pathname for /outlets/[id]
@@ -76,9 +79,18 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
     return rName === 'super-admin' || rName === 'super_admin';
   });
 
-  const { data: allBusinessUnits } = useGetBusinessUnitsQuery(undefined, {
+  const { data: allBusinessUnits } = useGetBusinessUnitsQuery(
+    isSuperAdmin && urlCompanyId ? { company: urlCompanyId } : undefined,
+    { skip: !isSuperAdmin }
+  );
+
+  const { data: allCompanies } = useGetAllCompaniesQuery(undefined, {
     skip: !isSuperAdmin
   });
+
+  // Normalize API data extraction
+  const companies = Array.isArray(allCompanies) ? allCompanies : (allCompanies as any)?.data || (allCompanies as any)?.result || [];
+  const businessUnits = Array.isArray(allBusinessUnits) ? allBusinessUnits : (allBusinessUnits as any)?.data || (allBusinessUnits as any)?.result || [];
 
   // Extract BUs from new Consumer Access Model or Context
   const contextAvailable = user?.context?.available || [];
@@ -86,10 +98,13 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
   let uniqueUserBUs: any[] = [];
 
   if (contextAvailable.length > 0) {
-    uniqueUserBUs = contextAvailable.map((ctx: any) => ({
-      ...ctx.businessUnit,
-      outlets: ctx.outlets
-    }));
+    uniqueUserBUs = contextAvailable.map((ctx: any) => {
+      const unit = ctx.businessUnit || ctx.company;
+      return {
+        ...unit,
+        outlets: ctx.outlets || []
+      };
+    });
   } else {
     // Fallback to legacy businessAccess parsing
     const userBusinessUnits = (user?.businessAccess || [])
@@ -99,9 +114,22 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
   }
 
   // Combine or select appropriate source of units
-  const availableUnits = isSuperAdmin
-    ? (allBusinessUnits || [])
+  let availableUnits = isSuperAdmin
+    ? (businessUnits || [])
     : (uniqueUserBUs || []);
+
+  // [NEW] Context Derivation: If no company in URL but in a BU, derive company from that BU
+  const activeUnitFromUrl = availableUnits.find((u: any) => u.id === businessUnitSlug || u.slug === businessUnitSlug);
+  const derivedCompanyId = activeUnitFromUrl?.company?._id || activeUnitFromUrl?.company;
+  const effectiveCompanyId = urlCompanyId || derivedCompanyId;
+
+  // Final Filter for available units (strictly by effective company)
+  if (isSuperAdmin && effectiveCompanyId) {
+    availableUnits = availableUnits.filter((u: any) =>
+      u.company === effectiveCompanyId ||
+      (typeof u.company === 'object' && u.company?._id === effectiveCompanyId)
+    );
+  }
 
   // console.log('HEADER DEBUG:', {
   //   isSuperAdmin,
@@ -141,7 +169,7 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const globalRoleNames = (user?.globalRoles || []).map((r: any) => typeof r === 'string' ? r : r.name);
+  const globalRoleNames = (user?.globalRoles || []).map((r: any) => typeof r === 'string' ? r : (r?.name || "")).filter(Boolean);
   const scopedRoleNames = (user?.businessAccess || []).map((acc: any) => acc.role?.name).filter(Boolean);
   const allRoleNames = [...new Set([...globalRoleNames, ...scopedRoleNames])].join(", ");
 
@@ -150,7 +178,7 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
     profileImg: user?.profileImg || user?.avatar || "/avatars/01.png",
     designation: user?.designation || allRoleNames || "Staff",
     role: allRoleNames || "Staff",
-    businessUnit: uniqueUserBUs.map((u: any) => u.name) || [],
+    businessUnit: uniqueUserBUs.map((u: any) => u.name).filter(Boolean) || [],
   };
 
   const businessUnitName = businessUnitSlug ? businessUnitSlug.replace("-", " ") : "Dashboard";
@@ -159,14 +187,24 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
     // If we have a scoped business unit, use it.
     if (businessUnitSlug) {
       router.push(`/${businessUnitSlug}/sales/create`);
-    } else {
-      // If Global Super Admin context, route to global sales create or picking a unit
-      // Since 'sales' is usually BU-scoped, redirecting to BU selection might be better, 
-      // or if there's a global sales view.
-      // For now, let's assume they want to go to a default unit or remain global if supported.
-      router.push(`/global/sales/create`); // Or handle appropriate fallback
     }
   };
+
+  const handleExitContext = () => {
+    if (isSuperAdmin) {
+      router.push('/global/dashboard');
+    } else if (role === 'company-owner') {
+      router.push('/global/dashboard');
+    }
+  };
+
+  // Impersonation Banner Logic
+  const isImpersonating = isSuperAdmin && effectiveCompanyId;
+  const activeUnit = availableUnits.find((u: any) => u.id === businessUnitSlug || u.slug === businessUnitSlug);
+  const activeCompany = companies?.find((c: any) => c._id === effectiveCompanyId);
+
+  const impersonatedName = activeUnit?.name || activeCompany?.name || "Lower Context";
+  const contextType = businessUnitSlug ? "Business Unit" : "Company";
 
   // [NEW] Get Current Company Modules for Header Visibility
   const { data: systemSettings } = useGetSystemSettingsQuery(undefined);
@@ -179,6 +217,21 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
           "sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b"
         )}
       >
+        {isImpersonating && (
+          <div className="bg-amber-500/10 border-b border-amber-500/20 text-amber-600 px-4 py-1.5 text-[11px] font-medium flex items-center justify-center gap-2">
+            <ShieldAlert className="h-3 w-3" />
+            <span>
+              Impersonation Mode: Acting as <strong>{impersonatedName}</strong> ({contextType} Context)
+            </span>
+            <button
+              onClick={handleExitContext}
+              className="ml-2 px-2 py-0.5 bg-amber-500 text-white rounded hover:bg-amber-600 transition-colors flex items-center gap-1"
+            >
+              <X className="h-3 w-3" />
+              Exit
+            </button>
+          </div>
+        )}
         <div className="flex h-16 items-center px-4 gap-4">
 
           {/* Left: Mobile Menu & Unit Switcher */}
@@ -193,11 +246,24 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
               <Menu className="h-5 w-5" />
             </Button>
 
-            <BusinessUnitSwitcher
-              currentBusinessUnit={businessUnitSlug}
-              currentRole={role}
-              availableUnits={availableUnits}
-            />
+            {/* 1. Company Switcher (Primary Context) */}
+            {isSuperAdmin && (
+              <CompanySwitcher
+                currentCompanyId={effectiveCompanyId}
+                companies={companies}
+              />
+            )}
+
+            {/* 2. Business Unit Switcher (Sub-Context) */}
+            {/* Show if: Not super-admin OR (Super Admin AND Company Picked) */}
+            {(!isSuperAdmin || (isSuperAdmin && effectiveCompanyId)) && (
+              <BusinessUnitSwitcher
+                currentBusinessUnit={businessUnitSlug}
+                effectiveCompanyId={effectiveCompanyId}
+                currentRole={role}
+                availableUnits={availableUnits}
+              />
+            )}
           </div>
 
           {/* Center: Search (POS Style) */}

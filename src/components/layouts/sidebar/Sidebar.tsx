@@ -47,7 +47,8 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
     "risk",
     "business-units",
     "settings",
-    "profile"
+    "profile",
+    "dashboard"
   ];
 
   // Generic Fallback: Extract from Path if params missing
@@ -84,20 +85,25 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
       role = params.role as string;
     } else if (pathname.startsWith('/super-admin')) {
       role = 'super-admin';
+    } else if (pathname.startsWith('/global')) {
+      // If we are on a global path but no role is found, 
+      // check if user has a management role
+      const isCompanyLevel = (user as any)?.role?.includes('company-owner');
+      role = isCompanyLevel ? 'company-owner' : 'super-admin';
     } else if (businessUnit) {
-      // Default to business-admin for now when inside
       role = 'business-admin';
     }
   }
 
   // Resolve Outlet ID from Path or Query Params (for Context Persistence)
   const outletId = (params.outletId as string) || searchParams.get('outlet');
+  const companyId = searchParams.get('company');
 
   // [NEW] Get Current Company Modules for Toggle Visibility
   // Safely access company from user object, fallback to System Global settings
   const activeModules = (user as any)?.company?.activeModules || systemSettings?.enabledModules || {};
 
-  const rawMenuItems = getSidebarMenu(role, businessUnit || "", outletId as string)
+  const rawMenuItems = getSidebarMenu(role, businessUnit || "", outletId as string, companyId)
 
   // 1. [CONFIG FILTER] Filter based on Company's Active Modules (Settings)
   // 1. [CONFIG FILTER] Filter based on Company's Active Modules (Settings)
