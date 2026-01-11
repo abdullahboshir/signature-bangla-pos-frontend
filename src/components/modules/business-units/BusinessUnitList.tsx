@@ -14,8 +14,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Edit, Trash, Store, Eye, MapPin } from "lucide-react";
-import { useParams, useRouter } from "next/navigation";
+import { MoreHorizontal, Edit, Trash, Store, Eye, MapPin, Building2, Plus, UserPlus } from "lucide-react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCurrentRole } from "@/hooks/useCurrentRole";
 import { DataPageLayout } from "@/components/shared/DataPageLayout";
 
@@ -23,10 +23,18 @@ export default function BusinessUnitList() {
     const { data: rawUnits, isLoading } = useGetBusinessUnitsQuery({}) as any;
     const router = useRouter();
     const params = useParams();
+    const searchParams = useSearchParams();
     const { currentRole } = useCurrentRole();
     const role = currentRole as string;
 
     const businessUnits = Array.isArray(rawUnits) ? rawUnits : (rawUnits?.data || rawUnits?.result || []);
+    const companyIdFromUrl = searchParams.get("company");
+
+    const filteredUnits = Array.isArray(businessUnits) ? businessUnits.filter((unit: any) => {
+        if (!companyIdFromUrl) return true;
+        const buCompanyId = unit.company?._id || unit.company?.id || unit.company;
+        return buCompanyId === companyIdFromUrl;
+    }) : [];
 
     const columns: ColumnDef<any>[] = [
         {
@@ -39,6 +47,18 @@ export default function BusinessUnitList() {
                         <span className="font-semibold">{row.original.name}</span>
                     </div>
                     <span className="text-xs text-muted-foreground ml-6">{row.original.slug}</span>
+                </div>
+            )
+        },
+        {
+            accessorKey: "company",
+            header: "Company",
+            cell: ({ row }) => (
+                <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium text-sm">
+                        {row.original.company?.name || <span className="text-red-500 italic">Unlinked</span>}
+                    </span>
                 </div>
             )
         },
@@ -110,11 +130,31 @@ export default function BusinessUnitList() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => router.push(`/${unit.slug}/overview`)}>
+                            <DropdownMenuItem onClick={() => {
+                                const identifier = unit.slug || unit.id || unit._id;
+                                const url = `/${identifier}/overview`;
+                                router.push(companyIdFromUrl ? `${url}?company=${companyIdFromUrl}` : url);
+                            }}>
                                 <Eye className="mr-2 h-4 w-4" /> View Dashboard
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => router.push(`/global/business-units/${unit.id}/edit`)}>
+                            <DropdownMenuItem onClick={() => {
+                                const url = `/global/business-units/${unit.id}/edit`;
+                                router.push(companyIdFromUrl ? `${url}?company=${companyIdFromUrl}` : url);
+                            }}>
                                 <Edit className="mr-2 h-4 w-4" /> Edit Details
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => {
+                                const identifier = unit.slug || unit.id || unit._id;
+                                router.push(`/global/user-management/business-users/add?business-unit=${identifier}`);
+                            }}>
+                                <Plus className="mr-2 h-4 w-4" /> Add Staff
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => {
+                                const identifier = unit.slug || unit.id || unit._id;
+                                router.push(`/global/business-units/${identifier}/outlets/new`);
+                            }}>
+                                <Store className="mr-2 h-4 w-4" /> Add Outlet
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem className="text-red-500">
@@ -133,12 +173,15 @@ export default function BusinessUnitList() {
             description="Manage your business units and subsidiaries."
             createAction={{
                 label: "Add Business Unit",
-                onClick: () => router.push(`/global/business-units/new`)
+                onClick: () => {
+                    const queryString = searchParams.toString();
+                    router.push(`/global/business-units/new${queryString ? `?${queryString}` : ''}`);
+                }
             }}
         >
             <DataTable
                 columns={columns}
-                data={businessUnits}
+                data={filteredUnits}
                 isLoading={isLoading}
                 renderSubComponent={({ original }: { original: any }) => (
                     <div className="p-4 bg-muted/30 rounded-md">
@@ -159,6 +202,21 @@ export default function BusinessUnitList() {
                                             <div>{outlet.city}, {outlet.address}</div>
                                             <div className="mt-0.5">{outlet.phone}</div>
                                         </div>
+                                        <div className="flex items-center justify-between mt-2 pt-2 border-t">
+                                            <div className="text-muted-foreground text-[10px] uppercase tracking-wider font-semibold">Quick Actions</div>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-7 w-7 p-0 text-primary hover:text-primary hover:bg-primary/10"
+                                                title="Add Staff to this Outlet"
+                                                onClick={() => {
+                                                    const identifier = original.slug || original.id || original._id;
+                                                    router.push(`/global/user-management/business-users/add?business-unit=${identifier}&outlet=${outlet._id}`);
+                                                }}
+                                            >
+                                                <UserPlus className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -168,7 +226,7 @@ export default function BusinessUnitList() {
                     </div>
                 )}
             />
-        </DataPageLayout>
+        </DataPageLayout >
     );
 }
 

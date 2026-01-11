@@ -43,6 +43,21 @@ export interface AppModule {
     children?: AppModule[];
 }
 
+// Key Operational Modules that Business Admins/Managers typically access
+// independent of global platform strictness (often used for bypass logic)
+export const OPERATIONAL_MODULES = [
+    'pos', 
+    'erp', 
+    'crm', 
+    'inventory', 
+    'ecommerce', 
+    'hrm', 
+    'logistics', 
+    'finance', 
+    'marketing', 
+    'integrations'
+];
+
 export const APP_MODULES: Record<string, AppModule> = {
   DASHBOARD: {
     title: "Dashboard",
@@ -58,7 +73,11 @@ export const APP_MODULES: Record<string, AppModule> = {
     path: "companies",
     icon: Building,
     resource: RESOURCE_KEYS.ACCOUNT,
-    module: "platform"
+    module: "platform",
+    children: [
+      { title: "All Companies", path: "companies", resource: RESOURCE_KEYS.ACCOUNT },
+      { title: "Add Company", path: "companies/add", resource: RESOURCE_KEYS.ACCOUNT, action: ACTION_KEYS.CREATE },
+    ]
   },
   
   EXPENSES: {
@@ -94,167 +113,154 @@ export const APP_MODULES: Record<string, AppModule> = {
       { title: "Couriers", path: "logistics/courier", resource: RESOURCE_KEYS.COURIER, action: ACTION_KEYS.MANAGE },
       { title: "Parcels", path: "logistics/parcel", resource: RESOURCE_KEYS.PARCEL },
       { title: "Reports", path: "reports/logistics", resource: RESOURCE_KEYS.DELIVERY, action: ACTION_KEYS.VIEW },
-    ]
-  },
-  
-  CONTENT: {
-    title: "Content",
-    path: "content",
-    icon: FileText,
-    resource: RESOURCE_KEYS.CONTENT,
-    module: "ecommerce"
-  },
-
-  RISK_MANAGEMENT: {
-    title: "Risk & Fraud",
-    path: "risk",
-    icon: ShieldAlert,
-    resource: RESOURCE_KEYS.FRAUD_DETECTION,
-    module: "erp",
-    children: [
-       { title: "Fraud Detection", path: "risk/fraud", resource: RESOURCE_KEYS.FRAUD_DETECTION },
-       { title: "Blacklist", path: "risk/blacklist", resource: RESOURCE_KEYS.BLACKLIST },
-       { title: "Risk Rules", path: "risk/rules", resource: RESOURCE_KEYS.RISK_RULE },
-       { title: "Risk Profiles", path: "risk/profiles", resource: RESOURCE_KEYS.RISK_PROFILE },
-       { title: "Analytics", path: "risk/analytics", resource: RESOURCE_KEYS.ANALYTICS_REPORT },
-    ]
-  },
-
-  OUTLETS: {
-    title: "Outlets",
-    path: "outlets",
-    icon: Store,
-    resource: RESOURCE_KEYS.OUTLET,
-    module: "pos",
-    children: [
-      { title: "All Outlets", path: "outlets", resource: RESOURCE_KEYS.OUTLET },
-      { title: "Add Outlet", path: "outlets/new", resource: RESOURCE_KEYS.OUTLET, action: ACTION_KEYS.CREATE },
-    ]
-  },
-
-  USER_MANAGEMENT: {
-    title: "User Management",
-    path: "user-management",
-    icon: Users,
-    resource: RESOURCE_KEYS.USER, // General Key, specific permission checked on children
-    module: "iam",
-    children: [
-      // Platform Scope
-      { title: "Platform Users", path: "user-management/platform-users", resource: RESOURCE_KEYS.USER },
-      { title: "Platform Roles", path: "user-management/platform-roles", resource: RESOURCE_KEYS.ROLE },
-      { title: "Add Platform User", path: "user-management/platform-users/add", resource: RESOURCE_KEYS.USER, action: ACTION_KEYS.CREATE, hidden: true },
-
-      // Business Scope
-      { title: "Business Roles", path: "user-management/business-roles", resource: RESOURCE_KEYS.ROLE },
     ],
   },
-
-  // ... (Keep other modules)
-
-// ...
-
-
-
+  
+  INVENTORY: {
+    title: "Inventory",
+    path: "inventory",
+    icon: Warehouse,
+    resource: RESOURCE_KEYS.INVENTORY,
+    module: "erp", // Corrected to match backend
+    children: [
+      { title: "Stock Levels", path: "inventory/stock", resource: RESOURCE_KEYS.INVENTORY },
+      { title: "Receive Stock", path: "inventory/receive", resource: RESOURCE_KEYS.INVENTORY, action: ACTION_KEYS.UPDATE },
+      { title: "Transfer", path: "inventory/transfer", resource: RESOURCE_KEYS.TRANSFER },
+      { title: "Warehouse", path: "inventory/warehouse", resource: RESOURCE_KEYS.WAREHOUSE },
+    ]
+  },
 
   CATALOG: {
     title: "Catalog",
     path: "catalog",
     icon: Package,
-    resource: RESOURCE_KEYS.PRODUCT, // Fixed from BUSINESS_PERMISSIONS.VIEW_PRODUCTS
+    resource: RESOURCE_KEYS.PRODUCT,
     module: "erp",
     children: [
-      { title: "Products", path: "catalog/product", resource: RESOURCE_KEYS.PRODUCT },
-      { title: "Add Product", path: "catalog/product/add", action: ACTION_KEYS.CREATE },
-      { title: "Edit Product", path: "catalog/product/edit", action: ACTION_KEYS.UPDATE, hidden: true },
-      { title: "Categories", path: "catalog/category", resource: RESOURCE_KEYS.CATEGORY },
-      { title: "Variants", path: "catalog/variants", resource: RESOURCE_KEYS.VARIANT },
-      { title: "Brands", path: "catalog/brand", resource: RESOURCE_KEYS.BRAND },
-      { title: "Units", path: "catalog/unit", resource: RESOURCE_KEYS.UNIT },
-      { title: "Attributes", path: "catalog/attribute", resource: RESOURCE_KEYS.ATTRIBUTE },
-      { title: "Attribute Groups", path: "catalog/attribute-groups", resource: RESOURCE_KEYS.ATTRIBUTE_GROUP },
-      { title: "Warranties", path: "catalog/warranties", resource: RESOURCE_KEYS.WARRANTY },
-      { title: "Tax", path: "catalog/tax", resource: RESOURCE_KEYS.TAX },
-    ],
-  },
-
-  INVENTORY: {
-    title: "Inventory",
-    path: "inventory",
-    icon: Package,
-    resource: RESOURCE_KEYS.INVENTORY, // Fixed from BUSINESS_PERMISSIONS.MANAGE_INVENTORY
-    module: "erp",
-    children: [
-      { title: "Stock Levels", path: "inventory", resource: RESOURCE_KEYS.INVENTORY },
-      { title: "Purchases", path: "inventory/purchase", resource: RESOURCE_KEYS.PURCHASE },
-      { title: "New Purchase", path: "inventory/purchase/new", resource: RESOURCE_KEYS.PURCHASE, action: ACTION_KEYS.CREATE, hidden: true },
-      { title: "Stock Ledger", path: "inventory/ledger", resource: RESOURCE_KEYS.INVENTORY, action: ACTION_KEYS.TRACK },
-      { title: "Warehouses", path: "inventory/warehouses", resource: RESOURCE_KEYS.WAREHOUSE },
-      { title: "Transfers", path: "inventory/transfers", resource: RESOURCE_KEYS.TRANSFER, action: ACTION_KEYS.CREATE },
-      { title: "Adjustments", path: "inventory/adjustments", resource: RESOURCE_KEYS.ADJUSTMENT, action: ACTION_KEYS.ADJUST },
+      { title: "Products", path: "catalog/products", resource: RESOURCE_KEYS.PRODUCT },
+      { title: "Categories", path: "catalog/categories", resource: RESOURCE_KEYS.CATEGORY },
+      { title: "Brands", path: "catalog/brands", resource: RESOURCE_KEYS.BRAND },
+      { title: "Attributes", path: "catalog/attributes", resource: RESOURCE_KEYS.ATTRIBUTE },
+      { title: "Units", path: "catalog/units", resource: RESOURCE_KEYS.UNIT },
     ]
   },
-
-  PURCHASES: {
-    title: "Purchases",
-    path: "purchases",
-    icon: ShoppingCart,
-    resource: RESOURCE_KEYS.PURCHASE,
-    module: "erp",
-    children: [
-      { title: "All Purchases", path: "purchases", resource: RESOURCE_KEYS.PURCHASE },
-    ]
-  },
-
+  
   SALES: {
-    title: "Sales & Orders",
+    title: "Sales",
     path: "sales",
     icon: ShoppingCart,
-    resource: RESOURCE_KEYS.ORDER, // Fixed from BUSINESS_PERMISSIONS.VIEW_ORDERS
+    resource: RESOURCE_KEYS.ORDER,
     module: "erp",
     children: [
-      { title: "All Orders", path: "sales", resource: RESOURCE_KEYS.ORDER },
-      { title: "POS", path: "pos", resource: RESOURCE_KEYS.TERMINAL, module: "pos" },
-      { title: "Shipping", path: "sales/shipping", resource: RESOURCE_KEYS.SHIPPING },
-      { title: "Deliveries", path: "sales/deliveries", resource: RESOURCE_KEYS.DELIVERY },
-      { title: "Returns", path: "sales/returns", resource: RESOURCE_KEYS.RETURN },
-      { title: "Invoices", path: "sales/invoices", resource: RESOURCE_KEYS.INVOICE },
+       { title: "Orders", path: "sales/orders", resource: RESOURCE_KEYS.ORDER },
+       { title: "Invoices", path: "sales/invoices", resource: RESOURCE_KEYS.INVOICE },
+       { title: "Shipments", path: "sales/shipments", resource: RESOURCE_KEYS.SHIPPING },
+       { title: "Returns", path: "sales/returns", resource: RESOURCE_KEYS.RETURN },
     ]
+  },
+
+  POS_TERMINAL: {
+    title: "POS Terminal",
+    path: "pos",
+    icon: Store,
+    resource: RESOURCE_KEYS.TERMINAL,
+    module: "pos"
+  },
+  
+  OUTLETS: {
+    title: "Outlets",
+    path: "outlets",
+    icon: Store,
+    resource: RESOURCE_KEYS.OUTLET,
+    module: "pos"
+  },
+
+  CUSTOMERS: {
+    title: "Customers",
+    path: "customers",
+    icon: Users,
+    resource: RESOURCE_KEYS.CUSTOMER,
+    module: "crm"
   },
 
   MARKETING: {
     title: "Marketing",
     path: "marketing",
     icon: Megaphone,
-    resource: RESOURCE_KEYS.PROMOTION, // Fixed from BUSINESS_PERMISSIONS.MANAGE_PROMOTIONS
-    module: "crm",
+    resource: RESOURCE_KEYS.PROMOTION,
+    module: "marketing",
     children: [
-      { title: "Promotions", path: "marketing/promotions", resource: RESOURCE_KEYS.PROMOTION },
-      { title: "Coupons", path: "marketing/coupons", resource: RESOURCE_KEYS.COUPON },
-      { title: "Ad Campaigns", path: "marketing/campaigns", resource: RESOURCE_KEYS.AD_CAMPAIGN },
-      { title: "Affiliates", path: "marketing/affiliates", resource: RESOURCE_KEYS.AFFILIATE },
-      { title: "Loyalty", path: "marketing/loyalty", resource: RESOURCE_KEYS.LOYALTY },
-      { title: "SEO", path: "marketing/seo", resource: RESOURCE_KEYS.SEO },
-      { title: "Pixel & Events", path: "marketing/pixel", resource: RESOURCE_KEYS.PIXEL },
-      { title: "Events", path: "marketing/events", resource: RESOURCE_KEYS.EVENT },
-      { title: "Audiences", path: "marketing/audiences", resource: RESOURCE_KEYS.AUDIENCE },
+       { title: "Campaigns", path: "marketing/campaigns", resource: RESOURCE_KEYS.AD_CAMPAIGN },
+       { title: "Discounts", path: "marketing/discounts", resource: RESOURCE_KEYS.PROMOTION },
+       { title: "Coupons", path: "marketing/coupons", resource: RESOURCE_KEYS.COUPON },
+    ]
+  },
+  
+  STOREFRONT: {
+    title: "Online Store",
+    path: "storefront",
+    icon: Globe,
+    resource: RESOURCE_KEYS.STOREFRONT,
+    module: "ecommerce",
+    children: [
+      { title: "Themes", path: "storefront/themes", resource: RESOURCE_KEYS.THEME },
+      { title: "Pages", path: "storefront/pages", resource: RESOURCE_KEYS.LANDING_PAGE },
+      { title: "Navigation", path: "storefront/navigation", resource: RESOURCE_KEYS.CONTENT },
+      { title: "Preferences", path: "storefront/preferences", resource: RESOURCE_KEYS.STOREFRONT, action: ACTION_KEYS.UPDATE },
     ]
   },
 
-  CUSTOMERS: {
-    title: "Customers",
-    path: "customers",
-    icon: User,
-    resource: RESOURCE_KEYS.CUSTOMER, // Fixed from BUSINESS_PERMISSIONS.MANAGE_CUSTOMERS
-    module: "crm",
+  HRM: {
+    title: "HRM & Payroll",
+    path: "hrm",
+    icon: Users,
+    resource: RESOURCE_KEYS.STAFF,
+    module: "hrm",
     children: [
-      { title: "Customer List", path: "customers", resource: RESOURCE_KEYS.CUSTOMER },
-      { title: "Add Customer", path: "customers/new", action: ACTION_KEYS.CREATE },
-      { title: "Loyalty Program", path: "customers/loyalty", resource: RESOURCE_KEYS.LOYALTY },
-      { title: "Subscriptions", path: "customers/subscriptions", resource: RESOURCE_KEYS.SUBSCRIPTION },
-      { title: "Reviews", path: "customers/reviews", resource: RESOURCE_KEYS.REVIEW },
-      { title: "Wishlists", path: "customers/wishlists", resource: RESOURCE_KEYS.WISHLIST },
-      { title: "Active Carts", path: "customers/carts", resource: RESOURCE_KEYS.CART },
+       { title: "Staff", path: "hrm/staff", resource: RESOURCE_KEYS.STAFF },
+       { title: "Attendance", path: "hrm/attendance", resource: RESOURCE_KEYS.ATTENDANCE },
+       { title: "Payroll", path: "hrm/payroll", resource: RESOURCE_KEYS.PAYROLL },
+       { title: "Leave", path: "hrm/leave", resource: RESOURCE_KEYS.LEAVE },
     ]
+  },
+
+  FINANCE: {
+    title: "Finance",
+    path: "finance",
+    icon: DollarSign,
+    resource: RESOURCE_KEYS.ACCOUNT,
+    module: "finance",
+    children: [
+        { title: "Transactions", path: "finance/transactions", resource: RESOURCE_KEYS.TRANSACTION },
+        { title: "Accounts", path: "finance/accounts", resource: RESOURCE_KEYS.ACCOUNT },
+    ]
+  },
+  
+  ACCOUNTING: {
+      title: "Accounting",
+      path: "accounting",
+      module: "finance",
+      children: [
+          { title: "Chart of Accounts", path: "accounting/chart-of-accounts", resource: RESOURCE_KEYS.ACCOUNT },
+          { title: "Journal", path: "accounting/journal", resource: RESOURCE_KEYS.TRANSACTION },
+          { title: "General Ledger", path: "accounting/ledger", resource: RESOURCE_KEYS.TRANSACTION }
+      ]
+  },
+
+  REPORTS: {
+    title: "Reports",
+    path: "reports",
+    icon: BarChart3,
+    resource: RESOURCE_KEYS.REPORT,
+    module: "system"
+  },
+
+  NOTIFICATIONS: {
+    title: "Notifications",
+    path: "notifications",
+    icon: Bell,
+    resource: RESOURCE_KEYS.NOTIFICATION,
+    module: "system"
   },
 
   SUPPORT: {
@@ -264,496 +270,207 @@ export const APP_MODULES: Record<string, AppModule> = {
     resource: RESOURCE_KEYS.TICKET,
     module: "crm",
     children: [
-      { title: "Tickets", path: "support/tickets", resource: RESOURCE_KEYS.TICKET },
-      { title: "Chat", path: "support/chat", resource: RESOURCE_KEYS.CHAT },
-      { title: "Disputes", path: "support/disputes", resource: RESOURCE_KEYS.DISPUTE },
+       { title: "Tickets", path: "support/tickets", resource: RESOURCE_KEYS.TICKET },
+       { title: "Chats", path: "support/chats", resource: RESOURCE_KEYS.CHAT },
+       { title: "Knowledge Base", path: "support/kb", resource: RESOURCE_KEYS.CONTENT },
     ]
   },
-
-  FINANCE: {
-    title: "Financials",
-    path: "finance",
-    icon: DollarSign,
-    resource: RESOURCE_KEYS.PAYMENT,
-    module: "erp",
-    children: [
-      { title: "Payments", path: "finance/payments", resource: RESOURCE_KEYS.PAYMENT },
-      { title: "Settlements", path: "finance/settlements", resource: RESOURCE_KEYS.SETTLEMENT },
-      { title: "Payouts", path: "finance/payouts", resource: RESOURCE_KEYS.PAYOUT },
-      { title: "Reconciliations", path: "finance/reconciliation", resource: RESOURCE_KEYS.RECONCILIATION },
-      { title: "Fraud Detection", path: "finance/fraud", resource: RESOURCE_KEYS.FRAUD_DETECTION },
-      { title: "Analytics", path: "finance/analytics", resource: RESOURCE_KEYS.ANALYTICS_REPORT },
-      { title: "Audit Logs", path: "finance/audit-logs", resource: RESOURCE_KEYS.AUDIT_LOG },
-    ]
-  },
-
-  BUSINESS_SETTINGS: {
-    title: "Business Settings",
-    path: "business-settings",
-    icon: Settings,
-    resource: RESOURCE_KEYS.BUSINESS_SETTING,
-    module: "system",
-    children: [
-        { title: "General", path: "business-settings?tab=overview", resource: RESOURCE_KEYS.BUSINESS_SETTING },
-        { title: "Sales & Finance", path: "business-settings?tab=sales", resource: RESOURCE_KEYS.BUSINESS_SETTING },
-        { title: "POS Configuration", path: "business-settings?tab=pos", resource: RESOURCE_KEYS.TERMINAL },
-        { title: "Inventory", path: "business-settings?tab=inventory", resource: RESOURCE_KEYS.INVENTORY },
-    ]
-  },
-
-  COMPANY_SETTINGS: {
-    title: "Company Settings",
-    path: "company-settings",
-    icon: Building,
-    resource: RESOURCE_KEYS.COMPANY_SETTING,
-    module: "system",
-    children: [
-        { title: "Profile", path: "company-settings?tab=identity", resource: RESOURCE_KEYS.COMPANY_SETTING },
-        { title: "Branding", path: "company-settings?tab=branding", resource: RESOURCE_KEYS.COMPANY_SETTING },
-        { title: "Policies", path: "company-settings?tab=policies", resource: RESOURCE_KEYS.COMPANY_SETTING },
-    ]
+  
+  USER_MANAGEMENT: {
+      title: "User Management",
+      path: "user-management",
+      icon: Users,
+      resource: RESOURCE_KEYS.USER,
+      module: "system"
   },
 
   PLATFORM_SETTINGS: {
     title: "Platform Settings",
     path: "platform-settings",
-    icon: Sparkles,
-    resource: RESOURCE_KEYS.PLATFORM_SETTING,
-    module: "platform",
-    children: [
-        { title: "White-labeling", path: "platform-settings?tab=branding", resource: RESOURCE_KEYS.PLATFORM_SETTING },
-        { title: "Global Defaults", path: "platform-settings?tab=defaults", resource: RESOURCE_KEYS.PLATFORM_SETTING },
-        { title: "Marketplace", path: "platform-settings?tab=marketplace", resource: RESOURCE_KEYS.PLATFORM_SETTING },
-    ]
-  },
-
-  SYSTEM: {
-    title: "System Infrastructure",
-    path: "system-settings",
     icon: Settings,
-    resource: RESOURCE_KEYS.SYSTEM_CONFIG,
-    module: "system",
-    children: [
-      { title: "Module Toggles", path: "system-settings?tab=modules", resource: RESOURCE_KEYS.SYSTEM_CONFIG },
-      { title: "Email Templates", path: "system/email-templates", resource: RESOURCE_KEYS.EMAIL_TEMPLATE },
-      { title: "SMS Templates", path: "system/sms-templates", resource: RESOURCE_KEYS.SMS_TEMPLATE },
-      { title: "Languages", path: "system/languages", resource: RESOURCE_KEYS.LANGUAGE },
-      { title: "Currencies", path: "system/currencies", resource: RESOURCE_KEYS.CURRENCY },
-      { title: "Zones & Locations", path: "system/zones", resource: RESOURCE_KEYS.ZONE },
-      { title: "Audit Logs", path: "system/audit-logs", resource: RESOURCE_KEYS.AUDIT_LOG },
-      { title: "Backups", path: "system/backups", resource: RESOURCE_KEYS.BACKUP },
-    ]
+    resource: RESOURCE_KEYS.PLATFORM_SETTING,
+    module: "platform"
   },
 
-  OUTLET_SETTINGS: {
-    title: "Outlet Settings",
-    path: "outlet-settings",
-    icon: Store,
-    resource: RESOURCE_KEYS.OUTLET_SETTING,
-    module: "system",
-    children: [
-        { title: "General", path: "outlet-settings?tab=general", resource: RESOURCE_KEYS.OUTLET_SETTING },
-        { title: "POS & Hardware", path: "outlet-settings?tab=pos", resource: RESOURCE_KEYS.TERMINAL },
-        { title: "Tax & Invoicing", path: "outlet-settings?tab=tax", resource: RESOURCE_KEYS.TAX },
-    ]
-  },
-
-  // 📦 PACKAGES & LICENSING - SaaS subscription management
-  PACKAGES: {
-    title: "Packages & Plans",
-    path: "packages",
-    icon: Package,
-    resource: RESOURCE_KEYS.SUBSCRIPTION, // Fixed from PLATFORM_PERMISSIONS.MANAGE_PACKAGES
-    module: "saas",
-    badge: "SaaS",
-    children: [
-      { title: "All Packages", path: "packages", resource: RESOURCE_KEYS.SUBSCRIPTION },
-      { title: "Create Package", path: "packages/new", resource: RESOURCE_KEYS.SUBSCRIPTION, action: ACTION_KEYS.CREATE },
-      { title: "Feature Flags", path: "packages/features", resource: RESOURCE_KEYS.FEATURE },
-      { title: "License Keys", path: "licenses", resource: RESOURCE_KEYS.LICENSE },
-      { title: "Trials", path: "packages/trials", resource: RESOURCE_KEYS.SUBSCRIPTION },
-    ]
-  },
-
-  // 🔔 NOTIFICATIONS - Platform-wide alert center
-  NOTIFICATIONS: {
-    title: "Notifications",
-    path: "notifications",
-    icon: Bell,
-    resource: RESOURCE_KEYS.NOTIFICATION,
-    module: "system",
-    badge: "New",
-    children: [
-      { title: "Alert Center", path: "notifications", resource: RESOURCE_KEYS.NOTIFICATION },
-      { title: "Announcements", path: "notifications/announcements", resource: RESOURCE_KEYS.NOTIFICATION, action: ACTION_KEYS.CREATE },
-      { title: "Alert Settings", path: "notifications/settings", resource: RESOURCE_KEYS.NOTIFICATION, action: ACTION_KEYS.UPDATE },
-    ]
-  },
-
-  // 🔌 INTEGRATIONS - Third-party service management
   INTEGRATIONS: {
     title: "Integrations",
     path: "integrations",
     icon: Plug,
     resource: RESOURCE_KEYS.INTEGRATION,
-    module: "integrations",
-    badge: "New",
-    children: [
-      { title: "All Integrations", path: "integrations", resource: RESOURCE_KEYS.INTEGRATION },
-      { title: "Payment Gateways", path: "integrations/payment", resource: RESOURCE_KEYS.INTEGRATION },
-      { title: "Shipping Providers", path: "integrations/shipping", resource: RESOURCE_KEYS.INTEGRATION },
-      { title: "Email & SMS", path: "integrations/communication", resource: RESOURCE_KEYS.INTEGRATION },
-      { title: "Webhooks", path: "integrations/webhooks", resource: RESOURCE_KEYS.WEBHOOK },
-      { title: "API Keys", path: "integrations/api-keys", resource: RESOURCE_KEYS.API_KEY },
-    ]
+    module: "integrations"
   },
 
-  SUPPLIERS: {
-    title: "Suppliers",
-    path: "suppliers",
-    icon: Truck,
-    resource: RESOURCE_KEYS.SUPPLIER, // Fixed from BUSINESS_PERMISSIONS.MANAGE_SUPPLIERS
-    module: "erp"
-  },
-
-  REPORTS: {
-    title: "Reports",
-    path: "reports",
-    icon: BarChart3,
-    resource: RESOURCE_KEYS.REPORT, // Fixed from BUSINESS_PERMISSIONS.VIEW_FINANCIAL_REPORTS
+  SYSTEM: {
+    title: "System",
+    path: "system",
+    icon: ShieldAlert,
+    resource: RESOURCE_KEYS.SYSTEM_CONFIG,
     module: "system",
     children: [
-      { title: "Sales Analysis", path: "reports/sales", resource: RESOURCE_KEYS.SALES_REPORT },
-      { title: "Purchase History", path: "reports/purchases", resource: RESOURCE_KEYS.PURCHASE_REPORT },
-      { title: "Stock Valuation", path: "reports/stock", resource: RESOURCE_KEYS.STOCK_REPORT },
-      { title: "Profit & Loss", path: "reports/profit-loss", resource: RESOURCE_KEYS.PROFIT_LOSS_REPORT },
-      { title: "Expense Report", path: "reports/expenses", resource: RESOURCE_KEYS.EXPENSE_CATEGORY },
+       { title: "Settings", path: "system/settings", resource: RESOURCE_KEYS.SYSTEM_CONFIG },
+       { title: "Audit Logs", path: "system/audit-logs", resource: RESOURCE_KEYS.AUDIT_LOG },
+       { title: "Backups", path: "system/backups", resource: RESOURCE_KEYS.BACKUP },
     ]
   },
-
-  POS_TERMINAL: {
-    title: "POS Terminal",
-    path: "pos",
-    icon: ShoppingCart,
-    resource: RESOURCE_KEYS.TERMINAL, // Fixed from BUSINESS_PERMISSIONS.ACCESS_POS
-    module: "pos"
+  
+  COMPANY_SETTINGS: {
+      title: "Company Settings",
+      path: "company-settings",
+      icon: Settings,
+      resource: RESOURCE_KEYS.COMPANY_SETTING,
+      module: "system"
+  },
+  
+  BUSINESS_SETTINGS: {
+      title: "Business Settings",
+      path: "business-settings",
+      icon: Settings,
+      resource: RESOURCE_KEYS.BUSINESS_SETTING,
+      module: "system"
   },
 
+  PACKAGES: {
+    title: "Packages",
+    path: "packages",
+    icon: Package,
+    resource: RESOURCE_KEYS.SUBSCRIPTION,
+    module: "saas"
+  },
+  
   STAFF: {
-    title: "Staff Management",
-    path: "hrm/staff",
-    icon: Users,
-    resource: RESOURCE_KEYS.STAFF, // Fixed from BUSINESS_PERMISSIONS.MANAGE_STAFF
-    module: "hrm"
+      title: "Staff",
+      path: "hrm/staff",
+      icon: Users,
+      resource: RESOURCE_KEYS.STAFF,
+      module: "hrm"
   },
 
-  HRM: {
-    title: "HRM & Payroll",
-    path: "hrm",
-    icon: Users,
-    resource: RESOURCE_KEYS.STAFF, // Fixed from BUSINESS_PERMISSIONS.MANAGE_STAFF
-    module: "hrm",
-    children: [
-      { title: "Staff Directory", path: "hrm/staff", resource: RESOURCE_KEYS.STAFF },
-      { title: "Departments", path: "hrm/departments", resource: RESOURCE_KEYS.DEPARTMENT },
-      { title: "Designations", path: "hrm/designations", resource: RESOURCE_KEYS.DESIGNATION },
-      { title: "Attendance", path: "hrm/attendance", resource: RESOURCE_KEYS.ATTENDANCE },
-      { title: "Leave Requests", path: "hrm/leave", resource: RESOURCE_KEYS.LEAVE },
-      { title: "Payroll", path: "hrm/payroll", resource: RESOURCE_KEYS.PAYROLL },
-      { title: "Assets", path: "hrm/assets", resource: RESOURCE_KEYS.ASSET },
-    ]
+  SUPPLIERS: {
+      title: "Suppliers",
+      path: "inventory/suppliers",
+      icon: Truck,
+      resource: RESOURCE_KEYS.SUPPLIER,
+      module: "erp"
   },
 
-  GOVERNANCE: {
-    title: "Governance",
-    path: "governance",
-    icon: ShieldAlert,
-    resource: RESOURCE_KEYS.SHAREHOLDER,
-    module: "governance",
-    children: [
-      { title: "Shareholders", path: "governance/shareholders", resource: RESOURCE_KEYS.SHAREHOLDER },
-      { title: "Voting & Proposals", path: "governance/voting", resource: RESOURCE_KEYS.VOTING },
-      { title: "Board Meetings", path: "governance/meetings", resource: RESOURCE_KEYS.MEETING },
-      { title: "Compliance", path: "governance/compliance", resource: RESOURCE_KEYS.COMPLIANCE },
-    ]
+  CONTENT: {
+      title: "Content",
+      path: "content",
+      icon: FileText,
+      resource: RESOURCE_KEYS.CONTENT,
+      module: "ecommerce"
   },
 
-
-  ACCOUNTING: {
-    title: "Accounting",
-    path: "accounting",
-    icon: DollarSign,
-    resource: RESOURCE_KEYS.ACCOUNT,
-    module: "erp",
-    children: [
-      { title: "Chart of Accounts", path: "accounting/accounts", resource: RESOURCE_KEYS.ACCOUNT },
-      { title: "Transactions", path: "accounting/transactions", resource: RESOURCE_KEYS.TRANSACTION },
-      { title: "Expenses", path: "accounting/expenses", resource: RESOURCE_KEYS.EXPENSE },
-      { title: "Expense Categories", path: "accounting/expense-categories", resource: RESOURCE_KEYS.EXPENSE_CATEGORY },
-      { title: "Budgets", path: "accounting/budgets", resource: RESOURCE_KEYS.BUDGET },
-      { title: "Tax Rules", path: "accounting/tax", resource: RESOURCE_KEYS.TAX },
-    ]
+  RISK_MANAGEMENT: {
+      title: "Risk Management",
+      path: "risk",
+      icon: ShieldAlert,
+      resource: RESOURCE_KEYS.RISK_PROFILE,
+      module: "system"
   },
 
   VENDORS: {
-    title: "Vendors",
-    path: "vendors",
-    icon: Store,
-    resource: RESOURCE_KEYS.VENDOR,
-    module: "erp",
-    children: [
-      { title: "All Vendors", path: "vendors", resource: RESOURCE_KEYS.VENDOR },
-      { title: "Onboarding", path: "vendors/onboarding", resource: RESOURCE_KEYS.VENDOR, action: ACTION_KEYS.CREATE },
-      { title: "Payouts", path: "vendors/payouts", resource: RESOURCE_KEYS.PAYOUT, action: ACTION_KEYS.MANAGE },
-    ]
+      title: "Vendors",
+      path: "vendors",
+      icon: Users,
+      resource: RESOURCE_KEYS.VENDOR,
+      module: "erp"
   },
 
   POS_CONFIG: {
-    title: "POS Config",
-    path: "pos-config",
-    icon: Store,
-    resource: RESOURCE_KEYS.TERMINAL,
-    module: "pos",
-    children: [
-      { title: "Terminals", path: "pos-config/terminals", resource: RESOURCE_KEYS.TERMINAL },
-      { title: "Cash Registers", path: "pos-config/registers", resource: RESOURCE_KEYS.CASH_REGISTER },
-    ]
+      title: "POS Configuration",
+      path: "pos/config",
+      icon: Settings,
+      resource: RESOURCE_KEYS.TERMINAL,
+      module: "pos"
   },
 
-  STOREFRONT: {
-    title: "Online Store",
-    path: "online-store",
-    icon: Globe,
-    resource: RESOURCE_KEYS.STOREFRONT,
-    module: "ecommerce",
-    children: [
-      { title: "Store Builder", path: "online-store/ui-builder", resource: RESOURCE_KEYS.STOREFRONT },
-      { title: "Pages", path: "online-store/pages", resource: RESOURCE_KEYS.STOREFRONT },
-      { title: "Landing Pages", path: "online-store/landing-pages", resource: RESOURCE_KEYS.LANDING_PAGE },
-      { title: "Themes", path: "online-store/themes", resource: RESOURCE_KEYS.THEME },
-      { title: "Plugins", path: "online-store/plugins", resource: RESOURCE_KEYS.PLUGIN },
-      { title: "Questions", path: "online-store/questions", resource: RESOURCE_KEYS.QUESTION },
-      { title: "Abandoned Carts", path: "online-store/abandoned-carts", resource: RESOURCE_KEYS.ABANDONED_CART },
-      { title: "Settings", path: "online-store/settings", resource: RESOURCE_KEYS.STOREFRONT },
-    ]
+  OUTLET_SETTINGS: {
+      title: "Outlet Settings",
+      path: "outlet-settings",
+      icon: Settings,
+      resource: RESOURCE_KEYS.OUTLET_SETTING,
+      module: "pos"
+  }, 
+
+  ROUTE_PATHS: {
+      title: "Route Paths",
+      path: "/route-paths",
+      // Hidden, just for TS compatibility if needed
+      hidden: true
   }
+}
+
+// Deprecated alias for backward compatibility until refactor complete
+export const ROUTE_PATHS = {
+    DASHBOARD: "dashboard",
+    COMPANIES: "companies",
+    BUSINESS_UNITS: "business-units",
+    CATALOG: { 
+        ROOT: "catalog", 
+        PRODUCT: { ROOT: "catalog/products", ADD: "catalog/products/new" },
+        CATEGORY: "catalog/categories",
+        BRAND: "catalog/brands",
+        ATTRIBUTE: "catalog/attributes",
+        ATTRIBUTE_GROUP: "catalog/attribute-groups",
+        UNIT: "catalog/units",
+        TAX: "catalog/taxes"
+    },
+    INVENTORY: {
+        ROOT: "inventory",
+        PURCHASE: "inventory/purchases",
+        ADJUSTMENTS: "inventory/adjustments",
+        LEDGER: "inventory/ledger",
+        WAREHOUSES: "inventory/warehouses",
+        TRANSFERS: "inventory/transfers",
+        ALERTS: "inventory/alerts" // Added
+    },
+    SALES: {
+        ROOT: "sales",
+        ORDERS: "sales/orders",
+        INVOICES: "sales/invoices",
+        RETURNS: "sales/returns",
+        SHIPPING: "sales/shipping",
+        TODAY: "sales/today", // Added
+        DELIVERY: "sales/delivery" // Added
+    },
+    CUSTOMERS: {
+        ROOT: "customers",
+        NEW: "customers/new",
+        LOYALTY: "customers/loyalty",
+        SUBSCRIPTIONS: "customers/subscriptions",
+        REVIEWS: "customers/reviews" // Added
+    },
+    FINANCE: {
+        PAYMENTS: "finance/payments",
+        SETTLEMENTS: "finance/settlements",
+        PAYOUTS: "finance/payouts",
+        FRAUD: "finance/fraud-detection",
+        AUDIT_LOGS: "finance/audit-logs"
+    },
+    POS: {
+        QUICK_SALES: "pos/quick-sales",
+        TODAY: "pos/summary",
+        MY_SALES: "pos/my-sales"
+    },
+    COMMON: {
+        NOTIFICATIONS: "notifications",
+        PROFILE: "profile",
+        HELP: "support/help"
+    },
+    MARKETING: {
+        ROOT: "marketing"
+    },
+    SUPPORT: {
+        ROOT: "support"
+    },
+    SUPPLIERS: {
+        ROOT: "suppliers"
+    },
+    LOGISTICS: {
+        ROOT: "logistics"
+    }
+    // Add others as needed
 };
 
-// ========================================
-// GENERATE ROUTE_PATHS from Registry
-// ========================================
-// This derived constant ensures ROUTE_PATHS always matches APP_MODULES
-export const ROUTE_PATHS = {
-  DASHBOARD: { ROOT: "dashboard" },
-  BUSINESS_UNITS: {
-    ROOT: "business-units",
-    NEW: "business-units/new",
-    ANALYTICS: "business-units/analytics",
-  },
-  OUTLETS: {
-    ROOT: "outlets",
-    NEW: "outlets/new",
-  },
-  LOGISTICS: {
-    ROOT: "logistics",
-    DRIVERS: "logistics/drivers",
-    VEHICLES: "logistics/vehicles",
-    COURIER: "logistics/courier",
-    PARCEL: "logistics/parcel",
-    REPORTS: "logistics/reports",
-  },
-  RISK: {
-    ROOT: "risk",
-    FRAUD: "risk/fraud",
-    BLACKLIST: "risk/blacklist",
-    RULES: "risk/rules",
-    ANALYTICS: "risk/analytics",
-  },
-  USER_MANAGEMENT: {
-    ROOT: "user-management",
-    
-    // Platform
-    PLATFORM_USERS: "user-management/platform-users",
-    PLATFORM_ROLES: "user-management/platform-roles",
-    ADD_PLATFORM_USER: "user-management/platform-users/add",
-    
-    // Business
-    BUSINESS_USERS: "user-management/business-users",
-    BUSINESS_ROLES: "user-management/business-roles",
-    ADD_BUSINESS_USER: "user-management/business-users/add",
-    BUSINESS_USER_DETAILS: (id: string) => `user-management/business-users/${id}`,
-
-    // Keep ALL_USERS pointing to platform for Global Redirects in existing code
-    ALL_USERS: "user-management/platform-users", 
-  },
-  CATALOG: {
-    ROOT: "catalog",
-    PRODUCT: {
-      ROOT: "catalog/product",
-      ADD: "catalog/product/add",
-      EDIT: "catalog/product/edit",
-    },
-    CATEGORY: "catalog/category",
-    BRAND: "catalog/brand",
-    UNIT: "catalog/unit",
-    ATTRIBUTE: "catalog/attribute",
-    ATTRIBUTE_GROUP: "catalog/attribute-groups",
-    TAX: "catalog/tax",
-    WARRANTY: "catalog/warranties",
-  },
-  INVENTORY: {
-    ROOT: "inventory",
-    PURCHASE: "inventory/purchase",
-    PURCHASE_NEW: "inventory/purchase/new",
-    ADJUSTMENTS: "inventory/adjustments",
-    LEDGER: "inventory/ledger",
-    WAREHOUSES: "inventory/warehouses",
-    TRANSFERS: "inventory/transfers",
-    ALERTS: "inventory/alerts",
-  },
-  PURCHASES: {
-    ROOT: "purchases",
-  },
-  SALES: {
-    ROOT: "sales",
-    POS: "pos",
-    TODAY: "sales/today",
-    SHIPPING: "sales/shipping",
-    DELIVERY: "sales/deliveries",
-    RETURNS: "sales/returns",
-    INVOICES: "sales/invoices",
-  },
-  MARKETING: {
-    ROOT: "marketing",
-    PROMOTIONS: "marketing/promotions",
-    COUPONS: "marketing/coupons",
-    CAMPAIGNS: "marketing/campaigns",
-    AFFILIATES: "marketing/affiliates",
-    LOYALTY: "marketing/loyalty",
-    SEO: "marketing/seo",
-    PIXEL: "marketing/pixel",
-    AUDIENCES: "marketing/audiences",
-  },
-  CUSTOMERS: {
-    ROOT: "customers",
-    NEW: "customers/new",
-    LOYALTY: "customers/loyalty",
-    SUBSCRIPTIONS: "customers/subscriptions",
-    REVIEWS: "customers/reviews",
-    WISHLISTS: "customers/wishlists",
-    CARTS: "customers/carts",
-  },
-  SUPPORT: {
-    ROOT: "support",
-    TICKETS: "support/tickets",
-    CHAT: "support/chat",
-    DISPUTES: "support/disputes",
-  },
-  CONTENT: {
-    ROOT: "content",
-  },
-  FINANCE: {
-    ROOT: "finance",
-    PAYMENTS: "finance/payments",
-    SETTLEMENTS: "finance/settlements",
-    PAYOUTS: "finance/payouts",
-    FRAUD: "finance/fraud",
-    REPORTS: "finance/reports",
-    ANALYTICS: "finance/analytics",
-    AUDIT_LOGS: "finance/audit-logs",
-  },
-  SYSTEM: {
-    ROOT: "system",
-    AUDIT_LOGS: "system/audit-logs",
-    NOTIFICATIONS: "system/notifications",
-    SETTINGS: "system-settings",
-    LANGUAGES: "system/languages",
-    CURRENCIES: "system/currencies",
-    ZONES: "system/zones",
-    BACKUPS: "system/backups",
-    API_KEYS: "system/api-keys",
-    WEBHOOKS: "system/webhooks",
-    EMAIL_TEMPLATES: "system/email-templates",
-    SMS_TEMPLATES: "system/sms-templates",
-  },
-  PLATFORM_SETTINGS: {
-    ROOT: "platform-settings",
-  },
-  COMPANY_SETTINGS: {
-    ROOT: "company-settings",
-  },
-  OUTLET_SETTINGS: {
-    ROOT: "outlet-settings",
-  },
-  SUPPLIERS: {
-    ROOT: "suppliers",
-  },
-  GOVERNANCE: {
-      ROOT: "governance",
-      SHAREHOLDERS: "governance/shareholders",
-      VOTING: "governance/voting",
-      MEETINGS: "governance/meetings",
-  },
-  REPORTS: {
-    ROOT: "reports",
-    SALES: "reports/sales",
-    PURCHASES: "reports/purchases",
-    STOCK: "reports/stock",
-    PROFIT_LOSS: "reports/profit-loss",
-    EXPENSE: "reports/expenses",
-  },
-  STAFF: {
-    ROOT: "staff",
-  },
-  HRM: {
-    ROOT: "hrm",
-    STAFF: "hrm/staff",
-    DEPARTMENTS: "hrm/departments",
-    DESIGNATIONS: "hrm/designations",
-    ATTENDANCE: "hrm/attendance",
-    LEAVE: "hrm/leave",
-    PAYROLL: "hrm/payroll",
-    ASSETS: "hrm/assets",
-  },
-  ACCOUNTING: {
-    ROOT: "accounting",
-    ACCOUNTS: "accounting/accounts",
-    TRANSACTIONS: "accounting/transactions",
-    EXPENSES: "accounting/expenses",
-    BUDGETS: "accounting/budgets",
-    TAX: "accounting/tax",
-  },
-  VENDORS: {
-    ROOT: "vendors",
-    ONBOARDING: "vendors/onboarding",
-    PAYOUTS: "vendors/payouts",
-  },
-  POS_CONFIG: {
-    ROOT: "pos-config",
-    TERMINALS: "pos-config/terminals",
-    REGISTERS: "pos-config/registers",
-  },
-  STOREFRONT: {
-    ROOT: "online-store",
-    UI_BUILDER: "online-store/ui-builder",
-    PAGES: "online-store/pages",
-    THEMES: "online-store/themes",
-    PLUGINS: "online-store/plugins",
-    LANDING_PAGES: "online-store/landing-pages",
-    SETTINGS: "online-store/settings",
-  },
-  POS: {
-    QUICK_SALES: "quick-sales",
-    TODAY: "today",
-    MY_SALES: "my-sales",
-  },
-  COMMON: {
-    NOTIFICATIONS: "notifications",
-    PROFILE: "profile",
-    BUSINESS_SETTINGS: "business-settings",
-    COMPANY_SETTINGS: "company-settings",
-    PLATFORM_SETTINGS: "platform-settings",
-    OUTLET_SETTINGS: "outlet-settings",
-    HELP: "help",
-  }
-} as const;
+// ... existing code ...

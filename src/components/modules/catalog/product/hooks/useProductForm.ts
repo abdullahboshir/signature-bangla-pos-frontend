@@ -23,6 +23,7 @@ import { useGetBusinessUnitsQuery, useGetBusinessUnitByIdQuery } from "@/redux/a
 import { useGetAttributeGroupQuery } from "@/redux/api/catalog/attributeGroupApi";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useCurrentRole } from "@/hooks/useCurrentRole";
+import { isSuperAdmin as checkIsSuperAdmin } from "@/config/auth-constants";
 
 export const useProductForm = (initialData?: any) => {
     const router = useRouter();
@@ -52,7 +53,7 @@ export const useProductForm = (initialData?: any) => {
     const { data: units = [], isLoading: isUnitsLoading, isSuccess: isUnitsSuccess } = useGetUnitsQuery({ limit: 1000 });
 
     const { user } = useAuth();
-    const isSuperAdmin = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
+    const isSuperAdmin = checkIsSuperAdmin(user?.role) || (user?.globalRoles || []).some((r: any) => checkIsSuperAdmin(typeof r === 'string' ? r : r.id || r.name));
 
     const { data: busUnits = [], isLoading: isBusUnitsLoading } = useGetBusinessUnitsQuery(
         { limit: 100 },

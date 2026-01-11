@@ -5,13 +5,14 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { useRouter, usePathname } from "next/navigation";
-import { useGetOutletsQuery } from "@/redux/api/organization/outletApi";
 import { useState, useEffect } from "react";
-import { Store } from "lucide-react";
+import { Plus } from "lucide-react";
+
 
 interface BusinessUnitSwitcherProps {
   currentBusinessUnit: string;
@@ -23,64 +24,55 @@ interface BusinessUnitSwitcherProps {
 export function BusinessUnitSwitcher({ currentBusinessUnit, effectiveCompanyId, currentRole, availableUnits }: BusinessUnitSwitcherProps) {
   const router = useRouter();
   const { setActiveBusinessUnit } = useAuth();
-  const [activeOutletId, setActiveOutletId] = useState<string | null>(null);
-
-  const activeUnit = availableUnits.find((u: any) => u.id === currentBusinessUnit || u.slug === currentBusinessUnit || u._id === currentBusinessUnit);
-
-  const activeUnitId = activeUnit?._id || activeUnit?.id || activeUnit?.slug;
-  // Check if active unit already has outlets (from filtered context)
-  const preloadedOutlets = activeUnit?.outlets;
-  const hasPreloadedOutlets = Array.isArray(preloadedOutlets) && preloadedOutlets.length > 0;
-
-  // Fetch outlets for the active business unit if not preloaded
-  // Skip if no active unit OR if we already have preloaded outlets
-  const { data: outletsData, isLoading: loadingOutlets } = useGetOutletsQuery(
-    { businessUnit: activeUnitId },
-    { skip: !activeUnitId || hasPreloadedOutlets }
+  const activeUnit = availableUnits.find((u: any) =>
+    u.id === currentBusinessUnit ||
+    u.slug === currentBusinessUnit ||
+    u._id?.toString() === currentBusinessUnit
   );
 
-  // handled by createCrudApi transformList, so outletsData should be the array
-  // Priority: Preloaded (Filtered) > API Data (Full List)
-  const outlets = hasPreloadedOutlets
-    ? preloadedOutlets
-    : (Array.isArray(outletsData) ? outletsData : (outletsData?.data || outletsData?.result || []));
 
-  const pathname = usePathname();
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    let outletId = params.get('outlet');
-
-    if (!outletId && pathname?.includes('/outlets/')) {
-      const parts = pathname.split('/outlets/');
-      if (parts.length > 1) {
-        outletId = parts[1].split('/')[0];
-      }
-    }
-
-    if (outletId) {
-      setActiveOutletId(outletId);
-    } else {
-      setActiveOutletId(null);
-    }
-
     if (activeUnit && activeUnit._id) {
-      localStorage.setItem("active-business-unit", activeUnit._id);
+      localStorage.setItem("active-business-unit", activeUnit._id.toString());
     }
-  }, [activeUnit, pathname]);
+  }, [activeUnit]);
+
 
   const handleSwitchUnit = (unitId: string) => {
+    if (unitId === 'all') {
+      // Clear Unit Context and show Company Overview
+      setActiveBusinessUnit(null);
+      localStorage.removeItem("active-business-unit");
+      localStorage.removeItem("active-outlet-id");
+
+      if (effectiveCompanyId) {
+        router.push(`/global/dashboard?company=${effectiveCompanyId}`);
+      } else {
+        router.push(`/global/dashboard`);
+      }
+      return;
+    }
+
+    if (unitId === 'add-new') {
+      const url = effectiveCompanyId
+        ? `/global/business-units/new?company=${effectiveCompanyId}`
+        : `/global/business-units/new`;
+      router.push(url);
+      return;
+    }
+
     const unit = availableUnits.find((u: any) => u.id === unitId || u.slug === unitId || u._id === unitId);
 
     if (unit) {
       // Update Context
       if (unit._id) {
-        setActiveBusinessUnit(unit._id);
-        localStorage.setItem("active-business-unit", unit._id);
+        const unitIdStr = unit._id.toString();
+        setActiveBusinessUnit(unitIdStr);
+        localStorage.setItem("active-business-unit", unitIdStr);
       }
 
       // Reset Outlet when switching Unit
-      setActiveOutletId(null);
       localStorage.removeItem("active-outlet-id");
 
       // Redirect with Context Persistence
@@ -93,60 +85,36 @@ export function BusinessUnitSwitcher({ currentBusinessUnit, effectiveCompanyId, 
     }
   };
 
-  const handleSwitchOutlet = (outletId: string) => {
-    const targetSlug = activeUnit?.slug || activeUnit?.id || currentBusinessUnit;
-    const params = new URLSearchParams();
-    if (effectiveCompanyId) params.set('company', effectiveCompanyId);
-
-    if (outletId === 'all') {
-      setActiveOutletId(null);
-      router.push(`/${targetSlug}/dashboard${params.toString() ? `?${params.toString()}` : ''}`);
-    } else {
-      setActiveOutletId(outletId);
-      params.set('outlet', outletId);
-      router.push(`/${targetSlug}/outlets/${outletId}${params.toString() ? `?${params.toString()}` : ''}`);
-    }
-  };
-
 
   if (!availableUnits || availableUnits.length === 0) return null;
 
   return (
     <div className="flex items-center gap-2">
-      <Select value={activeUnit ? (activeUnit.id || activeUnit.slug) : ''} onValueChange={handleSwitchUnit}>
+      <Select value={activeUnit ? (activeUnit.id || activeUnit.slug) : (currentBusinessUnit === 'all' ? 'all' : '')} onValueChange={handleSwitchUnit}>
         <SelectTrigger className="w-auto h-8 text-sm bg-muted/50 border-muted-foreground/20 [&>span]:truncate [&>span]:block [&>span]:w-full [&>span]:text-left">
           <SelectValue placeholder="Select Business Unit" />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value="all">Company Overview</SelectItem>
+          <SelectSeparator />
           {availableUnits.map((unit: any) => (
-            <SelectItem key={unit.id || unit._id} value={unit.id || unit.slug || unit._id}>
+            <SelectItem key={unit._id?.toString() || unit.id?.toString() || unit.id} value={unit._id?.toString() || unit.id?.toString() || unit.slug || unit.id}>
               {unit.name}
             </SelectItem>
           ))}
+          <SelectSeparator />
+          <SelectItem value="add-new" className="text-primary font-medium focus:text-primary focus:bg-primary/10">
+            <div className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Add Business Unit
+            </div>
+          </SelectItem>
         </SelectContent>
+
       </Select>
 
       {/* Outlet Switcher - Only show if unit selected and outlets exist */}
-      {activeUnit && outlets.length > 0 && (
-        <Select value={activeOutletId || "all"} onValueChange={handleSwitchOutlet}>
-          <SelectTrigger className="w-auto h-8 text-sm bg-muted/50 border-muted-foreground/20 [&>span]:truncate [&>span]:block [&>span]:w-full [&>span]:text-left">
-            <div className="flex items-center gap-2 text-muted-foreground overflow-hidden w-full">
-              <Store className="h-3 w-3 shrink-0" />
-              <div className="truncate">
-                <SelectValue placeholder="All Outlets" />
-              </div>
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Outlets</SelectItem>
-            {outlets.map((outlet: any) => (
-              <SelectItem key={outlet._id} value={outlet._id}>
-                {outlet.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
+
     </div>
   );
 }

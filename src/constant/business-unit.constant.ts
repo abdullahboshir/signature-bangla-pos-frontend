@@ -32,6 +32,7 @@ export const BUSINESS_INDUSTRY = {
     FURNITURE: 'furniture',         // Home Decor
     AUTOMOTIVE: 'automotive',       // Parts, Vehicles
     BOOKS_STATIONERY: 'books_stationery',
+    STORE: 'store',                 // General Store
     GENERAL: 'general',             // Departmental Store
     OTHER: 'other'
 } as const;
@@ -46,6 +47,7 @@ export const BUSINESS_INDUSTRY_OPTIONS = [
     { value: BUSINESS_INDUSTRY.FURNITURE, label: 'Furniture & Decor' },
     { value: BUSINESS_INDUSTRY.AUTOMOTIVE, label: 'Automotive' },
     { value: BUSINESS_INDUSTRY.BOOKS_STATIONERY, label: 'Books & Stationery' },
+    { value: BUSINESS_INDUSTRY.STORE, label: 'General Store' },
     { value: BUSINESS_INDUSTRY.GENERAL, label: 'General / Department Store' },
     { value: BUSINESS_INDUSTRY.OTHER, label: 'Other' },
 ];

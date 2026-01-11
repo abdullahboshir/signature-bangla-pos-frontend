@@ -15,6 +15,7 @@ import { useUserRegisterMutation } from "@/redux/api/iam/authApi";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { USER_ROLES, isSuperAdmin, normalizeAuthString, matchesRole } from "@/config/auth-constants";
 
 interface LoginModalProps {
     open?: boolean;
@@ -34,271 +35,105 @@ export default function LoginModal({ open = false, onOpenChange }: LoginModalPro
 
     const [registerUser] = useUserRegisterMutation();
 
-    const [formData, setFormData] = useState({
-        firstName: "",
-        lastName: "",
-        email: "",
-        password: "",
-    });
-
+    const [formData, setFormData] = useState({ firstName: "", lastName: "", email: "", password: "" });
     const [error, setError] = useState<string | null>(null);
 
-    // Always stay in login tab when at /auth/login
-    useEffect(() => {
-        if (isLoginPage) setActiveTab("login");
-    }, [isLoginPage]);
+    useEffect(() => { if (isLoginPage) setActiveTab("login"); }, [isLoginPage]);
 
-    // FORM INPUT HANDLER
     const handleChange = (e: any) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
-        setError(null); // Clear error on input change
+        setError(null);
     };
 
-    // FINAL SUBMIT HANDLER
     const handleSubmit = async (e: any) => {
         e.preventDefault();
         setIsLoading(true);
         setError(null);
 
         try {
-            let res;
-
             if (activeTab === "signup") {
-                // CREATE USER
                 const reg = await registerUser(formData).unwrap();
-
                 if (!reg?.success) throw new Error("Account creation failed");
-
-                Swal.fire({
-                    icon: "success",
-                    title: "Account created! Please login.",
-                    timer: 1500,
-                    showConfirmButton: false,
-                });
-
-                // Switch to login tab
+                Swal.fire({ icon: "success", title: "Account created! Please login.", timer: 1500, showConfirmButton: false });
                 setActiveTab("login");
                 setIsLoading(false);
                 return;
             }
 
-            // LOGIN USER
-            res = await authLogin({
-                email: formData.email,
-                password: formData.password,
-            });
+            const res = await authLogin({ email: formData.email, password: formData.password });
+            if (!res?.success) throw new Error(res?.message || "Invalid credentials");
+            if (!res?.accessToken) throw new Error("Invalid response: Missing access token");
+            if (res?.status !== "active") throw new Error(`This user is ${res?.status}`);
 
-            console.log('userrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr', res)
-
-            if (!res?.success) {
-                throw new Error(res?.message || "Invalid credentials");
-            }
-            if (!res?.accessToken) {
-                throw new Error("Invalid response: Missing access token");
-            }
-
-            if (res?.status !== "active") {
-                throw new Error(`This user is ${res?.status}`);
-            }
-
-            // Show quick success toast
             toast.success("Logged in successfully!");
-
-
-
-
-            // Activate global loading for navigation
             setLoading(true, "Loading dashboard...");
-
-            // After login → close modal if not on login page
             if (!isLoginPage && onOpenChange) onOpenChange(false);
 
-            // Navigate to dashboard
-            // Navigate to dashboard based on Role/Level
             if (res.redirect) {
                 router.push(res.redirect);
             } else {
-                // FALLBACK INTELLIGENT ROUTING
-                let roleName = "";
-                const userRole = res?.user?.role as any;
-
-                if (typeof userRole === 'string') {
-                    roleName = userRole.toLowerCase();
-                } else if (userRole?.name) {
-                    roleName = userRole.name.toLowerCase();
-                }
-
-                if (['shareholder', 'investor', 'board_member'].includes(roleName)) {
+                let roleName = normalizeAuthString(res?.user?.role as any || (res?.user?.role as any)?.name);
+                if (matchesRole(roleName, [USER_ROLES.SHAREHOLDER, 'investor', 'board-member'])) {
                     router.push('/governance');
-                } else if (roleName === 'super-admin') {
+                } else if (isSuperAdmin(roleName)) {
                     router.push('/super-admin/dashboard');
                 } else if (res?.user?.businessAccess && res.user.businessAccess.length > 0) {
-                    // Go to first business unit
                     const access = res.user.businessAccess[0];
-                    // Handle if businessUnit is populated object OR just ID string
                     const slug = (typeof access.businessUnit === 'object' && access.businessUnit !== null)
                         ? (access.businessUnit.slug || access.businessUnit.id)
                         : access.businessUnit;
-
                     router.push(`/${roleName}/${slug}/dashboard`);
                 } else {
-                    // Default safe fallback
                     router.push("/global/companies");
                 }
             }
-
             setFormData({ firstName: "", lastName: "", email: "", password: "" });
-
-            // Global loading will clear when page loads
         } catch (err: any) {
-            console.error("Login Error:", err);
             setError(err?.message || "Something went wrong");
-            setIsLoading(false); // Only clear loading on error
-            setLoading(false); // Clear global loading
+            setIsLoading(false);
+            setLoading(false);
         }
     };
 
     return (
-        <>
+        <Dialog open={isLoginPage ? true : open} onOpenChange={(o) => !isLoginPage && onOpenChange?.(o)}>
+            <DialogContent className="sm:max-w-md" onInteractOutside={(e) => isLoginPage && e.preventDefault()}>
+                <DialogHeader>
+                    <DialogTitle className="text-2xl text-center">{activeTab === "login" ? "Welcome Back" : "Create Account"}</DialogTitle>
+                    <DialogDescription className="text-center">
+                        {activeTab === "login" ? "Sign in to your Signature Bangla POS dashboard" : "Create your Signature Bangla POS account"}
+                    </DialogDescription>
+                </DialogHeader>
 
-
-            <Dialog open={isLoginPage ? true : open} onOpenChange={(o) => !isLoginPage && onOpenChange?.(o)}>
-                <DialogContent
-                    className="sm:max-w-md"
-                    onInteractOutside={(e) => isLoginPage && e.preventDefault()}
-                >
-                    <DialogHeader>
-                        <DialogTitle className="text-2xl text-center">
-                            {activeTab === "login" ? "Welcome Back" : "Create Account"}
-                        </DialogTitle>
-                        <DialogDescription className="text-center">
-                            {activeTab === "login"
-                                ? "Sign in to your Signature Bangla POS dashboard"
-                                : "Create your Signature Bangla POS account"}
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); setError(null); }} className="w-full">
-                        <TabsList className="grid grid-cols-2">
-                            <TabsTrigger value="login">Login</TabsTrigger>
-                            <TabsTrigger value="signup">Sign Up</TabsTrigger>
-                        </TabsList>
-
-                        {/* FORM */}
-                        <form onSubmit={handleSubmit}>
-                            {/* LOGIN */}
-                            <TabsContent value="login" className="space-y-4">
-                                <div className="space-y-2">
-                                    <label>Email</label>
-                                    <Input
-                                        name="email"
-                                        type="email"
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                        required
-                                    />
+                <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); setError(null); }} className="w-full">
+                    <TabsList className="grid grid-cols-2"><TabsTrigger value="login">Login</TabsTrigger><TabsTrigger value="signup">Sign Up</TabsTrigger></TabsList>
+                    <form onSubmit={handleSubmit}>
+                        <TabsContent value="login" className="space-y-4">
+                            <div className="space-y-2"><label>Email</label><Input name="email" type="email" value={formData.email} onChange={handleChange} required /></div>
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center"><label>Password</label><Link href="/forgot-password" disabled className="text-xs text-primary pointer-events-none opacity-50">Forgot Password?</Link></div>
+                                <div className="relative">
+                                    <Input name="password" type={showPassword ? "text" : "password"} value={formData.password} onChange={handleChange} required className="pr-10" />
+                                    <Button type="button" variant="ghost" size="sm" className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent" onClick={() => setShowPassword(!showPassword)}>
+                                        {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                                    </Button>
                                 </div>
-
-                                <div className="space-y-2">
-                                    <div className="flex justify-between items-center">
-                                        <label>Password</label>
-                                        <Link href="/forgot-password" className="text-xs text-primary">
-                                            Forgot Password?
-                                        </Link>
-                                    </div>
-                                    <div className="relative">
-                                        <Input
-                                            name="password"
-                                            type={showPassword ? "text" : "password"}
-                                            value={formData.password}
-                                            onChange={handleChange}
-                                            required
-                                            className="pr-10"
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                        >
-                                            {showPassword ? (
-                                                <EyeOff className="h-4 w-4 text-muted-foreground" />
-                                            ) : (
-                                                <Eye className="h-4 w-4 text-muted-foreground" />
-                                            )}
-                                            <span className="sr-only">
-                                                {showPassword ? "Hide password" : "Show password"}
-                                            </span>
-                                        </Button>
-                                    </div>
-                                </div>
-
-                                {error && activeTab === "login" && (
-                                    <div className="text-destructive text-sm font-medium text-center p-2 bg-destructive/10 rounded-md border border-destructive/20">
-                                        {error}
-                                    </div>
-                                )}
-
-                                <Button disabled={isLoading} className="w-full">
-                                    {isLoading ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Processing...
-                                        </>
-                                    ) : (
-                                        "Login"
-                                    )}
-                                </Button>
-                            </TabsContent>
-
-                            {/* SIGNUP */}
-                            <TabsContent value="signup" className="space-y-4">
-                                <Input name="firstName" placeholder="First Name" value={formData.firstName} onChange={handleChange} required />
-                                <Input name="lastName" placeholder="Last Name" value={formData.lastName} onChange={handleChange} required />
-                                <Input name="email" type="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
-                                <Input name="password" type="password" placeholder="Password" value={formData.password} onChange={handleChange} required />
-
-                                {error && activeTab === "signup" && (
-                                    <div className="text-destructive text-sm font-medium text-center p-2 bg-destructive/10 rounded-md border border-destructive/20">
-                                        {error}
-                                    </div>
-                                )}
-
-                                <Button disabled={isLoading} className="w-full">
-                                    {isLoading ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Creating Account...
-                                        </>
-                                    ) : (
-                                        "Create Account"
-                                    )}
-                                </Button>
-                            </TabsContent>
-                        </form>
-                    </Tabs>
-
-                    <div className="text-center text-sm">
-                        {activeTab === "login" ? (
-                            <p>
-                                Don't have an account?
-                                <button className="text-primary ml-1" onClick={() => setActiveTab("signup")}>
-                                    Sign Up
-                                </button>
-                            </p>
-                        ) : (
-                            <p>
-                                Already have an account?
-                                <button className="text-primary ml-1" onClick={() => setActiveTab("login")}>
-                                    Login
-                                </button>
-                            </p>
-                        )}
-                    </div>
-                </DialogContent>
-            </Dialog>
-        </>
+                            </div>
+                            {error && activeTab === "login" && <div className="text-destructive text-sm font-medium text-center p-2 bg-destructive/10 rounded-md border border-destructive/20">{error}</div>}
+                            <Button disabled={isLoading} className="w-full">{isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processing...</> : "Login"}</Button>
+                        </TabsContent>
+                        <TabsContent value="signup" className="space-y-4">
+                            <Input name="firstName" placeholder="First Name" value={formData.firstName} onChange={handleChange} required />
+                            <Input name="lastName" placeholder="Last Name" value={formData.lastName} onChange={handleChange} required />
+                            <Input name="email" type="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
+                            <Input name="password" type="password" placeholder="Password" value={formData.password} onChange={handleChange} required />
+                            {error && activeTab === "signup" && <div className="text-destructive text-sm font-medium text-center p-2 bg-destructive/10 rounded-md border border-destructive/20">{error}</div>}
+                            <Button disabled={isLoading} className="w-full">{isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating Account...</> : "Create Account"}</Button>
+                        </TabsContent>
+                    </form>
+                </Tabs>
+                <div className="text-center text-sm">{activeTab === "login" ? <p>Don't have an account?<button className="text-primary ml-1" onClick={() => setActiveTab("signup")}>Sign Up</button></p> : <p>Already have an account?<button className="text-primary ml-1" onClick={() => setActiveTab("login")}>Login</button></p>}</div>
+            </DialogContent>
+        </Dialog>
     );
 }
-

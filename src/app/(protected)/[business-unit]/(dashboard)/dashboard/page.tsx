@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useSearchParams, useRouter, usePathname } from "next/navigation"
-import { useGetOutletQuery } from "@/redux/api/organization/outletApi"
+import { useGetOutletsQuery } from "@/redux/api/organization/outletApi"
 import {
     Select,
     SelectContent,
@@ -46,7 +46,7 @@ export default function DashboardPage() {
         router.push(`${pathname}?${newParams.toString()}`);
     };
 
-    const { data: outletData, isLoading } = useGetOutletQuery({
+    const { data: outletData, isLoading } = useGetOutletsQuery({
         businessUnit: businessUnitId,
         limit: 100,
     })
@@ -76,7 +76,7 @@ export default function DashboardPage() {
                         <SelectContent>
                             <SelectItem value="all">All Outlets</SelectItem>
                             {outlets.map((outlet: any) => (
-                                <SelectItem key={outlet._id} value={outlet._id}>
+                                <SelectItem key={outlet._id?.toString() || outlet.id?.toString()} value={outlet._id?.toString() || outlet.id?.toString()}>
                                     {outlet.name}
                                 </SelectItem>
                             ))}

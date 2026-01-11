@@ -52,7 +52,7 @@ import {
     useGetPermissionResourcesQuery,
 } from "@/redux/api/iam/roleApi";
 import { usePermissions } from "@/hooks/usePermissions";
-import { RoleScope, RoleScopeType } from '@/constant/role';
+import { ROLE_SCOPE as RoleScope, RoleScopeType, isSuperAdmin as checkIsSuperAdmin, normalizeAuthString, USER_ROLES } from "@/config/auth-constants"
 
 // Exported Types
 export interface Permission {
@@ -182,7 +182,7 @@ const getResourceIcon = (resource: string) => {
             return Building2;
 
         // System
-        case RESOURCE_KEYS.SYSTEM:
+        case RESOURCE_KEYS.SYSTEM_CONFIG:
             // Was SETTINGS
             return Settings;
 
@@ -190,7 +190,6 @@ const getResourceIcon = (resource: string) => {
         case RESOURCE_KEYS.INVENTORY:
         case RESOURCE_KEYS.PURCHASE:
         case RESOURCE_KEYS.SUPPLIER:
-        case RESOURCE_KEYS.STOCK_TRANSFER: // legacy
         case RESOURCE_KEYS.TRANSFER:
         case RESOURCE_KEYS.ADJUSTMENT:
             return BoxIcon;
@@ -229,7 +228,7 @@ const getResourceIcon = (resource: string) => {
 
         // Reports
         case RESOURCE_KEYS.REPORT:
-        case RESOURCE_KEYS.ANALYTICS:
+        case RESOURCE_KEYS.ANALYTICS_REPORT:
         case RESOURCE_KEYS.SALES_REPORT:
         case RESOURCE_KEYS.PURCHASE_REPORT:
         case RESOURCE_KEYS.STOCK_REPORT:
@@ -268,7 +267,7 @@ const getResourceIcon = (resource: string) => {
 };
 
 interface RolePermissionManagementProps {
-    viewScope?: 'platform' | 'business' | 'all';
+    viewScope?: 'platform' | 'company' | 'business' | 'all';
 }
 
 export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionManagementProps) {
@@ -285,7 +284,7 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
         // Define Platform-only resources
         // Ideally these should be constants, but defining here for scope isolation
         const platformResources = [
-            RESOURCE_KEYS.SYSTEM,
+            RESOURCE_KEYS.SYSTEM_CONFIG,
             RESOURCE_KEYS.GLOBAL,
             RESOURCE_KEYS.API_KEY,
             RESOURCE_KEYS.WEBHOOK,
@@ -527,17 +526,7 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
 
     const isSuperAdmin = (role: Role | null | undefined) => {
         if (!role) return false;
-
-        // Debugging
-        console.log("Checking Super Admin:", role.name, role.id, role.isSystemRole);
-
-        // Check ID, or Name (case-insensitive) - REMOVED isSystem check to allow other system roles to be edited
-        const nameLower = role.name ? role.name.toLowerCase() : '';
-        return (
-            role.id === 'super-admin' ||
-            nameLower === 'super admin' ||
-            nameLower === 'super-admin'
-        );
+        return checkIsSuperAdmin(role.id || normalizeAuthString(role.name));
     };
 
     const isSystemRole = (role: Role | null | undefined) => {
@@ -1294,7 +1283,7 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                                                             {role.roleScope === RoleScope.GLOBAL && <Badge className="text-[10px] h-5 bg-purple-600">Global</Badge>}
                                                                             {role.roleScope === RoleScope.COMPANY && <Badge className="text-[10px] h-5 bg-blue-600">Company</Badge>}
                                                                             {role.roleScope === RoleScope.OUTLET && <Badge className="text-[10px] h-5 bg-orange-500">Outlet</Badge>}
-                                                                            {role.id === 'super-admin' ?
+                                                                            {checkIsSuperAdmin(role.id) ?
                                                                                 <Badge className="text-[10px] h-5 bg-purple-600">Super Admin</Badge>
                                                                                 : isSystemRole(role) ?
                                                                                     <Badge className="text-[10px] h-5" variant="secondary">System</Badge>

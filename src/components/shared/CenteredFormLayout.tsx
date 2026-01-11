@@ -30,19 +30,7 @@ const maxWidthClasses = {
     full: "max-w-full",
 };
 
-/**
- * Centered Form Layout Component
- * Provides consistent centered layout for all add/edit/new pages
- * 
- * @example
- * <CenteredFormLayout 
- *   title="Add New Business Unit"
- *   description="Create a new business unit to expand your system."
- *   maxWidth="lg"
- * >
- *   <form>...</form>
- * </CenteredFormLayout>
- */
+
 export function CenteredFormLayout({
     title,
     description,

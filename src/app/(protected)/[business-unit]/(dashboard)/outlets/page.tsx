@@ -211,7 +211,10 @@ export default function OutletListPage() {
             description="Manage your physical Outlet locations."
             createAction={{
                 label: "Add Outlet",
-                onClick: () => router.push(`${pathname}/new`)
+                onClick: () => {
+                    const identifier = businessUnit || matchedBU?.slug || matchedBU?._id || matchedBU?.id;
+                    router.push(`/global/business-units/${identifier}/outlets/new`);
+                }
             }}
             extraFilters={
                 <div className="relative flex-1 max-w-sm ml-auto">

@@ -6,15 +6,15 @@ import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-export function GeneralSettings({ data, onChange, isBusinessUnit = false }: { data: any, onChange: (key: string, value: any) => void, isBusinessUnit?: boolean }) {
+export function GeneralSettings({ data, onChange, isBusinessUnit = false }: { data: any, onChange: (section: string, ...args: any[]) => void, isBusinessUnit?: boolean }) {
     if (!data) return null;
 
     const updateDisplay = (key: string, value: any) => {
-        onChange('display', { ...data.display, [key]: value });
+        onChange('display', key, value);
     }
 
     const updateSeo = (key: string, value: any) => {
-        onChange('seo', { ...data.seo, [key]: value });
+        onChange('seo', key, value);
     }
 
     return (
@@ -126,7 +126,7 @@ export function GeneralSettings({ data, onChange, isBusinessUnit = false }: { da
                                 <Label>Generate Sitemap</Label>
                                 <Switch
                                     checked={data.seo?.sitemap?.enabled}
-                                    onCheckedChange={(c) => onChange('seo', { ...data.seo, sitemap: { ...data.seo?.sitemap, enabled: c } })}
+                                    onCheckedChange={(c) => onChange('seo', 'sitemap', 'enabled', c)}
                                 />
                             </div>
                             <div className="flex items-center justify-between">
@@ -161,28 +161,28 @@ export function GeneralSettings({ data, onChange, isBusinessUnit = false }: { da
                         <Label>Invoice Prefix</Label>
                         <Input
                             value={data.prefixes?.invoice || 'INV-'}
-                            onChange={(e) => onChange('prefixes', { ...data.prefixes, invoice: e.target.value })}
+                            onChange={(e) => onChange('prefixes', 'invoice', e.target.value)}
                         />
                     </div>
                     <div className="grid gap-2">
                         <Label>Order Prefix</Label>
                         <Input
                             value={data.prefixes?.order || 'ORD-'}
-                            onChange={(e) => onChange('prefixes', { ...data.prefixes, order: e.target.value })}
+                            onChange={(e) => onChange('prefixes', 'order', e.target.value)}
                         />
                     </div>
                     <div className="grid gap-2">
                         <Label>Purchase Prefix</Label>
                         <Input
                             value={data.prefixes?.purchase || 'PUR-'}
-                            onChange={(e) => onChange('prefixes', { ...data.prefixes, purchase: e.target.value })}
+                            onChange={(e) => onChange('prefixes', 'purchase', e.target.value)}
                         />
                     </div>
                     <div className="grid gap-2">
                         <Label>SKU Prefix</Label>
                         <Input
                             value={data.prefixes?.sku || 'SKU-'}
-                            onChange={(e) => onChange('prefixes', { ...data.prefixes, sku: e.target.value })}
+                            onChange={(e) => onChange('prefixes', 'sku', e.target.value)}
                         />
                     </div>
                 </CardContent>
@@ -200,7 +200,7 @@ export function GeneralSettings({ data, onChange, isBusinessUnit = false }: { da
                         </div>
                         <Switch
                             checked={data.social?.shareButtons}
-                            onCheckedChange={(c) => onChange('social', { ...data.social, shareButtons: c })}
+                            onCheckedChange={(c) => onChange('social', 'shareButtons', c)}
                         />
                     </div>
                     <div className="flex items-center justify-between">
@@ -210,7 +210,7 @@ export function GeneralSettings({ data, onChange, isBusinessUnit = false }: { da
                         </div>
                         <Switch
                             checked={data.social?.socialProof?.showPurchaseNotifications}
-                            onCheckedChange={(c) => onChange('social', { ...data.social, socialProof: { ...data.social?.socialProof, showPurchaseNotifications: c } })}
+                            onCheckedChange={(c) => onChange('social', 'socialProof', 'showPurchaseNotifications', c)}
                         />
                     </div>
                 </CardContent>

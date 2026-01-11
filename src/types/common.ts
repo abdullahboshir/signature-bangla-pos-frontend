@@ -1,8 +1,5 @@
- 
-import { USER_ROLE } from "@/constant/role";
+import { USER_ROLES } from "@/config/auth-constants";
 import { LucideIcon } from "lucide-react";
-
-
 
 export type TMeta = {
   page: number;
@@ -10,7 +7,7 @@ export type TMeta = {
   total: number;
 };
 
-export type TUserRole = keyof typeof USER_ROLE;
+export type TUserRole = keyof typeof USER_ROLES;
 
 
 export interface DrawerItem {

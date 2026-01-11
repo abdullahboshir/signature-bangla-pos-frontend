@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import { RESOURCE_KEYS, ACTION_KEYS } from "./permission-keys"
 import { APP_MODULES, ROUTE_PATHS } from "./module-registry"
+import { USER_ROLES, matchesRole } from "./auth-constants"
 
 // Re-export or alias for compatibility if needed, using the registry
 const MENU_MODULES = APP_MODULES;
@@ -25,22 +26,24 @@ const MENU_MODULES = APP_MODULES;
 export const sidebarMenuConfig = {
   // 👥 Role-based menu items
   menus: {
-    // 👑 SUPER ADMIN - Platform Management (Industry Standard Structure)
-    "super-admin": [
-      // 📊 1. OVERVIEW
+    // 👑 SUPER ADMIN - Platform Management (Level 1)
+    // Should ONLY contain platform-level items, NOT business-level items
+    [USER_ROLES.SUPER_ADMIN]: [
       MENU_MODULES.DASHBOARD,
-      
-      // 🏢 2. TENANT MANAGEMENT
-      MENU_MODULES.COMPANIES, // Platforms managers companies, which then contain BUs
-      
-      // 💼 3. BILLING & FINANCE
-      MENU_MODULES.FINANCE, // Subscriptions, Invoices, Payouts, Revenue
-      
-      // 📦 4. PACKAGES & LICENSING (NEW - Critical for SaaS)
-      MENU_MODULES.PACKAGES, // Plans, Features, Licenses, Trials
-      
-      // 👥 5. USER & ACCESS MANAGEMENT
-      // 👥 5. USER & ACCESS MANAGEMENT
+      MENU_MODULES.COMPANIES,
+      {
+        // Platform Finance - SaaS billing, subscription revenue
+        title: "SaaS Finance",
+        path: "finance",
+        icon: DollarSign,
+        module: 'platform',
+        children: [
+          { title: "Subscriptions", path: "finance/subscriptions", resource: RESOURCE_KEYS.SUBSCRIPTION },
+          { title: "Platform Payments", path: "finance/payments", resource: RESOURCE_KEYS.PAYMENT },
+          { title: "Revenue Analytics", path: "finance/revenue", resource: RESOURCE_KEYS.ANALYTICS_REPORT },
+        ]
+      },
+      MENU_MODULES.PACKAGES,
       {
         ...MENU_MODULES.USER_MANAGEMENT,
         children: [
@@ -48,50 +51,32 @@ export const sidebarMenuConfig = {
            { title: "Platform Roles", path: "/global/user-management/platform-roles" },
         ]
       },
-      
-      // 🎫 6. SUPPORT & TICKETS
       MENU_MODULES.SUPPORT,
-      
-      // 📈 7. ANALYTICS & REPORTS
-      MENU_MODULES.REPORTS,
-      
-      // 🔒 8. SECURITY & RISK
-      MENU_MODULES.RISK_MANAGEMENT,
-      
-      // 🔌 9. INTEGRATIONS (NEW - Third-party services)
-      MENU_MODULES.INTEGRATIONS, // Payment, Shipping, Email/SMS, Webhooks, API Keys
-      
-      // 🚚 10. OPERATIONS
-      MENU_MODULES.LOGISTICS, // Courier providers (Global config)
-      
-      // 🔔 11. NOTIFICATIONS (NEW - Platform alerts)
-      MENU_MODULES.NOTIFICATIONS, // Alert Center, Announcements
-      
-      // ⚙️ 12. PLATFORM CONFIGURATION (UI, Defaults)
+      {
+        // Platform Reports - company stats, usage analytics
+        title: "Platform Reports",
+        path: "reports",
+        icon: BarChart3,
+        module: 'platform',
+        children: [
+          { title: "Company Analytics", path: "reports/companies", resource: RESOURCE_KEYS.ANALYTICS_REPORT },
+          { title: "Usage Statistics", path: "reports/usage", resource: RESOURCE_KEYS.REPORT },
+          { title: "Platform Health", path: "reports/health", resource: RESOURCE_KEYS.REPORT },
+        ]
+      },
+      MENU_MODULES.INTEGRATIONS,
+      MENU_MODULES.NOTIFICATIONS,
       MENU_MODULES.PLATFORM_SETTINGS,
-
-      // 🛠️ 13. SYSTEM INFRASTRUCTURE (Module Toggles, Backups)
-      MENU_MODULES.SYSTEM, // Infrastructure & Critical Logs
+      MENU_MODULES.SYSTEM,
     ],
 
     // 🏢 Business Admin - Manages specific business unit
     "business-admin": [
       MENU_MODULES.DASHBOARD,
-      
-      // 🛒 1. RETAIL & POS
+      { ...MENU_MODULES.POS_TERMINAL, badge: "Live", module: 'pos' },
+      { ...MENU_MODULES.OUTLETS, module: 'pos' },
       {
-        ...MENU_MODULES.POS_TERMINAL,
-        badge: "Live",
-        module: 'pos',
-      },
-      {
-        ...MENU_MODULES.OUTLETS,
-        module: 'pos',
-      },
-
-      // 📦 2. ERP SYSTEM (Inventory, Products, Purchases, Logistics)
-      {
-        ...MENU_MODULES.CATALOG, // Products
+        ...MENU_MODULES.CATALOG,
         module: 'erp',
         children: [
             { title: "All Products", path: ROUTE_PATHS.CATALOG.PRODUCT.ROOT },
@@ -115,8 +100,8 @@ export const sidebarMenuConfig = {
             { title: "Stock Ledger", path: ROUTE_PATHS.INVENTORY.LEDGER },
             { title: "Warehouses", path: ROUTE_PATHS.INVENTORY.WAREHOUSES, resource: RESOURCE_KEYS.WAREHOUSE },
             { title: "Transfers", path: ROUTE_PATHS.INVENTORY.TRANSFERS, resource: RESOURCE_KEYS.TRANSFER, action: ACTION_KEYS.CREATE },
-            { title: "Suppliers", path: ROUTE_PATHS.SUPPLIERS.ROOT, resource: RESOURCE_KEYS.SUPPLIER }, // Merged Suppliers
-            { title: "Logistics", path: ROUTE_PATHS.LOGISTICS.ROOT, resource: RESOURCE_KEYS.COURIER }, // Merged Logistics
+            { title: "Suppliers", path: ROUTE_PATHS.SUPPLIERS.ROOT, resource: RESOURCE_KEYS.SUPPLIER },
+            { title: "Logistics", path: ROUTE_PATHS.LOGISTICS.ROOT, resource: RESOURCE_KEYS.COURIER },
         ]
       },
       {
@@ -131,11 +116,7 @@ export const sidebarMenuConfig = {
           { title: "Invoices", path: ROUTE_PATHS.SALES.INVOICES, resource: RESOURCE_KEYS.INVOICE },
         ],
       },
-
-      // 🌐 3. E-COMMERCE
       { ...MENU_MODULES.STOREFRONT, title: "E-Commerce", module: 'ecommerce' },
-
-      // 🤝 4. CRM SUITE (Customers, Marketing, Support)
       {
         ...MENU_MODULES.CUSTOMERS,
         title: "CRM & Customers",
@@ -145,75 +126,57 @@ export const sidebarMenuConfig = {
           { title: "Add Customer", path: ROUTE_PATHS.CUSTOMERS.NEW, action: ACTION_KEYS.CREATE },
           { title: "Loyalty Program", path: ROUTE_PATHS.CUSTOMERS.LOYALTY, resource: RESOURCE_KEYS.LOYALTY },
           { title: "Subscriptions", path: ROUTE_PATHS.CUSTOMERS.SUBSCRIPTIONS, resource: RESOURCE_KEYS.SUBSCRIPTION },
-          { title: "Marketing", path: ROUTE_PATHS.MARKETING.ROOT, resource: RESOURCE_KEYS.PROMOTION }, // Merged Marketing
-          { title: "Support Tickets", path: ROUTE_PATHS.SUPPORT.ROOT, resource: RESOURCE_KEYS.TICKET }, // Merged Support
+          { title: "Marketing", path: ROUTE_PATHS.MARKETING.ROOT, resource: RESOURCE_KEYS.PROMOTION },
+          { title: "Support Tickets", path: ROUTE_PATHS.SUPPORT.ROOT, resource: RESOURCE_KEYS.TICKET },
         ],
       },
-
-      // 👥 5. HRM & ADMIN
       { ...MENU_MODULES.HRM, module: 'hrm' },
       {
         title: "User Management",
         path: "user-management",
         icon: Users,
-        // No strict module, base feature
         children: [
            { title: "Staff / Users", path: "user-management/business-users", resource: RESOURCE_KEYS.STAFF, action: ACTION_KEYS.MANAGE },
            { title: "Business Roles", path: "user-management/business-roles", resource: RESOURCE_KEYS.ROLE },
         ]
       },
-
-      // 💰 6. FINANCE
       {
          ...MENU_MODULES.FINANCE,
-         module: 'finance', // or 'erp' since finance is inside ERP? But toggled separately via ERP->Finance. 
-         // If module.activeModules.finance is true, show this.
+         module: 'finance',
          children: [
              ...MENU_MODULES.FINANCE.children || [],
-             ...MENU_MODULES.ACCOUNTING.children || [], // Merge Accounting into Finance
+             ...MENU_MODULES.ACCOUNTING.children || [],
          ]
       },
-      
       MENU_MODULES.REPORTS,
-
-      // ⚙️ SETTINGS & UTILITIES (Consolidated)
       {
           ...MENU_MODULES.BUSINESS_SETTINGS,
           title: "Setup & Settings",
           children: [
               { title: "Business Settings", path: "business-settings?tab=overview", resource: RESOURCE_KEYS.BUSINESS_SETTING },
-              { title: "Company Settings", path: "company-settings", resource: RESOURCE_KEYS.COMPANY_SETTING },
               { title: "POS Configuration", path: "business-settings?tab=pos", resource: RESOURCE_KEYS.TERMINAL },
+              { title: "Outlet Settings", path: "outlet-settings", resource: RESOURCE_KEYS.OUTLET_SETTING },
               { title: "Integrations", path: "integrations", resource: RESOURCE_KEYS.SYSTEM_CONFIG, module: 'integrations' }, 
-              { title: "Governance", path: "governance", resource: RESOURCE_KEYS.SHAREHOLDER, module: 'governance' }, 
           ]
       }
     ],
     
-    // 🏢 COMPANY OWNER - Group MD / Chairman (Tenant Admin)
-    "company-owner": [
+    // 🏢 COMPANY OWNER - Group MD / Chairman
+    [USER_ROLES.COMPANY_OWNER]: [
       MENU_MODULES.DASHBOARD,
-
-      // 🏢 Governance
       {
           title: "Governance",
           path: "governance",
           icon: Users,
           module: 'governance',
+          resource: RESOURCE_KEYS.SHAREHOLDER,
           children: [
              { title: "Shareholders", path: "governance/shareholders", resource: RESOURCE_KEYS.SHAREHOLDER },
              { title: "Board Meetings", path: "governance/meetings", resource: RESOURCE_KEYS.MEETING },
              { title: "Compliance", path: "governance/compliance", resource: RESOURCE_KEYS.COMPLIANCE },
           ]
       },
-
-      // 🏢 Business Units
-      {
-          ...MENU_MODULES.BUSINESS_UNITS,
-          path: "business-units"
-      },
-
-      // 👥 Access Management
+      { ...MENU_MODULES.BUSINESS_UNITS, path: "business-units" },
       {
           title: "Access Management",
           path: "user-management",
@@ -223,8 +186,6 @@ export const sidebarMenuConfig = {
              { title: "Roles & Permissions", path: "user-management/business-roles" },
           ]
       },
-
-      // 💰 Finance & Reports
       {
         ...MENU_MODULES.FINANCE,
         title: "Company Finance",
@@ -235,16 +196,11 @@ export const sidebarMenuConfig = {
         ]
       },
       MENU_MODULES.REPORTS,
-
-      // ⚙️ Settings
-      {
-         ...MENU_MODULES.COMPANY_SETTINGS,
-         title: "Company Settings",
-      }
+      { ...MENU_MODULES.COMPANY_SETTINGS, title: "Company Settings" }
     ],
 
     // 💰 SHAREHOLDER - Investor View
-    "shareholder": [
+    [USER_ROLES.SHAREHOLDER]: [
         MENU_MODULES.DASHBOARD,
         {
           title: "Governance",
@@ -259,85 +215,79 @@ export const sidebarMenuConfig = {
         {
            ...MENU_MODULES.FINANCE,
            title: "Financials",
-           children: [
-              { title: "P&L Summary", path: "finance/revenue" },
-           ]
+           children: [ { title: "P&L Summary", path: "finance/revenue" } ]
         }
     ],
 
-    // 📋 MULTI-UNIT ADMIN / REGIONAL MANAGER (Global View)
-    // Visible when a manager is at /global/ and hasn't picked a unit yet
+    // 📋 MULTI-UNIT ADMIN / REGIONAL MANAGER
     "multi-unit-admin": [
       MENU_MODULES.DASHBOARD,
-      {
-          ...MENU_MODULES.BUSINESS_UNITS,
-          title: "My Business Units",
-          path: "business-units"
-      },
+      { ...MENU_MODULES.BUSINESS_UNITS, title: "My Business Units", path: "business-units" },
       MENU_MODULES.REPORTS,
       {
           title: "Access Management",
           path: "user-management",
           icon: Users,
-          children: [
-             { title: "Staff / Users", path: "user-management/business-users" },
-          ]
+          children: [ { title: "Staff / Users", path: "user-management/business-users" } ]
       }
     ],
 
-    // 🏢 Business Admin - Manages specific business unit
-
     // 💰 Cashier - POS focused
-    cashier: [
-      {
-        ...MENU_MODULES.POS_TERMINAL,
-        exact: true,
-      },
-      {
-        title: "Quick Sales",
-        path: ROUTE_PATHS.POS.QUICK_SALES,
-        icon: CreditCard,
-        resource: RESOURCE_KEYS.ORDER
-      },
-      {
-        title: "Today's Summary",
-        path: ROUTE_PATHS.POS.TODAY,
-        icon: BarChart3,
-        resource: RESOURCE_KEYS.REPORT
-      },
-      {
-        title: "My Sales",
-        path: ROUTE_PATHS.POS.MY_SALES,
-        icon: FileText,
-        resource: RESOURCE_KEYS.ORDER
-      }, // Fixed indent
+    // 💰 Cashier - POS focused
+    [USER_ROLES.CASHIER]: [
+      MENU_MODULES.DASHBOARD,
+      { ...MENU_MODULES.POS_TERMINAL, exact: true },
+      { title: "Quick Sales", path: ROUTE_PATHS.POS.QUICK_SALES, icon: CreditCard, resource: RESOURCE_KEYS.ORDER },
+      { title: "Today's Summary", path: ROUTE_PATHS.POS.TODAY, icon: BarChart3, resource: RESOURCE_KEYS.REPORT },
+      { title: "My Sales", path: ROUTE_PATHS.POS.MY_SALES, icon: FileText, resource: RESOURCE_KEYS.ORDER },
+      // Added Standard Cashier Items
+      { title: "Returns", path: ROUTE_PATHS.SALES.RETURNS, icon: Package, resource: RESOURCE_KEYS.RETURN }, 
+      MENU_MODULES.CUSTOMERS,
+      // Removed OUTLET_SETTINGS for security
     ],
 
-    // 📦 Store Manager
+    // 📦 Store Manager - Operational focus for a single Outlet
     "store-manager": [
       MENU_MODULES.DASHBOARD,
       MENU_MODULES.POS_TERMINAL,
       {
+        ...MENU_MODULES.CATALOG,
+        title: "Products & Prices",
+        children: [
+            { title: "Product List", path: ROUTE_PATHS.CATALOG.PRODUCT.ROOT },
+        ]
+      },
+      {
         ...MENU_MODULES.INVENTORY,
         children: [
           { title: "Stock Levels", path: ROUTE_PATHS.INVENTORY.ROOT },
-          { title: "Stock Transfers", path: ROUTE_PATHS.INVENTORY.TRANSFERS, action: ACTION_KEYS.UPDATE },
-          { title: "Stock Adjustment", path: ROUTE_PATHS.INVENTORY.ADJUSTMENTS, action: ACTION_KEYS.UPDATE },
+          { title: "Transfers", path: ROUTE_PATHS.INVENTORY.TRANSFERS, action: ACTION_KEYS.UPDATE },
+          { title: "Adjustments", path: ROUTE_PATHS.INVENTORY.ADJUSTMENTS, action: ACTION_KEYS.UPDATE },
           { title: "Low Stock Alerts", path: ROUTE_PATHS.INVENTORY.ALERTS },
         ]
       },
-      MENU_MODULES.STAFF,
       {
-        ...MENU_MODULES.REPORTS,
-        title: "Daily Reports"
-      }
+        ...MENU_MODULES.SALES,
+        title: "Sales History",
+        children: [
+          { title: "Recent Orders", path: ROUTE_PATHS.SALES.ROOT },
+          { title: "Returns", path: ROUTE_PATHS.SALES.RETURNS },
+        ]
+      },
+      {
+        ...MENU_MODULES.CUSTOMERS,
+        title: "Customer Registry",
+        children: [
+          { title: "Customer List", path: ROUTE_PATHS.CUSTOMERS.ROOT },
+        ]
+      },
+      MENU_MODULES.STAFF,
+      { ...MENU_MODULES.REPORTS, title: "Daily Reports" },
+      MENU_MODULES.OUTLET_SETTINGS,
     ],
 
     "dynamic": [
-      {
-        ...MENU_MODULES.DASHBOARD,
-        resource: RESOURCE_KEYS.REPORT 
-      },
+      { ...MENU_MODULES.DASHBOARD, resource: RESOURCE_KEYS.REPORT },
       MENU_MODULES.POS_TERMINAL,
       {
         ...MENU_MODULES.CATALOG,
@@ -366,10 +316,7 @@ export const sidebarMenuConfig = {
           { title: "Delivery", path: ROUTE_PATHS.SALES.DELIVERY, resource: RESOURCE_KEYS.DELIVERY },
         ]
       },
-      {
-        ...MENU_MODULES.STOREFRONT,
-        resource: undefined,
-      }, 
+      { ...MENU_MODULES.STOREFRONT, resource: undefined }, 
       {
         ...MENU_MODULES.INVENTORY,
         icon: Package, 
@@ -379,10 +326,7 @@ export const sidebarMenuConfig = {
           { title: "Adjustments", path: ROUTE_PATHS.INVENTORY.ADJUSTMENTS, resource: RESOURCE_KEYS.ADJUSTMENT, action: ACTION_KEYS.ADJUST },
         ]
       },
-      {
-        ...MENU_MODULES.MARKETING,
-        resource: undefined, 
-      },
+      { ...MENU_MODULES.MARKETING, resource: undefined },
       {
         ...MENU_MODULES.CUSTOMERS,
         resource: undefined, 
@@ -393,26 +337,11 @@ export const sidebarMenuConfig = {
           { title: "Reviews", path: ROUTE_PATHS.CUSTOMERS.REVIEWS, resource: RESOURCE_KEYS.REVIEW },
         ]
       },
-      {
-        ...MENU_MODULES.SUPPLIERS,
-        resource: RESOURCE_KEYS.SUPPLIER,
-      },
-      {
-        ...MENU_MODULES.STAFF,
-        resource: RESOURCE_KEYS.STAFF, 
-      },
-      {
-        ...MENU_MODULES.SUPPORT,
-        resource: RESOURCE_KEYS.TICKET,
-      },
-      {
-        ...MENU_MODULES.CONTENT,
-        resource: RESOURCE_KEYS.CONTENT, 
-      },
-      {
-        ...MENU_MODULES.REPORTS,  
-        resource: RESOURCE_KEYS.REPORT, 
-      },
+      { ...MENU_MODULES.SUPPLIERS, resource: RESOURCE_KEYS.SUPPLIER },
+      { ...MENU_MODULES.STAFF, resource: RESOURCE_KEYS.STAFF },
+      { ...MENU_MODULES.SUPPORT, resource: RESOURCE_KEYS.TICKET },
+      { ...MENU_MODULES.CONTENT, resource: RESOURCE_KEYS.CONTENT },
+      { ...MENU_MODULES.REPORTS, resource: RESOURCE_KEYS.REPORT },
       {
         ...MENU_MODULES.FINANCE,
         resource: undefined, 
@@ -424,91 +353,39 @@ export const sidebarMenuConfig = {
             { title: "Audit Logs", path: ROUTE_PATHS.FINANCE.AUDIT_LOGS, resource: RESOURCE_KEYS.AUDIT_LOG },
         ]
       },
-      {
-        ...MENU_MODULES.ACCOUNTING,
-        resource: undefined, 
-      },
-      {
-        ...MENU_MODULES.LOGISTICS,
-        resource: undefined, 
-      },
-      {
-        ...MENU_MODULES.RISK_MANAGEMENT,
-        resource: undefined, 
-      },
-      {
-        ...MENU_MODULES.HRM,
-        resource: undefined, 
-      },
-      {
-        ...MENU_MODULES.VENDORS,
-        resource: undefined,
-      },
-      {
-        ...MENU_MODULES.POS_CONFIG,
-        resource: undefined, 
-      },
-      // Settings Modules (Visible if user has specific setting permissions)
-      {
-        ...MENU_MODULES.PLATFORM_SETTINGS,
-        resource: RESOURCE_KEYS.PLATFORM_SETTING
-      },
-      {
-        ...MENU_MODULES.COMPANY_SETTINGS,
-        resource: RESOURCE_KEYS.COMPANY_SETTING
-      },
-      {
-        ...MENU_MODULES.BUSINESS_SETTINGS,
-        resource: RESOURCE_KEYS.BUSINESS_SETTING
-      },
-      {
-        ...MENU_MODULES.OUTLET_SETTINGS,
-        resource: RESOURCE_KEYS.OUTLET_SETTING
-      },
-      {
-        ...MENU_MODULES.SYSTEM,
-        resource: RESOURCE_KEYS.SYSTEM_CONFIG
-      }
+      { ...MENU_MODULES.ACCOUNTING, resource: undefined },
+      { ...MENU_MODULES.LOGISTICS, resource: undefined },
+      { ...MENU_MODULES.RISK_MANAGEMENT, resource: undefined },
+      { ...MENU_MODULES.HRM, resource: undefined },
+      { ...MENU_MODULES.VENDORS, resource: undefined },
+      { ...MENU_MODULES.POS_CONFIG, resource: undefined },
+      { ...MENU_MODULES.PLATFORM_SETTINGS, resource: RESOURCE_KEYS.PLATFORM_SETTING },
+      { ...MENU_MODULES.COMPANY_SETTINGS, resource: RESOURCE_KEYS.COMPANY_SETTING },
+      { ...MENU_MODULES.BUSINESS_SETTINGS, resource: RESOURCE_KEYS.BUSINESS_SETTING },
+      { ...MENU_MODULES.OUTLET_SETTINGS, resource: RESOURCE_KEYS.OUTLET_SETTING },
+      { ...MENU_MODULES.SYSTEM, resource: RESOURCE_KEYS.SYSTEM_CONFIG }
     ],
   },
 
   // 🔧 Common menus for all roles
   common: [
-    {
-      title: "Notifications",
-      path: ROUTE_PATHS.COMMON.NOTIFICATIONS,
-      icon: Bell,
-    },
-    {
-      title: "My Profile",
-      path: ROUTE_PATHS.COMMON.PROFILE,
-      icon: User,
-    },
-
-    {
-      title: "Help & Support",
-      path: ROUTE_PATHS.COMMON.HELP,
-      icon: HelpCircle,
-    },
+    { title: "Notifications", path: ROUTE_PATHS.COMMON.NOTIFICATIONS, icon: Bell },
+    { title: "My Profile", path: ROUTE_PATHS.COMMON.PROFILE, icon: User },
+    { title: "Help & Support", path: ROUTE_PATHS.COMMON.HELP, icon: HelpCircle },
   ],
 }
 
 // Helper function to get menu for role
 export const getSidebarMenu = (role: string, businessUnit: string, outletId?: string, companyId?: string | null) => {
   
-  let baseUrl = "/";
+  let baseUrl = "/global";
   if (businessUnit) {
       baseUrl = `/${businessUnit}`;
-  } else if (role === 'super-admin') {
-      baseUrl = `/global`; 
-  } else {
-      baseUrl = `/global`; 
   }
 
   const prefixMenuPaths = (items: any[]): any[] => {
     return items.map(item => {
       const newItem = { ...item };
-      
       if (newItem.path !== undefined) {
          if (newItem.path === "") {
              newItem.path = baseUrl;
@@ -516,10 +393,7 @@ export const getSidebarMenu = (role: string, businessUnit: string, outletId?: st
              newItem.path = `${baseUrl}/${newItem.path}`;
          }
       }
-
-      if (newItem.children) {
-        newItem.children = prefixMenuPaths(newItem.children);
-      }
+      if (newItem.children) newItem.children = prefixMenuPaths(newItem.children);
       return newItem;
     });
   };
@@ -527,69 +401,122 @@ export const getSidebarMenu = (role: string, businessUnit: string, outletId?: st
   const commonMenu = sidebarMenuConfig.common
   const dynamicMenu = sidebarMenuConfig.menus['dynamic'];
 
-  // 0. Outlet Context Logic Specifics (POS, etc.) 🏪
-  if (outletId && businessUnit && role !== 'super-admin') {
-      const rawOutletMenu = sidebarMenuConfig.menus['cashier'] || [];
+  // 0. Outlet Context Logic Specifics (POS, etc.)
+  if (outletId && businessUnit) {
+      const isPrivileged = matchesRole(role, [USER_ROLES.SUPER_ADMIN, USER_ROLES.COMPANY_OWNER, 'business-admin', USER_ROLES.ADMIN]);
       
+      let rawOutletMenu: any[] = [];
+      
+      if (isPrivileged) {
+          // Streamlined "Operational Essentials" for Outlet context (even for Admins)
+          rawOutletMenu = [
+              MENU_MODULES.DASHBOARD,
+              MENU_MODULES.POS_TERMINAL,
+              {
+                ...MENU_MODULES.CATALOG,
+                title: "Products & Prices",
+                children: [ { title: "Stock & Price List", path: ROUTE_PATHS.CATALOG.PRODUCT.ROOT } ]
+              },
+              {
+                ...MENU_MODULES.INVENTORY,
+                children: [
+                    { title: "Current Stock", path: ROUTE_PATHS.INVENTORY.ROOT },
+                    { title: "Transfers", path: ROUTE_PATHS.INVENTORY.TRANSFERS },
+                    { title: "Adjustments", path: ROUTE_PATHS.INVENTORY.ADJUSTMENTS },
+                ]
+              },
+              {
+                ...MENU_MODULES.SALES,
+                title: "Outlet Sales",
+                children: [
+                    { title: "Order History", path: ROUTE_PATHS.SALES.ROOT },
+                    { title: "Returns", path: ROUTE_PATHS.SALES.RETURNS },
+                ]
+              },
+              {
+                ...MENU_MODULES.CUSTOMERS,
+                title: "Store Customers",
+                children: [ { title: "Customer Registry", path: ROUTE_PATHS.CUSTOMERS.ROOT } ]
+              },
+              MENU_MODULES.REPORTS,
+              MENU_MODULES.OUTLET_SETTINGS,
+          ];
+      } else if (role === 'store-manager') {
+          rawOutletMenu = [...(sidebarMenuConfig.menus['store-manager'] || [])];
+      } else {
+          // Standard Cashiers/Staff see limited menu
+          rawOutletMenu = [...(sidebarMenuConfig.menus[USER_ROLES.CASHIER] || [])];
+          
+          // Fallback: If no cashier menu, use dynamic as last resort
+          if (rawOutletMenu.length === 0) rawOutletMenu = [...dynamicMenu];
+      }
+      
+      // Ensure Outlet Settings is present for those who should see it
+      const shouldSeeSettings = matchesRole(role, [USER_ROLES.SUPER_ADMIN, USER_ROLES.COMPANY_OWNER, 'business-admin', 'store-manager', USER_ROLES.ADMIN]);
+      const hasSettings = rawOutletMenu.some(m => m.title === MENU_MODULES.OUTLET_SETTINGS.title);
+      if (shouldSeeSettings && !hasSettings) {
+          rawOutletMenu.push(MENU_MODULES.OUTLET_SETTINGS);
+      }
+
       const appendOutletToMenu = (items: any[]): any[] => {
         return items.map(item => {
           const newItem = { ...item };
-          
           if (newItem.path) {
               const separator = newItem.path.includes('?') ? '&' : '?';
-              if (!newItem.path.includes('outlet=')) {
-                  newItem.path = `${newItem.path}${separator}outlet=${outletId}`;
-              }
+              if (!newItem.path.includes('outlet=')) newItem.path = `${newItem.path}${separator}outlet=${outletId}`;
           }
-
-          if (newItem.children) {
-              newItem.children = appendOutletToMenu(newItem.children);
-          }
+          if (newItem.children) newItem.children = appendOutletToMenu(newItem.children);
           return newItem;
         });
       };
 
       const prefixedOutletMenu = prefixMenuPaths(rawOutletMenu);
       const outletMenu = appendOutletToMenu(prefixedOutletMenu);
-      
       return [...outletMenu, ...prefixMenuPaths(commonMenu)];
   }
 
-  // 1. PLATFORM vs COMPANY context switching for Super Admin
-  if (role === 'super-admin') {
-      if (businessUnit) {
-          // Inside a BU -> Show BU Admin operations
-          const businessAdminMenu = sidebarMenuConfig.menus['business-admin'];
-          return prefixMenuPaths([...businessAdminMenu, ...commonMenu]);
-      } else if (companyId) {
-          // Inside a Company -> Show Company Owner governance & management
-          const companyOwnerMenu = sidebarMenuConfig.menus['company-owner'];
-          return prefixMenuPaths([...companyOwnerMenu, ...commonMenu]);
+  const appendCompanyToMenu = (items: any[]): any[] => {
+    if (!companyId) return items;
+    return items.map(item => {
+      const newItem = { ...item };
+      if (newItem.path) {
+        const separator = newItem.path.includes('?') ? '&' : '?';
+        if (!newItem.path.includes('company=')) newItem.path = `${newItem.path}${separator}company=${companyId}`;
       }
-      // Global Platform context -> Default Super Admin menu
+      if (newItem.children) newItem.children = appendCompanyToMenu(newItem.children);
+      return newItem;
+    });
+  };
+
+  // 1. Context switching for Super Admin & Company Owner
+  if (matchesRole(role, USER_ROLES.SUPER_ADMIN)) {
+      if (businessUnit) {
+          const businessAdminMenu = sidebarMenuConfig.menus['business-admin'];
+          return appendCompanyToMenu(prefixMenuPaths([...businessAdminMenu, ...commonMenu]));
+      } else if (companyId) {
+          const companyOwnerMenu = sidebarMenuConfig.menus[USER_ROLES.COMPANY_OWNER];
+          return appendCompanyToMenu(prefixMenuPaths([...companyOwnerMenu, ...commonMenu]));
+      }
   }
 
-  // 2. Get the base menu (Specified Role or Default Dynamic)
+  if (matchesRole(role, USER_ROLES.COMPANY_OWNER) && businessUnit) {
+      const businessAdminMenu = sidebarMenuConfig.menus['business-admin'];
+      return appendCompanyToMenu(prefixMenuPaths([...businessAdminMenu, ...commonMenu]));
+  }
+
+  // 2. Get the base menu
   let roleMenu: any[] = [];
   
-  if (!businessUnit && role !== 'super-admin' && role !== 'company-owner') {
+  if (!businessUnit && !matchesRole(role, [USER_ROLES.SUPER_ADMIN, USER_ROLES.COMPANY_OWNER])) {
       roleMenu = sidebarMenuConfig.menus['multi-unit-admin'];
   } else if (Object.prototype.hasOwnProperty.call(sidebarMenuConfig.menus, role)) {
       roleMenu = sidebarMenuConfig.menus[role as keyof typeof sidebarMenuConfig.menus];
-  } else if (role === 'admin') {
+  } else if (matchesRole(role, USER_ROLES.ADMIN)) {
       roleMenu = sidebarMenuConfig.menus['business-admin'];
   } else {
       roleMenu = dynamicMenu;
   }
 
-  // Deduplicate before returning
-  const uniqueMenu = roleMenu.filter((item, index, self) =>
-    index === self.findIndex((t) => (
-      t.title === item.title
-    ))
-  );
-
-  return prefixMenuPaths([...uniqueMenu, ...commonMenu]);
+  const uniqueMenu = roleMenu.filter((item, index, self) => index === self.findIndex((t) => (t.title === item.title)));
+  return appendCompanyToMenu(prefixMenuPaths([...uniqueMenu, ...commonMenu]));
 }
-
-

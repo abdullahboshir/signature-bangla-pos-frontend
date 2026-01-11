@@ -6,19 +6,19 @@ import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-export function SalesSettings({ data, onChange }: { data: any, onChange: (key: string, value: any) => void }) {
+export function SalesSettings({ data, onChange }: { data: any, onChange: (section: string, ...args: any[]) => void }) {
     if (!data) return null;
 
     const updateCheckout = (key: string, value: any) => {
-        onChange('checkout', { ...data.checkout, [key]: value });
+        onChange('checkout', key, value);
     }
 
     const updateTax = (key: string, value: any) => {
-        onChange('tax', { ...data.tax, [key]: value });
+        onChange('tax', key, value);
     }
 
     const updateShipping = (key: string, value: any) => {
-        onChange('shipping', { ...data.shipping, [key]: value });
+        onChange('shipping', key, value);
     }
 
     return (
@@ -68,6 +68,70 @@ export function SalesSettings({ data, onChange }: { data: any, onChange: (key: s
                         />
                     </div>
                     {/* Placeholder for Terms and Privacy Policy Text Areas if needed */}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Display & Catalog</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex items-center justify-between">
+                            <Label>Show Out of Stock</Label>
+                            <Switch
+                                checked={data.display?.showOutOfStock}
+                                onCheckedChange={(c) => onChange('display', 'showOutOfStock', c)}
+                            />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <Label>Show Reviews</Label>
+                            <Switch
+                                checked={data.display?.showProductReviews}
+                                onCheckedChange={(c) => onChange('display', 'showProductReviews', c)}
+                            />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <Label>Show Related Products</Label>
+                            <Switch
+                                checked={data.display?.showRelatedProducts}
+                                onCheckedChange={(c) => onChange('display', 'showRelatedProducts', c)}
+                            />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <Label>Enable Quick View</Label>
+                            <Switch
+                                checked={data.display?.enableQuickView}
+                                onCheckedChange={(c) => onChange('display', 'enableQuickView', c)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                            <Label>Products Per Page</Label>
+                            <Input
+                                type="number"
+                                value={data.display?.productsPerPage || 24}
+                                onChange={(e) => onChange('display', 'productsPerPage', parseInt(e.target.value))}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Default Sort</Label>
+                            <Select
+                                value={data.display?.defaultSort || 'newest'}
+                                onValueChange={(val) => onChange('display', 'defaultSort', val)}
+                            >
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="newest">Newest First</SelectItem>
+                                    <SelectItem value="price_asc">Price: Low to High</SelectItem>
+                                    <SelectItem value="price_desc">Price: High to Low</SelectItem>
+                                    <SelectItem value="popularity">Popularity</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -197,12 +261,44 @@ export function SalesSettings({ data, onChange }: { data: any, onChange: (key: s
                         <Label>Payment Instructions</Label>
                         <Input
                             value={data.payment?.paymentInstructions || ''}
-                            onChange={(e) => onChange('payment', { ...data.payment, paymentInstructions: e.target.value })}
+                            onChange={(e) => onChange('payment', 'paymentInstructions', e.target.value)}
                             placeholder="Instructions for Bank Transfer / Offline payments"
                         />
                     </div>
+
+                    <div className="pt-4 border-t space-y-4">
+                        <Label className="text-base">Transaction Guardrails</Label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label>Max Transaction Value</Label>
+                                <Input
+                                    type="number"
+                                    value={data.payment?.transactionGuardrails?.maxTransactionValue || 100000}
+                                    onChange={(e) => onChange('payment', 'transactionGuardrails', 'maxTransactionValue', parseFloat(e.target.value))}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label>Max Daily Volume</Label>
+                                <Input
+                                    type="number"
+                                    value={data.payment?.transactionGuardrails?.maxDailyVolume || 500000}
+                                    onChange={(e) => onChange('payment', 'transactionGuardrails', 'maxDailyVolume', parseFloat(e.target.value))}
+                                />
+                            </div>
+                            <div className="flex items-center justify-between md:col-span-2">
+                                <div className="space-y-0.5">
+                                    <Label>Velocity Check Enabled</Label>
+                                    <p className="text-xs text-muted-foreground">Flag unusual burst of transactions</p>
+                                </div>
+                                <Switch
+                                    checked={data.payment?.transactionGuardrails?.velocityCheckEnabled}
+                                    onCheckedChange={(c) => onChange('payment', 'transactionGuardrails', 'velocityCheckEnabled', c)}
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
-        </div>
+        </div >
     )
 }

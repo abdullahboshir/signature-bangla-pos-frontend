@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { CenteredLoading } from "@/components/shared/CenteredLoading";
 import { LoadingClearer } from "@/components/shared/LoadingClearer";
+import { checkIsSuperAdmin } from "@/lib/iam/permissions";
 
 interface ProtectedLayoutProps {
   children: React.ReactNode;
@@ -25,7 +26,7 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
     if (user && !authLoading && user.permissions?.length > 0) {
       const restrictedOutlet = user.permissions.every((p: any) => p.outlet);
 
-      if (restrictedOutlet && !user.isSuperAdmin) {
+      if (restrictedOutlet && !checkIsSuperAdmin(user)) {
         // Safe access to outlet ID
         const firstPerm = user.permissions[0] as any;
         const targetOutletId = typeof firstPerm.outlet === 'object'

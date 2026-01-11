@@ -21,6 +21,7 @@ import {
 } from "@/redux/api/iam/authApi";
 import { jwtDecode } from "jwt-decode";
 import { authKey } from "@/constant/authKey";
+import { USER_ROLES, matchesRole, isSuperAdmin as checkIsSuperAdmin } from "@/config/auth-constants";
 
 interface AuthContextType {
     user: User | null;
@@ -41,6 +42,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const [activeBusinessUnit, setActiveBusinessUnitState] = useState<string | null>(() => {
         if (typeof window !== 'undefined') {
+            const path = window.location.pathname;
+            // If we land on a global path, ignore persisted context on boot
+            if (path.startsWith('/global') || path.startsWith('/super-admin')) {
+                return null;
+            }
             return localStorage.getItem('active-business-unit');
         }
         return null;
@@ -70,13 +76,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loginMutation] = useLoginMutation();
     const [logoutMutation] = useLogoutMutation();
 
-    const setActiveBusinessUnit = (id: string | null) => {
-        if (id) {
+    const setActiveBusinessUnit = (idOrObj: string | any | null) => {
+        if (idOrObj) {
+            const id = typeof idOrObj === 'string' ? idOrObj : (idOrObj._id?.toString() || idOrObj.id?.toString() || idOrObj.toString());
+            const companyId = typeof idOrObj === 'object' ? (idOrObj.company?._id?.toString() || idOrObj.company?.id?.toString() || idOrObj.company?.toString()) : null;
+
             localStorage.setItem('active-business-unit', id);
+            if (companyId && typeof companyId === 'string' && companyId !== '[object Object]') {
+                localStorage.setItem('active-company-id', companyId);
+            }
+            setActiveBusinessUnitState(id);
         } else {
             localStorage.removeItem('active-business-unit');
+            localStorage.removeItem('active-company-id');
+            setActiveBusinessUnitState(null);
         }
-        setActiveBusinessUnitState(id);
     };
 
 
@@ -103,12 +117,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const roles = Array.isArray(decoded?.role) ? decoded.role : [decoded?.role || ""];
 
             // Helper to check management roles
-            const isManagementRole = roles.some((r: string) =>
-                ["admin", "super-admin", "manager", "owner", "ceo", "director", "business-admin"].includes(r.toLowerCase())
-            );
+            const isManagementRole = matchesRole(roles, [
+                USER_ROLES.ADMIN,
+                USER_ROLES.SUPER_ADMIN,
+                USER_ROLES.MANAGER,
+                USER_ROLES.COMPANY_OWNER,
+                "owner", "ceo", "director", "business-admin"
+            ]);
 
-            if (decoded?.isSuperAdmin) {
+            if (checkIsSuperAdmin(roles) || decoded?.isSuperAdmin) {
                 redirect = "/global/dashboard";
+                // Super Admins should always start at Platform Global without context
+                setActiveBusinessUnit(null);
+                localStorage.removeItem('active-business-unit');
             } else if (context?.primary) {
                 const { businessUnit, outlet, scope } = context.primary;
 

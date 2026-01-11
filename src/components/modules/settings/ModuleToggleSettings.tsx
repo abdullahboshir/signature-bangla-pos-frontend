@@ -132,17 +132,22 @@ export function ModuleToggleSettings() {
                         onCheckedChange={(c) => handleToggle('pos', c)}
                     />
                     <ModuleSwitch
-                        label="ERP Core (All-in-One)"
-                        description="Includes: Inventory, Finance, Accounts, Logistics, Purchasing"
+                        label="ERP Core & Master Data"
+                        description="Shared business entities, workflows & master data framework"
                         checked={modules.erp}
-                        onCheckedChange={(c) => {
-                            setModules(prev => ({
-                                ...prev,
-                                erp: c,
-                                finance: c,
-                                logistics: c // Auto-toggle dependencies
-                            }));
-                        }}
+                        onCheckedChange={(c) => handleToggle('erp', c)}
+                    />
+                    <ModuleSwitch
+                        label="Finance & Accounting"
+                        description="General Ledger, Invoicing & Financial Reports"
+                        checked={modules.finance}
+                        onCheckedChange={(c) => handleToggle('finance', c)}
+                    />
+                    <ModuleSwitch
+                        label="Logistics & Supply Chain"
+                        description="Inventory, Shipments & Warehouse"
+                        checked={modules.logistics}
+                        onCheckedChange={(c) => handleToggle('logistics', c)}
                     />
                     <ModuleSwitch
                         label="HRM & Payroll"
@@ -158,17 +163,16 @@ export function ModuleToggleSettings() {
                     />
                     <ModuleSwitch
                         label="CRM Suite"
-                        description="Includes: Customers, Marketing Hub, Support Tickets"
+                        description="Customer Relation & Sales pipeline"
                         checked={modules.crm}
-                        onCheckedChange={(c) => {
-                            setModules(prev => ({
-                                ...prev,
-                                crm: c,
-                                marketing: c // Auto-toggle dependencies
-                            }));
-                        }}
+                        onCheckedChange={(c) => handleToggle('crm', c)}
                     />
-                    {/* Internal Modules Hidden: Logistics, Finance, Marketing */}
+                    <ModuleSwitch
+                        label="Marketing Automation"
+                        description="Campaigns, Emails & Social engagement"
+                        checked={modules.marketing}
+                        onCheckedChange={(c) => handleToggle('marketing', c)}
+                    />
 
                     <ModuleSwitch
                         label="Integrations (Add-on)"
@@ -177,14 +181,14 @@ export function ModuleToggleSettings() {
                         onCheckedChange={(c) => handleToggle('integrations', c)}
                     />
                     <ModuleSwitch
-                        label="Governance"
-                        description="Board-level management. Enable for Shareholder & Investor access."
+                        label="Governance & Elite Policy"
+                        description="Board-level management, shareholder voting & enterprise compliance"
                         checked={modules.governance}
                         onCheckedChange={(c) => handleToggle('governance', c)}
                     />
                     <ModuleSwitch
-                        label="SaaS Platform"
-                        description="Subscription Management, Licensing, Tenants"
+                        label="SaaS Ecosystem"
+                        description="Multi-tenant subscription management, licensing & billing orchestration"
                         checked={modules.saas}
                         onCheckedChange={(c) => handleToggle('saas', c)}
                     />

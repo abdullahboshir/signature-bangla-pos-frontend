@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter, useParams } from "next/navigation"
+import { useRouter, useParams, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import { useCreateUserMutation } from "@/redux/api/iam/userApi"
@@ -10,7 +10,11 @@ import { UserForm } from "@/components/modules/user-management/UserForm"
 export default function AddBusinessUserPage() {
     const router = useRouter()
     const params = useParams()
+    const searchParams = useSearchParams()
     const [createUser, { isLoading, error: userError }] = useCreateUserMutation()
+
+    // Support both path params (for sub-routes) and query params (for shortcuts)
+    const buSlug = searchParams.get("business-unit") || (params && params['business-unit'] ? params['business-unit'] as string : undefined);
 
     const handleSubmit = async (payload: any) => {
         try {
@@ -51,7 +55,7 @@ export default function AddBusinessUserPage() {
                 apiError={userError}
                 isSubmitting={isLoading}
                 targetScope="BUSINESS"
-                initialBusinessUnitSlug={params && params['business-unit'] ? params['business-unit'] as string : undefined}
+                initialBusinessUnitSlug={buSlug}
             />
         </div>
     )

@@ -6,11 +6,11 @@ import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-export function InventorySettings({ data, onChange }: { data: any, onChange: (key: string, value: any) => void }) {
+export function InventorySettings({ data, onChange }: { data: any, onChange: (section: string, ...args: any[]) => void }) {
     if (!data) return null;
 
     const updateInventory = (key: string, value: any) => {
-        onChange('inventory', { ...data.inventory, [key]: value });
+        onChange('inventory', key, value);
     }
 
     return (
@@ -29,6 +29,59 @@ export function InventorySettings({ data, onChange }: { data: any, onChange: (ke
                         <Switch
                             checked={data.inventory?.allowNegativeStock}
                             onCheckedChange={(c) => updateInventory('allowNegativeStock', c)}
+                        />
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Valuation & Automation</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                            <Label>Valuation Method</Label>
+                            <Select
+                                value={data.inventory?.valuationMethod || 'FIFO'}
+                                onValueChange={(val) => updateInventory('valuationMethod', val)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="FIFO">First In, First Out (FIFO)</SelectItem>
+                                    <SelectItem value="LIFO">Last In, First Out (LIFO)</SelectItem>
+                                    <SelectItem value="AVCO">Average Cost (AVCO)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Stock-out Action</Label>
+                            <Select
+                                value={data.inventory?.stockOutAction || 'block'}
+                                onValueChange={(val) => updateInventory('stockOutAction', val)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="block">Block Sales</SelectItem>
+                                    <SelectItem value="warn">Warn Cashier</SelectItem>
+                                    <SelectItem value="allow">Allow (Negative Stock)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <Label>Auto-Reorder Logic</Label>
+                            <p className="text-sm text-muted-foreground">Automatically draft Purchase Orders when low stock</p>
+                        </div>
+                        <Switch
+                            checked={data.inventory?.autoReorderEnabled}
+                            onCheckedChange={(c) => updateInventory('autoReorderEnabled', c)}
                         />
                     </div>
                 </CardContent>

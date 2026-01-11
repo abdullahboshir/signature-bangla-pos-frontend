@@ -9,6 +9,7 @@ import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit"
 import { useAuth } from "@/hooks/useAuth"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useCurrentRole } from "@/hooks/useCurrentRole"
+import { USER_ROLES, USER_STATUS, isSuperAdmin as checkIsSuperAdmin, normalizeAuthString, matchesRole, isManager, isPlatformLevel } from "@/config/auth-constants"
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner"
 import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
@@ -44,13 +45,7 @@ import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitA
 import { useGetRolesQuery } from "@/redux/api/iam/roleApi"
 import { useGetOutletsQuery } from "@/redux/api/organization/outletApi"
 
-const USER_STATUS = {
-    ACTIVE: 'active',
-    INACTIVE: 'inactive',
-    SUSPENDED: 'suspended',
-    PENDING: 'pending',
-    BLOCKED: 'blocked',
-} as const;
+// Local constants removed, using centralized ones
 
 interface UserManagementTableProps {
     viewScope?: 'platform' | 'business' | 'all';
@@ -78,10 +73,9 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
     // Determine current user role context (Robust Check)
     const isSuperAdmin = useMemo(() => {
         if (currentUser?.isSuperAdmin === true) return true;
-        return currentUser?.roles?.some((r: any) => {
-            const rName = (typeof r === 'string' ? r : r.name).toLowerCase();
-            return rName === 'super-admin' || rName === 'super_admin';
-        });
+        return currentUser?.roles?.some((r: any) =>
+            checkIsSuperAdmin(normalizeAuthString(typeof r === 'string' ? r : r.name))
+        );
     }, [currentUser]);
 
     // Sync Filter with Context for Super Admin
@@ -210,10 +204,9 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
                     const hasGlobalAccess = u.businessAccess?.some((acc: any) => acc.scope === 'GLOBAL');
 
                     // Fallback: Check if super-admin (legacy)
-                    const isSuperAdmin = u.roles?.some((r: any) => {
-                        const rName = (typeof r === 'string' ? r : r.name).toLowerCase();
-                        return rName === 'super-admin';
-                    });
+                    const isSuperAdmin = u.roles?.some((r: any) =>
+                        checkIsSuperAdmin(normalizeAuthString(typeof r === 'string' ? r : r.name))
+                    );
 
                     return hasGlobalRole || hasGlobalAccess || isSuperAdmin;
                 });
@@ -235,21 +228,21 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
 
         if (activeTab === 'staff') {
             return data.filter((u: any) => u.roles?.some((r: any) => {
-                const roleName = (typeof r === 'string' ? r : r.name).toLowerCase();
+                const roleName = normalizeAuthString(typeof r === 'string' ? r : r.name);
                 // Filter out super-admin from strictly "staff" tab if viewed in business context
-                if (viewScope === 'business' && roleName === 'super-admin') return false;
-                return ['super-admin', 'admin', 'manager', 'sales-associate', 'support-agent'].includes(roleName) || r.isSystemRole;
+                if (viewScope === 'business' && checkIsSuperAdmin(roleName)) return false;
+                return matchesRole(roleName, [USER_ROLES.SUPER_ADMIN, USER_ROLES.COMPANY_OWNER, USER_ROLES.ADMIN, USER_ROLES.SALES_ASSOCIATE, USER_ROLES.SUPPORT_AGENT]) || r.isSystemRole;
             }));
         }
         if (activeTab === 'customer') {
             return data.filter((u: any) => u.roles?.some((r: any) =>
-                (typeof r === 'string' ? r : r.name).toLowerCase() === 'customer'
+                normalizeAuthString(typeof r === 'string' ? r : r.name) === USER_ROLES.CUSTOMER
             ));
         }
         if (activeTab === 'supplier') {
             return data.filter((u: any) => u.roles?.some((r: any) => {
-                const roleName = (typeof r === 'string' ? r : r.name).toLowerCase();
-                return ['supplier', 'vendor'].includes(roleName);
+                const roleName = normalizeAuthString(typeof r === 'string' ? r : r.name);
+                return matchesRole(roleName, [USER_ROLES.VENDOR, 'supplier']);
             }));
         }
         return data;
@@ -332,7 +325,7 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
                     roles: [data.role],
                     // Send businessUnits ONLY if we have a valid ID. For global users it should be empty.
                     businessUnits: businessUnitId ? [businessUnitId] : [],
-                    status: "active"
+                    status: USER_STATUS.ACTIVE
                 };
                 await createUser(createPayload).unwrap();
                 toast.success("User created successfully");
@@ -517,7 +510,7 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
             header: "Status",
             cell: ({ row }) => {
                 const user = row.original;
-                const isTargetSuperAdmin = user.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
+                const isTargetSuperAdmin = user.roles?.some((r: any) => checkIsSuperAdmin(normalizeAuthString(typeof r === 'string' ? r : r.name)));
 
                 const getStatusVariant = (status: string) => {
                     switch (status) {
@@ -569,7 +562,7 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
             id: "actions",
             header: "Actions",
             cell: ({ row }) => {
-                const isTargetSuperAdmin = row.original.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'super-admin');
+                const isTargetSuperAdmin = row.original.roles?.some((r: any) => checkIsSuperAdmin(normalizeAuthString(typeof r === 'string' ? r : r.name)));
 
                 if (isTargetSuperAdmin) {
                     return <div className="w-8" />; // Empty placeholder
@@ -636,17 +629,17 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
                         />
                         <StatCard
                             title="Active Staff"
-                            value={users.filter((u: any) => u.status === 'active' && u.roles?.some((r: any) => ['super-admin', 'admin', 'manager', 'sales-associate'].includes(typeof r === 'string' ? r : r.name))).length}
+                            value={users.filter((u: any) => u.status === USER_STATUS.ACTIVE && u.roles?.some((r: any) => matchesRole(normalizeAuthString(typeof r === 'string' ? r : r.name), [USER_ROLES.SUPER_ADMIN, USER_ROLES.COMPANY_OWNER, USER_ROLES.ADMIN, USER_ROLES.SALES_ASSOCIATE]))).length}
                             icon={ShieldCheck}
                         />
                         <StatCard
                             title="Active Customers"
-                            value={users.filter((u: any) => u.status === 'active' && u.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'customer')).length}
+                            value={users.filter((u: any) => u.status === USER_STATUS.ACTIVE && u.roles?.some((r: any) => normalizeAuthString(typeof r === 'string' ? r : r.name) === USER_ROLES.CUSTOMER)).length}
                             icon={User}
                         />
                         <StatCard
                             title="New (Pending)"
-                            value={users.filter((u: any) => u.status === 'pending').length}
+                            value={users.filter((u: any) => u.status === USER_STATUS.PENDING).length}
                             icon={CheckCircle}
                         />
                     </div>
@@ -804,7 +797,7 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
                                         <div className="bg-card rounded-md border p-3 space-y-2 text-sm">
                                             <div className="grid grid-cols-[120px_1fr] gap-1">
                                                 <span className="text-muted-foreground">Status:</span>
-                                                <Badge variant={user.status === 'active' ? 'default' : 'secondary'} className="w-fit h-5 text-[10px]">
+                                                <Badge variant={user.status === USER_STATUS.ACTIVE ? 'default' : 'secondary'} className="w-fit h-5 text-[10px]">
                                                     {user.status}
                                                 </Badge>
 

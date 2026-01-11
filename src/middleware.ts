@@ -10,7 +10,8 @@ const publicRoutes = [
   '/about',
   '/contact',
   '/',
-  '/home'
+  '/home',
+  '/auth/setup-password'
 ];
 
 export async function middleware(request: NextRequest) {

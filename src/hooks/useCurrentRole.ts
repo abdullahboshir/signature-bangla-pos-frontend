@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useAuth } from "./useAuth";
+import { normalizeAuthString, USER_ROLES } from "@/config/auth-constants";
 
 interface UseCurrentRoleResult {
   currentRole?: string;
@@ -38,17 +39,22 @@ export function useCurrentRole(): UseCurrentRoleResult {
 
   // Derive user roles from auth data
   const userAny = user as any;
-  const userRoles = 
-    (userAny?.role && Array.isArray(userAny.role)) 
-      ? userAny.role 
-      : Array.isArray(user?.roles) 
-        ? user.roles.map((role: any) => role.name || role.slug || role) 
-        : [];
+  const globalRoles = (userAny?.globalRoles || [])
+    .map((r: any) => normalizeAuthString(typeof r === 'string' ? r : r.slug || r.name))
+    .filter(Boolean);
+    
+  const businessRoles = (userAny?.businessAccess || [])
+    .map((acc: any) => normalizeAuthString(typeof acc.role === 'string' ? acc.role : acc.role?.slug || acc.role?.name))
+    .filter(Boolean);
+  
+  const userRoles = [...new Set([...globalRoles, ...businessRoles])];
 
   // Primary role is the first one (or "super-admin" if present)
-  const currentRole = userRoles.includes('super-admin') 
-    ? 'super-admin' 
-    : userRoles[0];
+  const currentRole = userRoles.includes(USER_ROLES.SUPER_ADMIN) 
+    ? USER_ROLES.SUPER_ADMIN 
+    : userRoles.includes(USER_ROLES.COMPANY_OWNER)
+      ? USER_ROLES.COMPANY_OWNER
+      : userRoles[0];
 
   return {
     currentRole,
@@ -66,4 +72,3 @@ export function useRoleFromParams(): string | undefined {
   const params = useParams();
   return (params.role || params["roles"]) as string | undefined;
 }
-

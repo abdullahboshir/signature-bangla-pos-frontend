@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
-import { DollarSign, ShoppingCart, TrendingUp, Users } from "lucide-react"
+import { DollarSign, Plus, ShoppingCart, TrendingUp, Users } from "lucide-react"
 import { useGetOutletsQuery } from "@/redux/api/organization/outletApi"
 import { useGetBusinessUnitByIdQuery, useGetBusinessUnitDashboardStatsQuery } from "@/redux/api/organization/businessUnitApi"
 import {
@@ -135,6 +135,28 @@ export default function BusinessUnitDashboard({ slug }: BusinessUnitDashboardPro
                         <p className="text-xs text-muted-foreground">+201 since last hour</p>
                     </CardContent>
                 </Card>
+            </div>
+
+            {/* Quick Actions Row */}
+            <div className="bg-card p-6 rounded-xl shadow-sm border border-border">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold flex items-center gap-2">
+                        <Users className="w-5 h-5 text-primary" />
+                        Quick Management
+                    </h2>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <button
+                        onClick={() => window.location.href = `/${slug}/user-management/business-users/add`}
+                        className="flex flex-col items-center justify-center p-4 hover:bg-emerald-50 border border-transparent hover:border-emerald-100 rounded-xl transition-all group"
+                    >
+                        <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                            <Plus className="w-5 h-5" />
+                        </div>
+                        <span className="text-xs font-medium text-emerald-700">Add Staff</span>
+                    </button>
+                    {/* Placeholder for future actions */}
+                </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">

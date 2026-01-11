@@ -19,6 +19,7 @@ import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitA
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit";
 import { DataPageLayout } from "@/components/shared/DataPageLayout";
+import { USER_STATUS, ROLE_SCOPE } from "@/config/auth-constants";
 
 const userFormSchema = z.object({
     firstName: z.string().min(2, "First name is required"),
@@ -55,10 +56,10 @@ export default function AddUserForm({ isPlatformUser = false }: AddUserFormProps
         return rawRolesArray.filter((role: any) => {
             if (isPlatformUser) {
                 // Platform Context: Only Global Roles
-                return role.roleScope === 'GLOBAL';
+                return role.roleScope === ROLE_SCOPE.GLOBAL;
             } else {
                 // Business Context: Only Business/Outlet Roles (Not Global)
-                return role.roleScope !== 'GLOBAL';
+                return role.roleScope !== ROLE_SCOPE.GLOBAL;
             }
         });
     }, [rawRolesArray, isPlatformUser]);
@@ -75,7 +76,7 @@ export default function AddUserForm({ isPlatformUser = false }: AddUserFormProps
             password: "",
             role: "",
             businessUnit: "",
-            status: "active",
+            status: USER_STATUS.ACTIVE,
         },
     });
 
@@ -243,9 +244,10 @@ export default function AddUserForm({ isPlatformUser = false }: AddUserFormProps
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="active">Active</SelectItem>
-                                                    <SelectItem value="inactive">Inactive</SelectItem>
-                                                    <SelectItem value="suspended">Suspended</SelectItem>
+                                                    <SelectItem value={USER_STATUS.ACTIVE}>Active</SelectItem>
+                                                    <SelectItem value={USER_STATUS.INACTIVE}>Inactive</SelectItem>
+                                                    <SelectItem value={USER_STATUS.BLOCKED}>Blocked</SelectItem>
+                                                    <SelectItem value={USER_STATUS.SUSPENDED}>Suspended</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />

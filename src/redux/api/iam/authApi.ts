@@ -51,6 +51,15 @@ const authApi = baseApi.injectEndpoints({
                 return result;
             }
         }),
+        // Setup Password for new Company Owners
+        setupPassword: build.mutation({
+            query: (data: { token: string; password: string }) => ({
+                url: '/auth/setup-password',
+                method: 'POST',
+                contentType: 'application/json',
+                data
+            }),
+        }),
     }),
 });
 
@@ -60,5 +69,6 @@ export const {
     useUserRegisterMutation,
     useLogoutMutation,
     useRefreshTokenMutation,
-    useGetMeQuery
+    useGetMeQuery,
+    useSetupPasswordMutation
 } = authApi;

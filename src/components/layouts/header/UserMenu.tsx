@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/hooks/useAuth"
+import { isSuperAdmin as checkIsSuperAdmin, USER_ROLES } from "@/config/auth-constants"
 
 interface UserData {
   fullName: string
@@ -42,14 +43,11 @@ export function UserMenu({ user }: UserMenuProps) {
   }
 
   const getRoleBadgeVariant = (role: string | string[]) => {
-    const roleStr = Array.isArray(role) ? role[0] : role;
-    switch (roleStr) {
-      case "super-admin": return "destructive"
-      case "business-admin": return "default"
-      case "store-manager": return "secondary"
-      case "cashier": return "outline"
-      default: return "outline"
-    }
+    if (checkIsSuperAdmin(role)) return "destructive";
+    if (role === USER_ROLES.ADMIN || role === "business-admin") return "default";
+    if (role === USER_ROLES.OUTLET_MANAGER || role === "store-manager") return "secondary";
+    if (role === USER_ROLES.CASHIER) return "outline";
+    return "outline";
   }
 
   // Helper to safely get initials
@@ -131,7 +129,7 @@ export function UserMenu({ user }: UserMenuProps) {
           <span>Settings</span>
         </DropdownMenuItem>
 
-        {roleStr === "super-admin" && (
+        {checkIsSuperAdmin(roleStr) && (
           <DropdownMenuItem asChild className="cursor-pointer">
             <Link href="/global">
               <Shield className="mr-2 h-4 w-4" />

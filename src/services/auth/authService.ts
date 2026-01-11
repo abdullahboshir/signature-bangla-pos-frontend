@@ -3,6 +3,7 @@
 
 import { jwtDecode } from "jwt-decode";
 import { authKey } from "@/constant/authKey";
+import { USER_ROLES, matchesRole } from "@/config/auth-constants";
 
 // -----------------------------
 // Interfaces
@@ -58,10 +59,10 @@ export const getRedirectPath = (token: string, user?: any): string => {
         // Handle role as array or string
         const roles = Array.isArray(decoded?.role) ? decoded.role : [decoded?.role];
      
-        if (roles.includes("customer")) return "/";
+        if (matchesRole(roles, USER_ROLES.CUSTOMER)) return "/";
         
         // Super Admin goes to /global (no longer /super-admin after URL refactor)
-        if (roles.includes("super-admin") || decoded?.isSuperAdmin) {
+        if (matchesRole(roles, USER_ROLES.SUPER_ADMIN) || decoded?.isSuperAdmin) {
             return "/global/dashboard"; // Or /global/overview
         }
         

@@ -16,6 +16,7 @@ import {
 import { useRouter, useParams } from "next/navigation"
 import { buildRoutePath } from "@/lib/buildRoutePath"
 import { ROUTE_PATHS } from "@/config/route-paths"
+import { USER_ROLES, matchesRole } from "@/config/auth-constants"
 
 interface QuickActionsWidgetProps {
   role: string
@@ -48,7 +49,7 @@ export function QuickActionsWidget({ role }: QuickActionsWidgetProps) {
       },
     ]
 
-    if (role === "business-admin" || role === "store-manager") {
+    if (matchesRole(role, [USER_ROLES.ADMIN, USER_ROLES.MANAGER, "business-admin", "store-manager"])) {
       return [
         ...baseActions,
         {
@@ -72,7 +73,7 @@ export function QuickActionsWidget({ role }: QuickActionsWidgetProps) {
       ]
     }
 
-    if (role === "cashier") {
+    if (matchesRole(role, USER_ROLES.CASHIER)) {
       return [
         ...baseActions.slice(0, 2),
         {

@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation"
 import { useAuth } from "./useAuth"
+import { isSuperAdmin as checkIsSuperAdmin } from "@/config/auth-constants"
 
 export function useCurrentBusinessUnit() {
   const params = useParams()
@@ -34,11 +35,7 @@ export function useCurrentBusinessUnit() {
   // We use the 'id' field (custom slug) for matching with URL
   const userBusinessUnits = user?.businessUnits || []
   
-  // Check for Super Admin role using the correct property 'roles' (array of objects)
-  // Fallback to 'role' property if 'roles' is missing (handling backend inconsistency)
-  const isSuperAdmin = 
-      (user?.roles && Array.isArray(user.roles) && user.roles.some((r: any) => r.name === "super-admin")) ||
-      (user && (user as any).role && Array.isArray((user as any).role) && (user as any).role.includes("super-admin"));
+  const isSuperAdmin = checkIsSuperAdmin(user?.role) || (user?.globalRoles || []).some((r: any) => checkIsSuperAdmin(typeof r === 'string' ? r : r.id || r.name));
 
   // Check access: does the URL slug match any of the user's assigned business unit IDs?
   // Check id, slug, name, or _id

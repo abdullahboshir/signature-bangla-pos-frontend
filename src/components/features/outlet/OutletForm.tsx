@@ -1,19 +1,95 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Loader2, Store, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import Swal from "sweetalert2";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
+
 import { useCreateOutletMutation, useUpdateOutletMutation } from "@/redux/api/organization/outletApi";
 import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi";
 import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit";
+import { MODULES } from "@/constant/modules";
+
+// Shared Components
+import InputField from "@/components/forms/InputField";
+import { BrandingFields } from "@/components/forms/organization/BrandingFields";
+import { ContactFields } from "@/components/forms/organization/ContactFields";
+import { LocationFields } from "@/components/forms/organization/LocationFields";
+import { ModuleFields } from "@/components/forms/organization/ModuleFields";
+import { ManagerFields } from "@/components/forms/organization/ManagerFields";
+
+const formSchema = z.object({
+    name: z.string().min(2, "Name is required"),
+    code: z.string().min(2, "Code is required"),
+    businessUnitId: z.string().min(1, "Business Unit is required"),
+    isActive: z.boolean().default(true),
+
+    // Branding
+    branding: z.object({
+        name: z.string().min(1, "Branding name is required"),
+        description: z.string().optional(),
+        tagline: z.string().optional(),
+        logoUrl: z.string().optional(),
+        bannerUrl: z.string().optional(),
+        faviconUrl: z.string().optional(),
+        theme: z.object({
+            primaryColor: z.string().default("#3B82F6"),
+            secondaryColor: z.string().default("#1E40AF"),
+            accentColor: z.string().default("#F59E0B"),
+            fontFamily: z.string().default("Inter"),
+        }),
+    }),
+
+    // Contact
+    contact: z.object({
+        email: z.string().email("Invalid email address"),
+        phone: z.string().optional(),
+        website: z.string().optional().or(z.literal("")),
+        supportPhone: z.string().optional(),
+        socialMedia: z.object({
+            facebook: z.string().optional(),
+            instagram: z.string().optional(),
+            twitter: z.string().optional(),
+            youtube: z.string().optional(),
+            linkedin: z.string().optional(),
+        }),
+    }),
+
+    // Location
+    location: z.object({
+        address: z.string().min(5, "Address must be at least 5 characters"),
+        city: z.string().min(1, "City is required"),
+        state: z.string().optional(),
+        postalCode: z.string().min(1, "Postal code is required"),
+        country: z.string().default("Bangladesh"),
+        timezone: z.string().default("Asia/Dhaka"),
+        coordinates: z.object({
+            lat: z.string().optional(),
+            lng: z.string().optional(),
+        }).optional(),
+    }),
+
+    // Manager
+    manager: z.object({
+        name: z.string().optional(),
+        phone: z.string().optional(),
+        email: z.string().optional(),
+    }),
+
+    // Modules
+    activeModules: z.record(z.string(), z.boolean()).default({}),
+});
+
+type FormValues = z.infer<typeof formSchema>;
 
 interface OutletFormProps {
     preSelectedSlug?: string;
@@ -23,305 +99,244 @@ interface OutletFormProps {
 
 export function OutletForm({ preSelectedSlug, initialData, isEditMode = false }: OutletFormProps) {
     const router = useRouter();
-
-    // API
+    const searchParams = useSearchParams();
+    const companyId = searchParams.get("company");
     const [createOutlet, { isLoading: isCreating }] = useCreateOutletMutation();
     const [updateOutlet, { isLoading: isUpdating }] = useUpdateOutletMutation();
-    const { data: businessUnitsData, isLoading: isLoadingBUs } = useGetBusinessUnitsQuery(undefined);
+    const { data: businessUnitsData, isLoading: loadingBU } = useGetBusinessUnitsQuery(undefined);
+    const { currentBusinessUnit } = useCurrentBusinessUnit();
 
-    // Handle BU data safely
     const businessUnits = Array.isArray(businessUnitsData) ? businessUnitsData :
         ((businessUnitsData as any)?.data || businessUnitsData || []);
 
-    // Form state - Initialize with initialData if available
-    const [name, setName] = useState(initialData?.name || "");
-    const [code, setCode] = useState(initialData?.code || "");
-    const [phone, setPhone] = useState(initialData?.phone || "");
-    const [email, setEmail] = useState(initialData?.email || "");
-    const [address, setAddress] = useState(initialData?.address || "");
-    const [city, setCity] = useState(initialData?.city || "");
-    const [country, setCountry] = useState(initialData?.country || "Bangladesh");
+    const isObjectId = (val: string) => /^[0-9a-fA-F]{24}$/.test(val || "");
 
-    // For BU ID: 
-    // If Editing, use initialData.businessUnit 
-    // (Ensure to handle if it's an object { id, name } or string ID)
-    const initialBuId = initialData?.businessUnit
-        ? (typeof initialData.businessUnit === 'object' ? (initialData.businessUnit._id || initialData.businessUnit.id) : initialData.businessUnit)
-        : "";
+    const form = useForm<FormValues>({
+        resolver: zodResolver(formSchema) as any,
+        defaultValues: {
+            name: initialData?.branding?.name || initialData?.name || "",
+            code: initialData?.code || "",
+            businessUnitId: initialData?.businessUnit?._id?.toString() ||
+                initialData?.businessUnit?.toString() ||
+                (preSelectedSlug && isObjectId(preSelectedSlug) ? preSelectedSlug : ""),
+            isActive: initialData?.isActive ?? true,
+            branding: {
+                name: initialData?.branding?.name || initialData?.name || "",
+                description: initialData?.branding?.description || "",
+                tagline: initialData?.branding?.tagline || "",
+                logoUrl: initialData?.branding?.logoUrl || "",
+                bannerUrl: initialData?.branding?.bannerUrl || "",
+                faviconUrl: initialData?.branding?.faviconUrl || "",
+                theme: initialData?.branding?.theme || { primaryColor: "#3B82F6", secondaryColor: "#1E40AF", accentColor: "#F59E0B", fontFamily: "Inter" },
+            },
+            contact: {
+                email: initialData?.contact?.email || initialData?.email || "",
+                phone: initialData?.contact?.phone || initialData?.phone || "",
+                website: initialData?.contact?.website || "",
+                supportPhone: initialData?.contact?.supportPhone || "",
+                socialMedia: initialData?.contact?.socialMedia || {},
+            },
+            location: {
+                address: initialData?.location?.address || initialData?.address || "",
+                city: initialData?.location?.city || initialData?.city || "Dhaka",
+                state: initialData?.location?.state || "Dhaka",
+                postalCode: initialData?.location?.postalCode || "",
+                country: initialData?.location?.country || "Bangladesh",
+                timezone: initialData?.location?.timezone || "Asia/Dhaka",
+                coordinates: {
+                    lat: initialData?.location?.coordinates?.lat?.toString() || "",
+                    lng: initialData?.location?.coordinates?.lng?.toString() || "",
+                },
+            },
+            manager: initialData?.manager || { name: "", phone: "", email: "" },
+            activeModules: initialData?.activeModules || { [MODULES.POS]: true, [MODULES.ERP]: true },
+        },
+    });
 
-    const [businessUnitId, setBusinessUnitId] = useState(initialBuId || "");
-    const [isActive, setIsActive] = useState(initialData !== undefined ? initialData.isActive : true);
-
-    const { currentBusinessUnit } = useCurrentBusinessUnit();
-
-    // Initial Load Logic for Scoped Context
     useEffect(() => {
-        if (preSelectedSlug) {
-            const slugLower = preSelectedSlug.toLowerCase();
+        if (!preSelectedSlug) return;
 
-            // Priority 1: Use Context if available and matches slug (Case Insensitive)
-            if (currentBusinessUnit) {
-                const currentSlug = (currentBusinessUnit.slug || "").toLowerCase();
-                // Check matching slug or direct ID key
-                if (currentSlug === slugLower || currentBusinessUnit.id === preSelectedSlug || currentBusinessUnit._id === preSelectedSlug) {
-                    setBusinessUnitId(currentBusinessUnit.id || currentBusinessUnit._id);
-                    return;
-                }
-            }
+        const currentVal = form.getValues("businessUnitId");
 
-            // Priority 2: Use List if loaded
-            if (businessUnits.length > 0) {
-                const matchedBU = businessUnits.find((bu: any) =>
-                    (bu.slug && bu.slug.toLowerCase() === slugLower) ||
-                    bu.id === preSelectedSlug ||
-                    bu._id === preSelectedSlug
-                );
-                if (matchedBU) {
-                    setBusinessUnitId(matchedBU.id || matchedBU._id);
-                    return;
-                }
-            }
-
-            // Priority 3: Fallback to slug if nothing else found
-            // Logic: If state is empty OR state matches the slug (re-enforcing)
-            // But we must be careful not to overwrite a valid ID with a slug if we re-run
-            // Simple check: If we are here, we didn't match ID above.
-            setBusinessUnitId(preSelectedSlug);
-        }
-    }, [preSelectedSlug, businessUnits, currentBusinessUnit]);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        // If scoped, we might rely on preSelectedSlug logic if state isn't set yet? 
-        // Better to enforce selection state.
-        const finalBU = businessUnitId || preSelectedSlug; // Absolute fallback for submission
-
-        if (!finalBU && !isEditMode) {
-            console.log("Validation Failed: FinalBU is empty", { businessUnitId, preSelectedSlug });
-            Swal.fire("Error", "Please select a Business Unit", "error");
+        // If preSelectedSlug is an ID and we don't have a value yet, set it immediately
+        if (isObjectId(preSelectedSlug) && !currentVal) {
+            form.setValue("businessUnitId", preSelectedSlug, { shouldValidate: true });
             return;
         }
 
+        // If it's a slug, we need to find the matching BU
+        if (!currentVal || !isObjectId(currentVal)) {
+            const slugLower = preSelectedSlug.toLowerCase();
+
+            // 1. Try to find in the list of all business units (handles Super Admin view)
+            const matchedBU = businessUnits.find((bu: any) =>
+                (bu.slug && bu.slug.toLowerCase() === slugLower) ||
+                (bu.id && bu.id === preSelectedSlug) ||
+                (bu._id && bu._id.toString() === preSelectedSlug)
+            );
+
+            if (matchedBU) {
+                form.setValue("businessUnitId", matchedBU._id?.toString() || matchedBU.id, { shouldValidate: true });
+            } else if (currentBusinessUnit) {
+                // 2. Fallback to current context (handles scoped view for Business Admins)
+                const isMatch =
+                    (currentBusinessUnit.slug || "").toLowerCase() === slugLower ||
+                    currentBusinessUnit.id === preSelectedSlug ||
+                    currentBusinessUnit._id?.toString() === preSelectedSlug;
+
+                if (isMatch) {
+                    form.setValue("businessUnitId", currentBusinessUnit._id?.toString() || currentBusinessUnit.id, { shouldValidate: true });
+                }
+            }
+        }
+    }, [preSelectedSlug, businessUnits, currentBusinessUnit, form]);
+
+    const watchName = form.watch("name");
+    useEffect(() => {
+        if (watchName && !form.formState.dirtyFields.branding?.name) {
+            form.setValue("branding.name", watchName);
+        }
+    }, [watchName, form]);
+
+    const onSubmit = async (values: FormValues) => {
         try {
             const payload = {
-                name,
-                code: code.toUpperCase(),
-                phone,
-                email,
-                address,
-                city,
-                country,
-                businessUnit: finalBU, // This can be ID or Slug
-                isActive
+                ...values,
+                code: values.code.toUpperCase(),
+                businessUnit: values.businessUnitId,
+                location: {
+                    ...values.location,
+                    coordinates: values.location.coordinates?.lat && values.location.coordinates?.lng
+                        ? { lat: Number(values.location.coordinates.lat), lng: Number(values.location.coordinates.lng) }
+                        : undefined
+                }
             };
 
-            let res: any;
-
             if (isEditMode && initialData?._id) {
-                // Update Logic
-                res = await updateOutlet({ id: initialData._id, body: payload }).unwrap();
+                await updateOutlet({ id: initialData._id, body: payload }).unwrap();
+                toast.success("Outlet updated successfully!");
             } else {
-                // Create Logic
-                res = await createOutlet(payload).unwrap();
+                await createOutlet(payload).unwrap();
+                toast.success("Outlet created successfully!");
             }
 
-            if (res) {
-                Swal.fire({
-                    icon: "success",
-                    title: "Success",
-                    text: isEditMode ? "Outlet updated successfully!" : "Outlet created successfully!",
-                    timer: 1500,
-                    showConfirmButton: false,
-                });
-                router.back();
-            }
+            // Redirect to All Outlets page with context
+            const redirectBase = preSelectedSlug ? `/${preSelectedSlug}/outlets` : "/global/outlets";
+            const redirectUrl = companyId ? `${redirectBase}?company=${companyId}` : redirectBase;
+            router.push(redirectUrl);
         } catch (error: any) {
-            console.error(isEditMode ? "Update error:" : "Creation error:", error);
-            Swal.fire({
-                icon: "error",
-                title: "Failed",
-                text: error?.message || error?.data?.message || JSON.stringify(error?.data) || (isEditMode ? "Could not update outlet." : "Could not create outlet.")
-            });
+            toast.error(error?.data?.message || "Operation failed");
         }
     };
 
+    if (isEditMode && loadingBU) return <div className="flex items-center justify-center min-h-[400px]"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+
     return (
-        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <div className="flex items-center space-x-4">
-                <Button variant="ghost" size="icon" onClick={() => router.back()}>
-                    <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight">{isEditMode ? "Edit Outlet" : "Add New Outlet"}</h2>
-                    <p className="text-muted-foreground">
-                        {isEditMode ? "Update outlet details." : "Create a physical store location."}
-                    </p>
-                </div>
-            </div>
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <Tabs defaultValue="basic" className="w-full space-y-4">
+                    <TabsList className="grid w-full grid-cols-5 bg-muted/50 p-1">
+                        <TabsTrigger value="basic">Identity</TabsTrigger>
+                        <TabsTrigger value="branding">Branding</TabsTrigger>
+                        <TabsTrigger value="contact">Contact</TabsTrigger>
+                        <TabsTrigger value="location">Location</TabsTrigger>
+                        <TabsTrigger value="modules">Modules</TabsTrigger>
+                    </TabsList>
 
-            <div className="grid gap-4 max-w-2xl mt-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Outlet Details</CardTitle>
-                        <CardDescription>Enter information for the new physical outlet.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleSubmit} className="space-y-4">
+                    <TabsContent value="basic">
 
-                            {/* Business Unit Selector - Locked if scoped */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="bu">Business Unit</Label>
-                                <Select
-                                    value={businessUnitId}
-                                    onValueChange={setBusinessUnitId}
-                                    disabled={!!preSelectedSlug} // Always disable if in scoped mode
-                                    required
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select Business Unit" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {isLoadingBUs && businessUnits.length === 0 ? (
-                                            <div className="p-2 text-sm text-center">Loading...</div>
-                                        ) : (
-                                            // Merge list with currentBU if needed, AND add fallback slug option if currently selected is just a slug
-                                            (() => {
-                                                const uniqueBUs = [...businessUnits];
-
-                                                // Add Current BU if missing
-                                                if (currentBusinessUnit && !uniqueBUs.find(b => (b.id || b._id) === (currentBusinessUnit.id || currentBusinessUnit._id))) {
-                                                    uniqueBUs.push(currentBusinessUnit);
-                                                }
-
-                                                const options = uniqueBUs.map((bu: any) => (
-                                                    <SelectItem key={bu.id || bu._id} value={bu.id || bu._id}>
-                                                        {bu.name}
-                                                    </SelectItem>
-                                                ));
-
-                                                // Critical Fallback: If selected value is the slug (no ID match), render it as an option so Select displays it
-                                                if (preSelectedSlug && businessUnitId === preSelectedSlug) {
-                                                    // Check if an ID option already exists that resolves this? No, if we are here, we are using slug value
-                                                    options.push(
-                                                        <SelectItem key="fallback-slug" value={preSelectedSlug}>
-                                                            {/* Try to display a nice name if we can match it loosely, else slug */}
-                                                            {currentBusinessUnit?.slug === preSelectedSlug ? currentBusinessUnit.name : (preSelectedSlug.charAt(0).toUpperCase() + preSelectedSlug.slice(1))}
-                                                        </SelectItem>
-                                                    );
-                                                }
-
-                                                return options;
-                                            })()
-
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><Store className="h-5 w-5" /> Core Identity</CardTitle>
+                                <CardDescription>Define the operational structure and identity.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <FormField
+                                        control={form.control}
+                                        name="businessUnitId"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Parent Business Unit</FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value} disabled={!!preSelectedSlug}>
+                                                    <FormControl>
+                                                        <SelectTrigger><SelectValue placeholder="Select Business Unit" /></SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {(() => {
+                                                            const seen = new Set();
+                                                            const unique = [];
+                                                            const rawList = [...businessUnits];
+                                                            if (currentBusinessUnit) rawList.push(currentBusinessUnit);
+                                                            for (const bu of rawList) {
+                                                                const id = bu._id?.toString() || bu.id;
+                                                                if (id && !seen.has(id)) {
+                                                                    seen.add(id);
+                                                                    unique.push(bu);
+                                                                }
+                                                            }
+                                                            return unique.map((bu: any) => {
+                                                                const val = bu._id?.toString() || bu.id;
+                                                                return (
+                                                                    <SelectItem key={val} value={val}>{bu.name}</SelectItem>
+                                                                );
+                                                            });
+                                                        })()}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
                                         )}
-                                    </SelectContent>
-                                </Select>
-                                {preSelectedSlug && (
-                                    <p className="text-xs text-muted-foreground">
-                                        * Business Unit is locked to the current dashboard context.
-                                    </p>
-                                )}
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="name">Outlet Name</Label>
-                                    <Input
-                                        id="name"
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        placeholder="e.g. Dhanmondi Branch"
-                                        required
                                     />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="code">Outlet Code (Optional)</Label>
-                                    <Input
-                                        id="code"
-                                        value={code}
-                                        onChange={(e) => setCode(e.target.value)}
-                                        placeholder="e.g. DHM-01 (Auto-generated if empty)"
-                                    />
-                                </div>
-                            </div>
+                                    <InputField name="name" label="Outlet Name" placeholder="e.g. Dhanmondi Branch" required />
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="phone">Phone</Label>
-                                    <Input
-                                        id="phone"
-                                        value={phone}
-                                        onChange={(e) => setPhone(e.target.value)}
-                                        placeholder="Contact number"
-                                        required
-                                    />
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <InputField name="code" label="Outlet Code" placeholder="e.g. DHM-01" required />
+                                        <FormField
+                                            control={form.control}
+                                            name="isActive"
+                                            render={({ field }) => (
+                                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm mt-auto h-[40px]">
+                                                    <FormLabel className="text-sm font-medium">Active Status</FormLabel>
+                                                    <FormControl>
+                                                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="email">Email (Optional)</Label>
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        placeholder="branch@example.com"
-                                    />
-                                </div>
-                            </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="address">Address</Label>
-                                <Textarea
-                                    id="address"
-                                    value={address}
-                                    onChange={(e) => setAddress(e.target.value)}
-                                    placeholder="Full address"
-                                    required
-                                />
-                            </div>
+                                <ManagerFields prefix="manager" />
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="city">City</Label>
-                                    <Input
-                                        id="city"
-                                        value={city}
-                                        onChange={(e) => setCity(e.target.value)}
-                                        placeholder="City"
-                                        required
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="country">Country</Label>
-                                    <Input
-                                        id="country"
-                                        value={country}
-                                        onChange={(e) => setCountry(e.target.value)}
-                                        placeholder="Country"
-                                    />
-                                </div>
-                            </div>
+                    <TabsContent value="branding">
+                        <BrandingFields prefix="branding" />
+                    </TabsContent>
 
-                            <div className="flex items-center space-x-2 pt-2">
-                                <Switch
-                                    id="active"
-                                    checked={isActive}
-                                    onCheckedChange={setIsActive}
-                                />
-                                <Label htmlFor="active">Active Status</Label>
-                            </div>
+                    <TabsContent value="contact">
+                        <ContactFields prefix="contact" />
+                    </TabsContent>
 
-                            <div className="flex justify-end gap-2 pt-4">
-                                <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
-                                <Button type="submit" disabled={isCreating || isUpdating}>
-                                    {isCreating || isUpdating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {isEditMode ? "Updating..." : "Creating..."}</> : (isEditMode ? "Save Changes" : "Create Outlet")}
-                                </Button>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
-            </div>
-        </div>
+                    <TabsContent value="location">
+                        <LocationFields prefix="location" />
+                    </TabsContent>
+
+                    <TabsContent value="modules">
+                        <ModuleFields prefix="activeModules" />
+                    </TabsContent>
+                </Tabs>
+
+                <div className="flex justify-end gap-3">
+                    <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
+                    <Button type="submit" disabled={isCreating || isUpdating} className="min-w-[150px]">
+                        {isCreating || isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        {isEditMode ? "Save Changes" : "Create Outlet"}
+                    </Button>
+                </div>
+            </form>
+        </Form>
     );
 }
-

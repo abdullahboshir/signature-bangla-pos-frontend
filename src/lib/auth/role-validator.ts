@@ -1,7 +1,8 @@
 // lib/auth/role-validator.ts
 "use client"
 
-import { getRoutePermission, type PermissionRequirement } from "./route-permissions"
+import { getRoutePermission } from "./route-permissions"
+import { isSuperAdmin } from "@/config/auth-constants"
 
 /**
  * Check if user has access to a specific route based on their permissions
@@ -20,7 +21,7 @@ export async function hasRouteAccess(
     console.log("userPermissions:", userPermissions);
 
     // Super admin always has access to everything
-    if (userRole === 'super-admin') {
+    if (isSuperAdmin(userRole)) {
       console.log("✅ Super admin - full access granted");
       return true;
     }
@@ -35,20 +36,12 @@ export async function hasRouteAccess(
     const pathSegments = pathname.split("/").filter(Boolean);
     let relativePath = "/";
     
-    // Expected URL structure: /[role]/[businessUnit]/[feature]/...
-    // Examples:
-    // - /admin/library/products → relativePath = /products
-    // - /admin/library/overview → relativePath = /overview
-    // - /admin/library → relativePath = /
     if (pathSegments.length > 2) {
       relativePath = "/" + pathSegments.slice(2).join("/");
     }
 
     console.log("relativePath:", relativePath);
 
-    // 🟢 UX FIX: Allow Dashboard Access to ALL logged-in users
-    // The Dashboard page will load, but specific widgets (Charts/Stats) 
-    // will be blocked by Backend API if user lacks permission.
     if (relativePath === "/" || relativePath === "/overview") {
       console.log("✅ Dashboard Access Allowed (Universal)");
       return true;
@@ -59,34 +52,24 @@ export async function hasRouteAccess(
     
     console.log("requiredPermission:", requiredPermission);
 
-    // If route not in mapping, deny by default (secure by default)
     if (!requiredPermission) {
       console.warn(`⚠️ No permission mapping found for route: ${relativePath}`);
-      console.log("Available routes should be added to route-permissions.ts");
       return false;
     }
 
-    // Check if user has the required permission
-    // Backend permissions format: { resource: "product", action: "view", ... }
     const hasPermission = userPermissions.some(perm => {
       if (!perm) return false;
-      // Backend uses 'resource' but we might have previously used 'source' or valid backend data
       const permResource = perm.resource || perm.source;
-      
-      // Case-insensitive check
       const permResourceLower = (permResource || "").toLowerCase();
       const reqResourceLower = (requiredPermission.resource || "").toLowerCase();
-      
       const permActionLower = (perm.action || "").toLowerCase();
       const reqActionLower = (requiredPermission.action || "").toLowerCase();
       
       const resourceMatch = permResourceLower === reqResourceLower;
       const actionMatch = permActionLower === reqActionLower;
-      
       const hasWildcard = permActionLower === "*"; 
       const hasResourceWildcard = permResourceLower === "*"; 
       
-      // Checking for exact match or wildcards
       return (resourceMatch || hasResourceWildcard) && (actionMatch || hasWildcard);
     });
 
@@ -107,10 +90,7 @@ export function hasPermission(
   permission: string,
   userPermissions?: string[]
 ): boolean {
-  if (!userPermissions) {
-    return false
-  }
-
+  if (!userPermissions) return false;
   return userPermissions.includes(permission) || userPermissions.includes("*")
 }
 
@@ -121,10 +101,7 @@ export function hasAnyPermission(
   permissions: string[],
   userPermissions?: string[]
 ): boolean {
-  if (!userPermissions) {
-    return false
-  }
-
+  if (!userPermissions) return false;
   return permissions.some((permission) => 
     userPermissions.includes(permission) || userPermissions.includes("*")
   )
@@ -137,10 +114,7 @@ export function hasAllPermissions(
   permissions: string[],
   userPermissions?: string[]
 ): boolean {
-  if (!userPermissions) {
-    return false
-  }
-
+  if (!userPermissions) return false;
   return permissions.every((permission) => 
     userPermissions.includes(permission) || userPermissions.includes("*")
   )

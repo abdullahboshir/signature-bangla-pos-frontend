@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/utils"
 import { useGetProductsQuery } from "@/redux/api/catalog/productApi"
 import { useCurrentRole } from "@/hooks/useCurrentRole";
+import { USER_ROLES, isSuperAdmin } from "@/config/auth-constants"
 
 interface CommandPaletteProps {
     open: boolean
@@ -34,7 +35,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     const pathname = usePathname()
     const [search, setSearch] = useState("")
     const [selectedIndex, setSelectedIndex] = useState(0)
-    const [isMounted, setIsMounted] = useState(false);
     const { currentRole } = useCurrentRole();
 
     // Extract role and businessUnit from params OR pathname
@@ -44,14 +44,11 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     // Fallback: Extract from pathname if params are undefined
     if (!role || !businessUnit) {
         const pathParts = pathname.split('/')
-        // Path format: /[role]/[business-unit]/...
         if (pathParts.length >= 3) {
             role = role || pathParts[1]
             businessUnit = businessUnit || pathParts[2]
         }
     }
-
-    // Debug logging
 
     // Fetch products for search
     const { data: productsData } = useGetProductsQuery(
@@ -66,102 +63,32 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         const routes: any[] = []
 
         // Check if we're in super-admin context (no business unit)
-        const isSuperAdminContext = role === 'super-admin' && !businessUnit
-        console.log('CommandPaletteeeeeeeeeeeeeeeeeee - role:', role, 'businessUnit:', businessUnit, 'pathname:', pathname, isSuperAdminContext)
+        const isSuperAdminContext = isSuperAdmin(role) && !businessUnit
 
         if (isSuperAdminContext) {
             // Super Admin Routes - Global Access
             routes.push(
-                {
-                    title: "Super Admin Dashboard",
-                    icon: Hash,
-                    path: `/global`,
-                    description: "Main dashboard"
-                },
-                {
-                    title: "All Business Units",
-                    icon: Package,
-                    path: `/global/business-units`,
-                    description: "Manage all business units"
-                },
-                {
-                    title: "All Outlets",
-                    icon: Package,
-                    path: `/global/outlets`,
-                    description: "View all outlets across units"
-                },
-                {
-                    title: "All Products",
-                    icon: Package,
-                    path: `/global/products`, // Verify if this global route exists or needs adjustment
-                    description: "Global product catalog"
-                },
-                {
-                    title: "User Management",
-                    icon: Users,
-                    path: `/global/user-management`,
-                    description: "Manage system users"
-                },
-                {
-                    title: "Roles & Permissions",
-                    icon: Shield,
-                    path: `/global/user-management/roles-permissions`,
-                    description: "Configure access control"
-                }
+                { title: "Super Admin Dashboard", icon: Hash, path: `/global`, description: "Main dashboard" },
+                { title: "All Business Units", icon: Package, path: `/global/business-units`, description: "Manage all business units" },
+                { title: "All Outlets", icon: Package, path: `/global/outlets`, description: "View all outlets across units" },
+                { title: "All Products", icon: Package, path: `/global/products`, description: "Global product catalog" },
+                { title: "User Management", icon: Users, path: `/global/user-management`, description: "Manage system users" },
+                { title: "Roles & Permissions", icon: Shield, path: `/global/user-management/roles-permissions`, description: "Configure access control" }
             )
         } else if (businessUnit) {
             // Business Unit Scoped Routes
             routes.push(
-                {
-                    title: "Dashboard",
-                    icon: Hash,
-                    path: `/${businessUnit}/overview`,
-                    description: "Go to main dashboard"
-                },
-                {
-                    title: "All Products",
-                    icon: Package,
-                    path: `/${businessUnit}/catalog/product`,
-                    description: "Manage products"
-                },
-                {
-                    title: "Create Product",
-                    icon: Package,
-                    path: `/${businessUnit}/catalog/product/new`,
-                    description: "Add new product"
-                },
-                {
-                    title: "Orders",
-                    icon: ShoppingCart,
-                    path: `/${businessUnit}/sales`,
-                    description: "View all orders"
-                },
-                {
-                    title: "Customers",
-                    icon: Users,
-                    path: `/${businessUnit}/customers`,
-                    description: "Manage customers"
-                },
-                {
-                    title: "Sales",
-                    icon: FileText,
-                    path: `/${businessUnit}/sales`,
-                    description: "View sales reports"
-                }
+                { title: "Dashboard", icon: Hash, path: `/${businessUnit}/overview`, description: "Go to main dashboard" },
+                { title: "All Products", icon: Package, path: `/${businessUnit}/catalog/product`, description: "Manage products" },
+                { title: "Create Product", icon: Package, path: `/${businessUnit}/catalog/product/new`, description: "Add new product" },
+                { title: "Orders", icon: ShoppingCart, path: `/${businessUnit}/sales`, description: "View all orders" },
+                { title: "Customers", icon: Users, path: `/${businessUnit}/customers`, description: "Manage customers" },
+                { title: "Sales", icon: FileText, path: `/${businessUnit}/sales`, description: "View sales reports" }
             )
         } else {
             // Fallback: Show general navigation
-            routes.push(
-                {
-                    title: "Dashboard",
-                    icon: Hash,
-                    path: pathname || '/',
-                    description: "Current page"
-                }
-            )
+            routes.push({ title: "Dashboard", icon: Hash, path: pathname || '/', description: "Current page" })
         }
-
-        console.log('QuickRoutes items count:', routes.length, 'isSuperAdmin:', isSuperAdminContext)
 
         return [{
             category: isSuperAdminContext ? "Global Navigation" : "Quick Access",
@@ -169,16 +96,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         }]
     }, [role, businessUnit, pathname])
 
-    // Handle search input - detect barcode/SKU patterns
-    const handleSearchChange = (value: string) => {
-        setSearch(value)
-
-        // Check if input looks like a barcode/SKU (alphanumeric, dashes, no spaces)
-        const barcodePattern = /^[A-Z0-9-]+$/i
-        if (value.length >= 3 && barcodePattern.test(value)) {
-            // Could be a barcode - search will happen automatically
-        }
-    }
+    // Handle search input
+    const handleSearchChange = (value: string) => setSearch(value)
 
     // Combine all search results
     const searchResults = useMemo(() => {
@@ -190,19 +109,9 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 route.title.toLowerCase().includes(search.toLowerCase()) ||
                 route.description.toLowerCase().includes(search.toLowerCase())
             )
-
-            if (matchingRoutes.length > 0) {
-                results.push({
-                    category: "Pages",
-                    items: matchingRoutes
-                })
-            }
+            if (matchingRoutes.length > 0) results.push({ category: "Pages", items: matchingRoutes })
         } else {
-            // Show quick routes when no search - always push even if items is empty
-            // This ensures the category shows up
-            if (quickRoutes[0].items.length > 0) {
-                results.push(quickRoutes[0])
-            }
+            if (quickRoutes[0].items.length > 0) results.push(quickRoutes[0])
         }
 
         // Add products
@@ -223,15 +132,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     }, [search, products, quickRoutes, role, businessUnit])
 
     // Flatten results for keyboard navigation
-    const flatResults = useMemo(() => {
-        return searchResults.flatMap(group => group.items)
-    }, [searchResults])
+    const flatResults = useMemo(() => searchResults.flatMap(group => group.items), [searchResults])
 
     // Handle keyboard navigation
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (!open) return
-
             if (e.key === "ArrowDown") {
                 e.preventDefault()
                 setSelectedIndex(prev => (prev + 1) % flatResults.length)
@@ -248,7 +154,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 }
             }
         }
-
         window.addEventListener("keydown", handleKeyDown)
         return () => window.removeEventListener("keydown", handleKeyDown)
     }, [open, selectedIndex, flatResults, router, onOpenChange])
@@ -270,10 +175,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden" showCloseButton={false}>
-                <VisuallyHidden>
-                    <DialogTitle>Search</DialogTitle>
-                </VisuallyHidden>
-                {/* Search Input */}
+                <VisuallyHidden><DialogTitle>Search</DialogTitle></VisuallyHidden>
                 <div className="flex items-center border-b px-4 py-3">
                     <Search className="h-5 w-5 text-muted-foreground shrink-0" />
                     <Input
@@ -283,59 +185,33 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                         className="flex-1 mx-3 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-base"
                         autoFocus
                     />
-                    <kbd className="hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground shrink-0">
-                        ESC
-                    </kbd>
+                    <kbd className="hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground shrink-0">ESC</kbd>
                 </div>
 
-                {/* Results */}
                 <div className="max-h-[400px] overflow-y-auto p-2">
                     {searchResults.length === 0 ? (
-                        <div className="py-12 text-center text-sm text-muted-foreground">
-                            No results found
-                        </div>
+                        <div className="py-12 text-center text-sm text-muted-foreground">No results found</div>
                     ) : (
                         searchResults.map((group, groupIndex) => (
                             <div key={groupIndex} className="mb-4 last:mb-0">
-                                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                                    {group.category}
-                                </div>
+                                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">{group.category}</div>
                                 {group.items.map((item: any, itemIndex: number) => {
-                                    const flatIndex = searchResults
-                                        .slice(0, groupIndex)
-                                        .reduce((acc, g) => acc + g.items.length, 0) + itemIndex
-
+                                    const flatIndex = searchResults.slice(0, groupIndex).reduce((acc, g) => acc + g.items.length, 0) + itemIndex
                                     return (
                                         <button
                                             key={itemIndex}
                                             onClick={() => handleClick(item.path)}
-                                            className={cn(
-                                                "w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors",
-                                                "hover:bg-accent",
-                                                flatIndex === selectedIndex && "bg-accent"
-                                            )}
+                                            className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors", "hover:bg-accent", flatIndex === selectedIndex && "bg-accent")}
                                         >
                                             {item.image ? (
-                                                <img
-                                                    src={item.image}
-                                                    alt={item.title}
-                                                    className="h-10 w-10 object-cover rounded border"
-                                                />
+                                                <img src={item.image} alt={item.title} className="h-10 w-10 object-cover rounded border" />
                                             ) : (
-                                                <div className="h-10 w-10 flex items-center justify-center rounded bg-muted">
-                                                    <item.icon className="h-5 w-5 text-muted-foreground" />
-                                                </div>
+                                                <div className="h-10 w-10 flex items-center justify-center rounded bg-muted"><item.icon className="h-5 w-5 text-muted-foreground" /></div>
                                             )}
-
                                             <div className="flex-1 text-left overflow-hidden">
                                                 <div className="font-medium truncate">{item.title}</div>
-                                                {item.description && (
-                                                    <div className="text-xs text-muted-foreground truncate">
-                                                        {item.description}
-                                                    </div>
-                                                )}
+                                                {item.description && <div className="text-xs text-muted-foreground truncate">{item.description}</div>}
                                             </div>
-
                                             <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
                                         </button>
                                     )
@@ -345,24 +221,14 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                     )}
                 </div>
 
-                {/* Footer */}
                 <div className="border-t px-4 py-2 flex items-center justify-between text-xs text-muted-foreground">
                     <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-1">
-                            <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">↑↓</kbd>
-                            <span>Navigate</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">Enter</kbd>
-                            <span>Select</span>
-                        </div>
+                        <div className="flex items-center gap-1"><kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">↑↓</kbd><span>Navigate</span></div>
+                        <div className="flex items-center gap-1"><kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">Enter</kbd><span>Select</span></div>
                     </div>
-                    <div className="text-[10px]">
-                        Press <kbd className="px-1 bg-muted rounded">Ctrl+K</kbd> to open
-                    </div>
+                    <div className="text-[10px]">Press <kbd className="px-1 bg-muted rounded">Ctrl+K</kbd> to open</div>
                 </div>
             </DialogContent>
         </Dialog>
     )
 }
-

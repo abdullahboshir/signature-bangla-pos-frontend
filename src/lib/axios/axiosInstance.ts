@@ -30,18 +30,19 @@ axiosInstance.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
-  // Context-Aware Header Injection
-  if (typeof window !== "undefined") {
-    const isAuthRoute = config.url?.includes("/auth/") || config.url?.includes("/login") || config.url?.includes("/register");
+    // Context-Aware Header Injection
     const businessUnitId = localStorage.getItem("active-business-unit");
     const outletId = localStorage.getItem("active-outlet-id");
+    const companyId = localStorage.getItem("active-company-id");
     
-    // Only inject if NOT an auth route and ID exists
-    if (!isAuthRoute) {
+    // Only inject if NOT a public auth route and ID exists
+    const isPublicAuthRoute = config.url?.includes("/login") || config.url?.includes("/register") || config.url?.includes("/refresh-token");
+    
+    if (!isPublicAuthRoute) {
         if (businessUnitId) config.headers["x-business-unit-id"] = businessUnitId;
         if (outletId) config.headers["x-outlet-id"] = outletId;
+        if (companyId) config.headers["x-company-id"] = companyId;
     }
-  }
   return config;
 });
 

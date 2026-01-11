@@ -5,7 +5,9 @@ export const MODULES = {
   ECOMMERCE: 'ecommerce',
   CRM: 'crm',
   LOGISTICS: 'logistics',
-  SYSTEM: 'system',
+  GOVERNANCE: 'governance',
+  INTEGRATIONS: 'integrations',
+  SAAS: 'saas',
 } as const;
 
 export type ModuleType = typeof MODULES[keyof typeof MODULES];
@@ -17,7 +19,9 @@ export const MODULE_OPTIONS = [
   { value: MODULES.ECOMMERCE, label: 'E-Commerce' },
   { value: MODULES.CRM, label: 'Customer Relationship Management' },
   { value: MODULES.LOGISTICS, label: 'Logistics & Supply Chain' },
-  { value: MODULES.SYSTEM, label: 'System Administration' },
+  { value: MODULES.GOVERNANCE, label: 'Governance & Compliance' },
+  { value: MODULES.INTEGRATIONS, label: 'Third-Party Integrations' },
+  { value: MODULES.SAAS, label: 'SaaS Platform Features' },
 ];
 
 // Helper to filter modules based on context if needed

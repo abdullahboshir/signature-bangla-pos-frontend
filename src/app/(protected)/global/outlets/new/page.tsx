@@ -1,15 +1,16 @@
 "use client";
+
+import { useSearchParams } from "next/navigation";
 import { DataPageLayout } from "@/components/shared/DataPageLayout";
-import { Card, CardContent } from "@/components/ui/card";
+import { OutletForm } from "@/components/features/outlet/OutletForm";
 
 export default function NewOutletPage() {
+    const searchParams = useSearchParams();
+    const buId = searchParams.get("business-unit");
+
     return (
-        <DataPageLayout title="New Outlet" description="Register a new outlet branch.">
-            <Card>
-                <CardContent className="p-6 text-center text-muted-foreground">
-                    Outlet Creation Form is under development.
-                </CardContent>
-            </Card>
+        <DataPageLayout title="New Outlet" description="Register a new outlet branch across the organization.">
+            <OutletForm preSelectedSlug={buId || undefined} />
         </DataPageLayout>
     );
 }

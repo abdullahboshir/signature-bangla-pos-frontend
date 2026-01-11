@@ -36,6 +36,7 @@ import { useTheme } from "next-themes"
 // import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit"
 import { Notifications } from "./Notifications"
 import { BusinessUnitSwitcher } from "./BusinessUnitSwitcher"
+import { USER_ROLES, matchesRole } from "@/config/auth-constants"
 
 interface AccountMenusProps {
   className?: string
@@ -185,7 +186,7 @@ export function AccountMenus({ className, variant = "default" }: AccountMenusPro
               <span>Settings</span>
             </DropdownMenuItem>
 
-            {user.role === "super-admin" && (
+            {matchesRole(user?.role, USER_ROLES.SUPER_ADMIN) && (
               <DropdownMenuItem onClick={handleBilling}>
                 <CreditCard className="mr-2 h-4 w-4" />
                 <span>Billing</span>

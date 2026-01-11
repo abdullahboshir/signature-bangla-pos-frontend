@@ -1,35 +1,30 @@
 
 import { useAuth } from "@/hooks/useAuth";
+import { useCurrentRole } from "@/hooks/useCurrentRole";
 import { useMemo } from "react";
+import { isCompanyOwner, USER_ROLES } from "@/config/auth-constants";
 
-/**
- * Hook to check user permissions efficiently.
- * Uses the 'effectivePermissions' pre-calculated by the backend.
- */
 export function usePermission() {
   const { user } = useAuth();
+  const { currentRole } = useCurrentRole();
 
   const permissions = useMemo(() => {
     return user?.effectivePermissions || [];
   }, [user]);
 
-  /**
-   * Check if user has permission to perform action on resource.
-   * @param resource - Resource name (e.g., 'product', 'order')
-   * @param action - Action name (e.g., 'create', 'read', 'update', 'delete')
-   * @returns boolean
-   */
+
   const can = (resource: string, action: string): boolean => {
-    // Super Admin Bypass
     if (user?.isSuperAdmin) return true;
+
+    const isOwnerRole = isCompanyOwner(currentRole) || currentRole === USER_ROLES.COMPANY_OWNER || currentRole === 'owner';
+    const hasOwnerScope = (user?.businessAccess || []).some((acc: any) => acc.scope === 'COMPANY');
+        
+    if (isOwnerRole || hasOwnerScope) return true;
 
     if (!permissions.length) return false;
 
-    // Handle String Format (New Backend Standard: "resource:action")
     if (typeof permissions[0] === 'string') {
       const key = `${resource}:${action}`;
-      // Also allow wildcard action match if backend supports it (e.g. "product:*") - Optional
-      // For now, exact match logic:
       return permissions.includes(key);
     }
 
@@ -57,14 +52,9 @@ export function usePermission() {
     return false;
   };
 
-  /**
-   * Check Data Access Limit for a resource
-   * @param resource 'products' | 'orders' | 'customers'
-   * @returns number (0 = unlimited, >0 = limit)
-   */
   const getLimit = (resource: 'products' | 'orders' | 'customers'): number => {
     if (user?.isSuperAdmin) return 0;
-    return user?.maxDataAccess?.[resource] ?? -1; // -1 or 0 default? Backend defaults to 0 if unlimited.
+    return user?.maxDataAccess?.[resource] ?? -1;
   };
 
   return { can, getLimit, permissions };

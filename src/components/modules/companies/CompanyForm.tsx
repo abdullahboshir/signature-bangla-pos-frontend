@@ -17,16 +17,39 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { useCreateCompanyMutation } from "@/redux/api/platform/companyApi"
-import { Loader2, Building, ShieldCheck } from "lucide-react"
+import { Loader2, Building, ShieldCheck, User } from "lucide-react"
 
+// Schema aligned with backend ICompany interface
 const formSchema = z.object({
-    name: z.string().min(2, "Company name must be at least 2 characters."),
+    // Branding (Required)
+    branding: z.object({
+        name: z.string().min(2, "Company name must be at least 2 characters."),
+    }),
+    // Contact (Required)
+    contact: z.object({
+        email: z.string().email("Invalid email address."),
+        phone: z.string().min(10, "Phone number required."),
+    }),
+    // Location
+    location: z.object({
+        address: z.string().min(5, "Address required."),
+        city: z.string().optional(),
+        country: z.string(),
+        timezone: z.string(),
+    }),
+    // Registration
     registrationNumber: z.string().min(2, "Registration number is required."),
-    contactEmail: z.string().email("Invalid email address."),
-    contactPhone: z.string().min(10, "Phone number required."),
-    address: z.string().min(5, "Address required."),
+    businessType: z.enum(["proprietorship", "partnership", "private_limited", "public_limited", "ngo", "cooperative"]),
+    // Legal Representative (Owner Info)
+    legalRepresentative: z.object({
+        name: z.string().min(2, "Owner name is required."),
+        contactPhone: z.string().optional(),
+        nationalId: z.string().optional(),
+    }),
+    // Module Configuration
     activeModules: z.object({
         pos: z.boolean(),
         erp: z.boolean(),
@@ -52,11 +75,12 @@ export function CompanyForm({ onSuccess }: CompanyFormProps) {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            name: "",
+            branding: { name: "" },
+            contact: { email: "", phone: "" },
+            location: { address: "", city: "", country: "Bangladesh", timezone: "Asia/Dhaka" },
             registrationNumber: "",
-            contactEmail: "",
-            contactPhone: "",
-            address: "",
+            businessType: "proprietorship",
+            legalRepresentative: { name: "", contactPhone: "", nationalId: "" },
             activeModules: {
                 pos: true,
                 erp: true,
@@ -76,11 +100,11 @@ export function CompanyForm({ onSuccess }: CompanyFormProps) {
     async function onSubmit(values: z.infer<typeof formSchema>) {
         try {
             await createCompany(values).unwrap();
-
-            toast.success("Company created successfully");
+            toast.success("Company created successfully! Owner will receive an email to set up their password.");
             onSuccess();
-        } catch (error) {
-            toast.error("Failed to create company");
+        } catch (error: any) {
+            console.error("Company creation error:", error);
+            toast.error(error?.data?.message || "Failed to create company");
         }
     }
 
@@ -88,79 +112,153 @@ export function CompanyForm({ onSuccess }: CompanyFormProps) {
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 min-h-0 flex flex-col">
                 <div className="flex-1 overflow-y-auto px-6 py-4">
-                    <div className="grid gap-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <FormField
-                                control={form.control}
-                                name="name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Company Name</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="Acme Corp" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="registrationNumber"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Registration / BIN</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="BN-123456" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                    <div className="grid gap-6">
+
+                        {/* Company Branding Section */}
+                        <div className="space-y-4 rounded-lg border p-4 bg-muted/20">
+                            <h3 className="font-semibold flex items-center gap-2">
+                                <Building className="w-4 h-4" /> Company Information
+                            </h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="branding.name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Company Name *</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Acme Corp" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="registrationNumber"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Registration / BIN *</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="BN-123456" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="businessType"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Business Type</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select type" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="proprietorship">Proprietorship</SelectItem>
+                                                    <SelectItem value="partnership">Partnership</SelectItem>
+                                                    <SelectItem value="private_limited">Private Limited</SelectItem>
+                                                    <SelectItem value="public_limited">Public Limited</SelectItem>
+                                                    <SelectItem value="ngo">NGO</SelectItem>
+                                                    <SelectItem value="cooperative">Cooperative</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="location.address"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Address *</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Dhaka, Bangladesh" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <FormField
-                                control={form.control}
-                                name="contactEmail"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Contact Email</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="admin@company.com" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="contactPhone"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Phone Number</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="+880..." {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                        {/* Contact & Owner Section */}
+                        <div className="space-y-4 rounded-lg border p-4 bg-muted/20">
+                            <h3 className="font-semibold flex items-center gap-2">
+                                <User className="w-4 h-4" /> Owner & Contact Details
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                                The owner will receive an email invitation to set up their password and access the dashboard.
+                            </p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="legalRepresentative.name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Owner Name *</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="John Doe" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="legalRepresentative.nationalId"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>NID Number</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="1234567890123" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="contact.email"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Owner Email *</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="owner@company.com" {...field} />
+                                            </FormControl>
+                                            <FormDescription className="text-xs">
+                                                Password setup link will be sent here
+                                            </FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="contact.phone"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Phone Number *</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="+880..." {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
                         </div>
 
-                        <FormField
-                            control={form.control}
-                            name="address"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Address</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Dhaka, Bangladesh" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
+                        {/* Module Configuration */}
                         <div className="space-y-4 rounded-lg border p-4 bg-muted/20">
                             <h3 className="font-semibold flex items-center gap-2">
                                 <Building className="w-4 h-4" /> Module Configuration

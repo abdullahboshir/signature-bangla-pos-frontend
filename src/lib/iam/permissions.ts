@@ -1,4 +1,5 @@
 
+import { isSuperAdmin as checkIsSuperAdminHelper } from "@/config/auth-constants";
 
 export interface UserPermission {
   action: string;
@@ -17,6 +18,7 @@ export interface UserData {
   isSuperAdmin?: boolean;
   effectivePermissions?: string[]; // 🟢 Added effectivePermissions support
   roles?: (UserRole | string)[];
+  globalRoles?: (UserRole | string)[]; // Added support for globalRoles
   permissions?: {
       role?: {
           permissions?: (UserPermission | string)[];
@@ -29,14 +31,21 @@ export interface UserData {
  */
 export const checkIsSuperAdmin = (user: UserData | null | undefined): boolean => {
   if (!user) return false;
-  return !!(
-    user.isSuperAdmin || 
-    user.roles?.some((r: any) => 
-      (typeof r === 'string' && r === 'super-admin') || 
-      (r?.name === 'super-admin') || 
-      (r?.slug === 'super-admin')
-    )
-  );
+  
+  // 1. Direct property check
+  if (user.isSuperAdmin) return true;
+
+  // 2. Check globalRoles
+  if (user.globalRoles?.some((r: any) => checkIsSuperAdminHelper(typeof r === 'string' ? r : r.slug || r.name))) {
+    return true;
+  }
+
+  // 3. Check roles (legacy/scoped)
+  if (user.roles?.some((r: any) => checkIsSuperAdminHelper(typeof r === 'string' ? r : r.slug || r.name))) {
+    return true;
+  }
+
+  return false;
 };
 
 /**

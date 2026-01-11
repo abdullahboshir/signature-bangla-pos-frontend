@@ -1,11 +1,11 @@
 // components/layout/header/Header.tsx
 "use client"
 
-import { useParams } from "next/navigation"
+
 import { Bell, Utensils, Search, Menu } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+
 import { cn } from "@/lib/utils"
 import { UserMenu } from "../header/UserMenu"
 import { BusinessUnitSwitcher } from "../header/BusinessUnitSwitcher"
@@ -14,6 +14,7 @@ import { Notifications } from "../header/Notifications"
 import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit"
 import { useAuth } from "@/hooks/useAuth"
 import { useCurrentRole } from "@/hooks/useCurrentRole";
+import { isBusinessAdmin as checkIsBusinessAdmin } from "@/config/auth-constants";
 
 interface HeaderProps {
   onMenuClick?: () => void
@@ -90,7 +91,7 @@ export function SidebarHeader({ onMenuClick, className }: HeaderProps) {
         <Notifications />
 
         {/* Quick Actions */}
-        {role === "business-admin" && (
+        {checkIsBusinessAdmin(role) && (
           <Button
             variant="outline"
             size="icon"
