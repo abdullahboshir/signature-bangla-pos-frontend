@@ -184,15 +184,14 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
           const isOwnerRole = ['company-owner', 'owner', USER_ROLES.COMPANY_OWNER].includes(role);
           const bypassRoles = ['business-admin', 'store-manager', 'admin', 'manager', 'staff'];
 
-          const hasFullModuleAccess = isCompanyOwner || isSuperAdmin || isOwnerRole ||
-            (bypassRoles.includes(role) && OPERATIONAL_MODULES.includes(moduleKey));
-
-          const isCoreForOwner = (role === USER_ROLES.COMPANY_OWNER) && ['governance', 'finance', 'saas'].includes(moduleKey);
-
-          // Skip filtering if user has full access, otherwise check activeModules
-          if (!hasFullModuleAccess && activeModules[moduleKey] === false && !isCoreForOwner) {
+          // [STRICT] Even Owners/Admins should follow context-level module gating for operational clarity
+          // Only Super Admin should have absolute bypass for debugging/config
+          if (!isSuperAdmin && activeModules[moduleKey] === false) {
             return acc;
           }
+
+          const hasFullModuleAccess = isCompanyOwner || isSuperAdmin || isOwnerRole ||
+            (bypassRoles.includes(role) && OPERATIONAL_MODULES.includes(moduleKey));
         }
         const newItem = { ...item };
         if (newItem.children) {

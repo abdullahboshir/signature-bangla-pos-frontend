@@ -60,6 +60,15 @@ const authApi = baseApi.injectEndpoints({
                 data
             }),
         }),
+        // Resend Setup Invitation
+        resendSetupInvitation: build.mutation({
+            query: (data: { email: string }) => ({
+                url: '/auth/resend-setup-invitation',
+                method: 'POST',
+                contentType: 'application/json',
+                data
+            }),
+        }),
     }),
 });
 
@@ -70,5 +79,6 @@ export const {
     useLogoutMutation,
     useRefreshTokenMutation,
     useGetMeQuery,
-    useSetupPasswordMutation
+    useSetupPasswordMutation,
+    useResendSetupInvitationMutation
 } = authApi;

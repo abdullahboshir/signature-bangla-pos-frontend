@@ -42,11 +42,30 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
     const { data: allResources } = useGetPermissionResourcesQuery(undefined);
     const { data: systemSettings } = useGetSystemSettingsQuery(undefined);
 
+    const [formData, setFormData] = useState({ firstName: "", lastName: "", email: "", phone: "", password: "" })
+    const [roleAssignments, setRoleAssignments] = useState<{ role: string; businessUnit: string; outlets: string[]; tempId: string; }[]>([]);
+    const [directPermissions, setDirectPermissions] = useState<string[]>([]);
+    const [errors, setErrors] = useState<Record<string, string>>({})
+
+    const roles = Array.isArray(rolesData) ? rolesData : (rolesData as any)?.data?.result || (rolesData as any)?.data || (rolesData as any)?.result || [];
+    const businessUnits = Array.isArray(businessUnitsData) ? businessUnitsData : ((businessUnitsData as any)?.data?.result || (businessUnitsData as any)?.data || []);
+    const permissionGroups = Array.isArray(permissionGroupsData) ? permissionGroupsData : (permissionGroupsData as any)?.data?.result || (permissionGroupsData as any)?.data || permissionGroupsData?.result || [];
+
+    // [REFINED] Context-aware module filtering for permissions
     const filteredResources = useMemo(() => {
         if (!allResources) return [];
         let resources = allResources;
-        if (systemSettings?.enabledModules) {
-            const activeModules = systemSettings.enabledModules;
+
+        // Determine which modules are active for the CURRENT SELECTION
+        // For simplicity in the multi-assignment UI, we look at the first assignment's BU 
+        // OR the system-wide settings as a fallback.
+        const firstBUId = roleAssignments[0]?.businessUnit;
+        const selectedBU = businessUnits.find((bu: any) => bu._id === firstBUId || bu.id === firstBUId);
+
+        // Priority: Selected BU Modules > System Modules
+        const activeModules = selectedBU?.activeModules || systemSettings?.enabledModules;
+
+        if (activeModules) {
             const blockedResources = new Set<string>();
             Object.entries(activeModules).forEach(([moduleKey, isEnabled]) => {
                 if (isEnabled === false) {
@@ -56,18 +75,10 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
             });
             resources = resources.filter((r: string) => !blockedResources.has(r));
         }
+
         if (targetScope === 'GLOBAL') return resources;
         return resources.filter((r: string) => !PLATFORM_RESOURCES.includes(r as any) && !PLATFORM_RESOURCES.includes(r.toLowerCase() as any));
-    }, [allResources, targetScope, systemSettings]);
-
-    const roles = Array.isArray(rolesData) ? rolesData : (rolesData as any)?.data?.result || (rolesData as any)?.data || (rolesData as any)?.result || [];
-    const businessUnits = Array.isArray(businessUnitsData) ? businessUnitsData : ((businessUnitsData as any)?.data?.result || (businessUnitsData as any)?.data || []);
-    const permissionGroups = Array.isArray(permissionGroupsData) ? permissionGroupsData : (permissionGroupsData as any)?.data?.result || (permissionGroupsData as any)?.data || permissionGroupsData?.result || [];
-
-    const [formData, setFormData] = useState({ firstName: "", lastName: "", email: "", phone: "", password: "" })
-    const [roleAssignments, setRoleAssignments] = useState<{ role: string; businessUnit: string; outlets: string[]; tempId: string; }[]>([]);
-    const [directPermissions, setDirectPermissions] = useState<string[]>([]);
-    const [errors, setErrors] = useState<Record<string, string>>({})
+    }, [allResources, targetScope, systemSettings, roleAssignments, businessUnits]);
 
     const lockedBusinessUnitId = useMemo(() => {
         if (!initialBusinessUnitSlug || !businessUnits || businessUnits.length === 0) return undefined;

@@ -168,7 +168,9 @@ export function BusinessUnitForm({ slug }: BusinessUnitFormProps = {}) {
     });
 
     const selectedCompanyId = form.watch("company") || companyIdFromUrl;
-    const companyName = allCompanies.find((c: any) => c?._id === selectedCompanyId || c.id === selectedCompanyId)?.name || "Unknown Company";
+    const parentCompany = allCompanies.find((c: any) => c?._id === selectedCompanyId || c.id === selectedCompanyId);
+    const companyName = parentCompany?.name || "Unknown Company";
+    const allowedModules = parentCompany?.activeModules;
 
     const businessUnit = isEditMode ? businessUnits.find((bu: any) => bu.slug === slug || bu.id === slug) : null;
 
@@ -196,6 +198,13 @@ export function BusinessUnitForm({ slug }: BusinessUnitFormProps = {}) {
             form.setValue("company", singleCompanyId);
         }
     }, [isEditMode, companyIdFromUrl, allCompanies, form]);
+
+    // PRE-SELECT: Auto-enable modules from parent Company on creation
+    useEffect(() => {
+        if (!isEditMode && allowedModules && !form.formState.dirtyFields.activeModules) {
+            form.setValue("activeModules", allowedModules);
+        }
+    }, [isEditMode, allowedModules, form]);
 
     useEffect(() => {
         if (isEditMode && businessUnit) {
@@ -442,7 +451,7 @@ export function BusinessUnitForm({ slug }: BusinessUnitFormProps = {}) {
                     </TabsContent>
 
                     <TabsContent value="modules">
-                        <ModuleFields prefix="activeModules" />
+                        <ModuleFields prefix="activeModules" allowedModules={allowedModules} />
                     </TabsContent>
                 </Tabs>
 

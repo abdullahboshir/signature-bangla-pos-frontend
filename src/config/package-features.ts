@@ -17,9 +17,25 @@ export const PACKAGE_FEATURES = [
 export const PACKAGE_LIMITS = [
     { key: 'maxUsers', label: 'Max Users', type: 'number', description: 'Maximum staff accounts allowed' },
     { key: 'maxOutlets', label: 'Max Outlets', type: 'number', description: 'Maximum business outlets/branches' },
+    { key: 'maxBusinessUnits', label: 'Max Business Units', type: 'number', description: 'Maximum business units/companies' },
     { key: 'maxStorage', label: 'Storage (MB)', type: 'number', description: 'File storage limit in MB' },
     { key: 'maxProducts', label: 'Max Products', type: 'number', description: 'Maximum number of products in catalog' },
     { key: 'maxOrders', label: 'Orders / Month', type: 'number', description: 'Order processing limit per month' },
+] as const;
+
+export const SUPPORT_PRIORITIES = [
+    { label: "Low", value: "low" },
+    { label: "Medium", value: "medium" },
+    { label: "High", value: "high" },
+    { label: "Urgent", value: "urgent" },
+] as const;
+
+export const SUPPORT_CHANNELS = [
+    { label: "Email Support", value: "email" },
+    { label: "Live Chat", value: "chat" },
+    { label: "Phone Support", value: "phone" },
+    { label: "Dedicated Manager", value: "manager" },
+    { label: "Community Forum", value: "community" },
 ] as const;
 
 export const SUBSCRIPTION_CYCLES = [

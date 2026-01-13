@@ -212,8 +212,7 @@ export default function OutletListPage() {
             createAction={{
                 label: "Add Outlet",
                 onClick: () => {
-                    const identifier = businessUnit || matchedBU?.slug || matchedBU?._id || matchedBU?.id;
-                    router.push(`/global/business-units/${identifier}/outlets/new`);
+                    router.push(`${pathname}/new`);
                 }
             }}
             extraFilters={

@@ -1,10 +1,10 @@
-
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
     Form,
@@ -16,11 +16,12 @@ import {
     FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { useCreateCompanyMutation } from "@/redux/api/platform/companyApi"
-import { Loader2, Building, ShieldCheck, User } from "lucide-react"
+import { useGetPackagesQuery } from "@/redux/api/platform/packageApi"
+import { Loader2, Building, User, CreditCard } from "lucide-react"
+import { ModuleFields } from "@/components/forms/organization/ModuleFields"
 
 // Schema aligned with backend ICompany interface
 const formSchema = z.object({
@@ -43,6 +44,8 @@ const formSchema = z.object({
     // Registration
     registrationNumber: z.string().min(2, "Registration number is required."),
     businessType: z.enum(["proprietorship", "partnership", "private_limited", "public_limited", "ngo", "cooperative"]),
+    // Package & Licenses
+    packageId: z.string().min(1, "Subscription package is required."),
     // Legal Representative (Owner Info)
     legalRepresentative: z.object({
         name: z.string().min(2, "Owner name is required."),
@@ -71,6 +74,9 @@ interface CompanyFormProps {
 
 export function CompanyForm({ onSuccess }: CompanyFormProps) {
     const [createCompany, { isLoading }] = useCreateCompanyMutation();
+    const { data: packagesData, isLoading: isLoadingPackages } = useGetPackagesQuery({ status: "active" });
+
+    const packages = Array.isArray(packagesData) ? packagesData : (packagesData as any)?.data || [];
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -80,6 +86,7 @@ export function CompanyForm({ onSuccess }: CompanyFormProps) {
             location: { address: "", city: "", country: "Bangladesh", timezone: "Asia/Dhaka" },
             registrationNumber: "",
             businessType: "proprietorship",
+            packageId: "",
             legalRepresentative: { name: "", contactPhone: "", nationalId: "" },
             activeModules: {
                 pos: true,
@@ -97,9 +104,31 @@ export function CompanyForm({ onSuccess }: CompanyFormProps) {
         },
     })
 
+    const selectedPackageId = form.watch("packageId");
+    const activeModules = form.watch("activeModules");
+
+    const pkg = useMemo(() => packages.find((p: any) => p._id === selectedPackageId), [packages, selectedPackageId]);
+
+    const calculatedPrice = useMemo(() => {
+        if (!pkg) return 0;
+        let total = pkg.price;
+        Object.entries(activeModules).forEach(([key, enabled]) => {
+            if (enabled) {
+                const config = (pkg.moduleAccess as any)[key];
+                if (config && !config.enabled) {
+                    total += config.monthlyPrice || 0;
+                }
+            }
+        });
+        return total;
+    }, [pkg, activeModules]);
+
     async function onSubmit(values: z.infer<typeof formSchema>) {
         try {
-            await createCompany(values).unwrap();
+            await createCompany({
+                ...values,
+                totalPrice: calculatedPrice
+            }).unwrap();
             toast.success("Company created successfully! Owner will receive an email to set up their password.");
             onSuccess();
         } catch (error: any) {
@@ -258,149 +287,87 @@ export function CompanyForm({ onSuccess }: CompanyFormProps) {
                             </div>
                         </div>
 
-                        {/* Module Configuration */}
-                        <div className="space-y-4 rounded-lg border p-4 bg-muted/20">
-                            <h3 className="font-semibold flex items-center gap-2">
-                                <Building className="w-4 h-4" /> Module Configuration
+                        {/* Subscription & Pricing Section */}
+                        <div className="space-y-4 rounded-lg border-2 border-primary/20 p-4 bg-primary/5">
+                            <h3 className="font-bold flex items-center justify-between gap-2 text-primary">
+                                <div className="flex items-center gap-2">
+                                    <CreditCard className="w-4 h-4" /> Subscription Plan
+                                </div>
+                                {pkg && (
+                                    <div className="text-right">
+                                        <div className="text-xl font-black">{calculatedPrice.toLocaleString()} BDT</div>
+                                        <div className="text-[10px] uppercase tracking-wider font-normal text-muted-foreground opacity-70">Total Monthly Cost</div>
+                                    </div>
+                                )}
                             </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* POS */}
-                                <FormField
-                                    control={form.control}
-                                    name="activeModules.pos"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-background">
-                                            <div className="space-y-0.5">
-                                                <FormLabel className="text-base">POS System</FormLabel>
-                                                <FormDescription className="text-xs">Retail terminal & config</FormDescription>
-                                            </div>
-                                            <FormControl>
-                                                <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                            </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
 
-                                {/* ERP */}
-                                <FormField
-                                    control={form.control}
-                                    name="activeModules.erp"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-background">
-                                            <div className="space-y-0.5">
-                                                <FormLabel className="text-base">ERP Core</FormLabel>
-                                                <FormDescription className="text-xs">Inv, Finance, Logistics</FormDescription>
-                                            </div>
-                                            <FormControl>
-                                                <Switch
-                                                    checked={field.value}
-                                                    onCheckedChange={(checked) => {
-                                                        field.onChange(checked);
-                                                        form.setValue("activeModules.finance", checked);
-                                                        form.setValue("activeModules.logistics", checked);
-                                                    }}
-                                                />
-                                            </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
+                            <FormField
+                                control={form.control}
+                                name="packageId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormControl>
+                                            <Select onValueChange={(val) => {
+                                                field.onChange(val);
+                                                const p = packages.find((pkg: any) => pkg._id === val);
+                                                if (p) {
+                                                    // Sync modules with package defaults
+                                                    Object.entries(p.moduleAccess).forEach(([k, v]: any) => {
+                                                        form.setValue(`activeModules.${k}` as any, v.enabled);
+                                                    });
+                                                }
+                                            }} value={field.value}>
+                                                <SelectTrigger className="h-12 bg-background border-primary/20">
+                                                    <SelectValue placeholder="Select a base plan..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {isLoadingPackages ? (
+                                                        <div className="p-4 text-center text-sm">Loading plans...</div>
+                                                    ) : packages.map((pkg: any) => (
+                                                        <SelectItem key={pkg._id} value={pkg._id}>
+                                                            {pkg.name} — {pkg.price.toLocaleString()} BDT/mo
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
 
-                                {/* HRM */}
-                                <FormField
-                                    control={form.control}
-                                    name="activeModules.hrm"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-background">
-                                            <div className="space-y-0.5">
-                                                <FormLabel className="text-base">HRM & Payroll</FormLabel>
-                                                <FormDescription className="text-xs">Staff management</FormDescription>
+                            {pkg && (
+                                <div className="grid grid-cols-2 gap-2 mt-2">
+                                    {Object.entries(pkg.moduleAccess).map(([key, config]: [string, any]) => {
+                                        const isExtra = !config.enabled && activeModules[key as keyof typeof activeModules];
+                                        if (config.monthlyPrice === 0 && !config.enabled) return null;
+                                        return (
+                                            <div key={key} className={cn(
+                                                "flex items-center justify-between px-3 py-1.5 rounded border text-[11px]",
+                                                activeModules[key as keyof typeof activeModules] ? "bg-white border-primary/30" : "bg-muted/30 border-transparent opacity-50"
+                                            )}>
+                                                <span className="capitalize font-medium">{key}</span>
+                                                <span className={cn("font-bold", isExtra ? "text-emerald-600" : "text-muted-foreground")}>
+                                                    {config.enabled ? "INCLUDED" : `+${config.monthlyPrice}`}
+                                                </span>
                                             </div>
-                                            <FormControl>
-                                                <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                            </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
 
-                                {/* E-Commerce */}
-                                <FormField
-                                    control={form.control}
-                                    name="activeModules.ecommerce"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-background">
-                                            <div className="space-y-0.5">
-                                                <FormLabel className="text-base">E-Commerce</FormLabel>
-                                                <FormDescription className="text-xs">Storefront & CMS</FormDescription>
-                                            </div>
-                                            <FormControl>
-                                                <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                            </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
-
-                                {/* CRM */}
-                                <FormField
-                                    control={form.control}
-                                    name="activeModules.crm"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-background">
-                                            <div className="space-y-0.5">
-                                                <FormLabel className="text-base">CRM Suite</FormLabel>
-                                                <FormDescription className="text-xs">Customers & Marketing</FormDescription>
-                                            </div>
-                                            <FormControl>
-                                                <Switch
-                                                    checked={field.value}
-                                                    onCheckedChange={(checked) => {
-                                                        field.onChange(checked);
-                                                        form.setValue("activeModules.marketing", checked);
-                                                    }}
-                                                />
-                                            </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
-
-                                {/* Integrations */}
-                                <FormField
-                                    control={form.control}
-                                    name="activeModules.integrations"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-background">
-                                            <div className="space-y-0.5">
-                                                <FormLabel className="text-base">Integrations (Add-on)</FormLabel>
-                                                <FormDescription className="text-xs">APIs, Webhooks & Gateways</FormDescription>
-                                            </div>
-                                            <FormControl>
-                                                <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                            </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
-
-                                {/* Governance */}
-                                <FormField
-                                    control={form.control}
-                                    name="activeModules.governance"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 col-span-1 md:col-span-2">
-                                            <div className="space-y-0.5">
-                                                <FormLabel className="text-base flex items-center gap-2">
-                                                    Governance
-                                                    <ShieldCheck className="w-3 h-3 text-blue-600" />
-                                                </FormLabel>
-                                                <FormDescription className="text-xs">
-                                                    Board-level management. Enable for Shareholder & Investor access.
-                                                </FormDescription>
-                                            </div>
-                                            <FormControl>
-                                                <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                            </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
+                        <div className="relative">
+                            <div className={cn("transition-all duration-300", !selectedPackageId && "grayscale opacity-50 pointer-events-none")}>
+                                <ModuleFields prefix="activeModules" />
                             </div>
+                            {!selectedPackageId && (
+                                <div className="absolute inset-0 flex items-center justify-center z-20">
+                                    <div className="bg-background/80 backdrop-blur-sm px-4 py-2 rounded-full border shadow-sm text-xs font-bold text-primary">
+                                        Select a Package Plan First
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

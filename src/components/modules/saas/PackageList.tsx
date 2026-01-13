@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Package, Plus } from "lucide-react"
+import { Package, Plus, MoreHorizontal, Edit, Trash2 } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
 import { PERMISSION_KEYS } from "@/config/permission-keys"
 import { DataTable } from "@/components/shared/DataTable"
@@ -11,6 +11,14 @@ import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { PACKAGE_STATUS } from "@/constant/package.constant"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export default function PackageList() {
     const { hasPermission } = usePermissions();
@@ -36,23 +44,39 @@ export default function PackageList() {
             accessorKey: "name",
             header: "Plan Name",
             cell: ({ row }: any) => (
-                <div className="flex flex-col">
-                    <span className="font-medium">{row.original.name}</span>
-                    <span className="text-xs text-muted-foreground">{row.original.slug}</span>
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                        <span className="font-bold">{row.original.name}</span>
+                        {row.original.isRecommended && <Badge className="bg-amber-500 text-[8px] h-3 px-1">Best Value</Badge>}
+                        {row.original.isFeatured && <Badge className="bg-purple-500 text-[8px] h-3 px-1">Featured</Badge>}
+                    </div>
+                    <span className="text-[10px] text-muted-foreground font-mono">{row.original.slug}</span>
+                    <div className="flex gap-1">
+                        {!row.original.isPublic && <Badge variant="outline" className="text-[8px] h-3 px-1 text-red-500 border-red-200">Private</Badge>}
+                        {row.original.isDefaultPlan && <Badge variant="outline" className="text-[8px] h-3 px-1 text-blue-500 border-blue-200">Default</Badge>}
+                    </div>
                 </div>
             )
         },
         {
-            accessorKey: "price",
-            header: "Price",
-            cell: ({ row }: any) => <span className="font-bold">{row.original.price} {row.original.currency}</span>
+            header: "Commercials",
+            cell: ({ row }: any) => (
+                <div className="flex flex-col">
+                    <span className="font-bold text-primary">{row.original.price} {row.original.currency}</span>
+                    <span className="text-[10px] uppercase text-muted-foreground font-semibold italic">{row.original.billingCycle}</span>
+                </div>
+            )
         },
         {
             header: "Limits",
             cell: ({ row }: any) => (
-                <div className="flex flex-col text-xs text-muted-foreground">
-                    <span>Users: {row.original.limits?.maxUsers || 'Unltd'}</span>
-                    <span>Outlets: {row.original.limits?.maxOutlets || 'Unltd'}</span>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px]">
+                    <span className="text-muted-foreground">Users:</span>
+                    <span className="font-medium">{row.original.limits?.maxUsers === -1 ? '∞' : (row.original.limits?.maxUsers ?? 0)}</span>
+                    <span className="text-muted-foreground">Outlets:</span>
+                    <span className="font-medium">{row.original.limits?.maxOutlets === -1 ? '∞' : (row.original.limits?.maxOutlets ?? 0)}</span>
+                    <span className="text-muted-foreground">Products:</span>
+                    <span className="font-medium">{row.original.limits?.maxProducts === -1 ? '∞' : (row.original.limits?.maxProducts ?? 0)}</span>
                 </div>
             )
         },
@@ -61,7 +85,7 @@ export default function PackageList() {
             cell: ({ row }: any) => (
                 <div className="flex flex-wrap gap-1 max-w-[200px]">
                     {Object.entries(row.original.moduleAccess || {})
-                        .filter(([_, allowed]) => allowed)
+                        .filter(([_, config]: any) => config?.enabled)
                         .map(([mod]) => (
                             <Badge key={mod} variant="secondary" className="text-[10px] px-1 py-0 uppercase">
                                 {mod}
@@ -72,11 +96,24 @@ export default function PackageList() {
             )
         },
         {
+            header: "Support & SLA",
+            cell: ({ row }: any) => (
+                <div className="flex flex-col gap-1">
+                    <Badge variant="outline" className="text-[9px] uppercase border-primary/20 text-primary w-fit">
+                        {row.original.supportType}
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground">
+                        {row.original.supportChannels?.length || 0} Channels
+                    </span>
+                </div>
+            )
+        },
+        {
             accessorKey: "isActive",
             header: "Status",
             cell: ({ row }: any) => (
-                <Badge variant={row.original.isActive === PACKAGE_STATUS.ACTIVE ? "default" : "outline"}>
-                    {row.original.isActive === PACKAGE_STATUS.ACTIVE ? "Active" : "Inactive"}
+                <Badge variant={row.original.isActive ? "default" : "secondary"} className={row.original.isActive ? "bg-green-500 hover:bg-green-600" : ""}>
+                    {row.original.isActive ? "Active" : "Paused"}
                 </Badge>
             )
         },
@@ -84,10 +121,29 @@ export default function PackageList() {
             id: "actions",
             header: "Actions",
             cell: ({ row }: any) => (
-                <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => router.push(`/packages/${row.original.id}/edit`)}>Edit</Button>
-                    <Button variant="ghost" size="sm" className="text-red-500" onClick={() => handleDelete(row.original.id)}>Delete</Button>
-                </div>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            < MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-[160px]">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => router.push(`/global/packages/${row.original.id}/edit`)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit Plan
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            onClick={() => handleDelete(row.original.id)}
+                            className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                        >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete Plan
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             )
         }
     ];
@@ -103,7 +159,7 @@ export default function PackageList() {
                         </CardTitle>
                         <CardDescription>Manage subscription plans and licensing.</CardDescription>
                     </div>
-                    <Button size="sm" onClick={() => router.push('/packages/new')}>
+                    <Button size="sm" onClick={() => router.push('/global/packages/new')}>
                         <Plus className="h-4 w-4 mr-2" /> New Package
                     </Button>
                 </div>

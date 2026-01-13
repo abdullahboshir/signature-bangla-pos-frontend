@@ -9,6 +9,8 @@ import { columns } from "./columns";
 import { DataTable } from "@/components/shared/DataTable";
 import { Heading } from "@/components/ui/heading";
 
+import { CompanyDetails } from "./CompanyDetails";
+
 export default function CompaniesPage() {
     const router = useRouter();
     const { data, isLoading } = useGetAllCompaniesQuery(undefined);
@@ -31,6 +33,9 @@ export default function CompaniesPage() {
                 columns={columns}
                 data={data?.data || []}
                 isLoading={isLoading}
+                renderSubComponent={(row) => (
+                    <CompanyDetails data={row.original} />
+                )}
             />
         </div>
     );

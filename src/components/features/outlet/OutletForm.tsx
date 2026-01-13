@@ -153,6 +153,10 @@ export function OutletForm({ preSelectedSlug, initialData, isEditMode = false }:
         },
     });
 
+    const selectedBUId = form.watch("businessUnitId");
+    const parentBU = businessUnits.find((bu: any) => bu._id?.toString() === selectedBUId || bu.id === selectedBUId) || currentBusinessUnit;
+    const allowedModules = parentBU?.activeModules;
+
     useEffect(() => {
         if (!preSelectedSlug) return;
 
@@ -191,6 +195,13 @@ export function OutletForm({ preSelectedSlug, initialData, isEditMode = false }:
         }
     }, [preSelectedSlug, businessUnits, currentBusinessUnit, form]);
 
+    // PRE-SELECT: Auto-enable modules from parent BU on creation
+    useEffect(() => {
+        if (!isEditMode && allowedModules && !form.formState.dirtyFields.activeModules) {
+            form.setValue("activeModules", allowedModules);
+        }
+    }, [isEditMode, allowedModules, form]);
+
     const watchName = form.watch("name");
     useEffect(() => {
         if (watchName && !form.formState.dirtyFields.branding?.name) {
@@ -222,7 +233,14 @@ export function OutletForm({ preSelectedSlug, initialData, isEditMode = false }:
 
             // Redirect to All Outlets page with context
             const redirectBase = preSelectedSlug ? `/${preSelectedSlug}/outlets` : "/global/outlets";
-            const redirectUrl = companyId ? `${redirectBase}?company=${companyId}` : redirectBase;
+
+            // If we are already in a scoped path (containing outlets), just go back to that list
+            const currentPath = window.location.pathname;
+            const targetPath = currentPath.includes('/outlets/new')
+                ? currentPath.replace('/outlets/new', '/outlets')
+                : redirectBase;
+
+            const redirectUrl = companyId ? `${targetPath}?company=${companyId}` : targetPath;
             router.push(redirectUrl);
         } catch (error: any) {
             toast.error(error?.data?.message || "Operation failed");
@@ -325,7 +343,7 @@ export function OutletForm({ preSelectedSlug, initialData, isEditMode = false }:
                     </TabsContent>
 
                     <TabsContent value="modules">
-                        <ModuleFields prefix="activeModules" />
+                        <ModuleFields prefix="activeModules" allowedModules={allowedModules} />
                     </TabsContent>
                 </Tabs>
 

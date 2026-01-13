@@ -410,7 +410,10 @@ export const getSidebarMenu = (role: string, businessUnit: string, outletId?: st
       if (isPrivileged) {
           // Streamlined "Operational Essentials" for Outlet context (even for Admins)
           rawOutletMenu = [
-              MENU_MODULES.DASHBOARD,
+              {
+                  ...MENU_MODULES.DASHBOARD,
+                  path: `outlets/${outletId}` 
+              },
               MENU_MODULES.POS_TERMINAL,
               {
                 ...MENU_MODULES.CATALOG,
