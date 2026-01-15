@@ -92,7 +92,8 @@ export function ProductList() {
         if (isSuperAdmin) {
             router.push(`/super-admin/catalog/product/edit/${id}`);
         } else {
-            router.push(`/${role}/${businessUnit}/catalog/product/edit/${id}`);
+            const path = role ? `/${role}/${businessUnit}/catalog/product/edit/${id}` : `/${businessUnit}/catalog/product/edit/${id}`;
+            router.push(path);
         }
     }
 
@@ -543,7 +544,8 @@ export function ProductList() {
                     if (isSuperAdmin) {
                         router.push(`/super-admin/catalog/product/add`);
                     } else {
-                        router.push(`/${role}/${businessUnit}/catalog/product/add`);
+                        const path = role ? `/${role}/${businessUnit}/catalog/product/add` : `/${businessUnit}/catalog/product/add`;
+                        router.push(path);
                     }
                 }
             } : undefined}

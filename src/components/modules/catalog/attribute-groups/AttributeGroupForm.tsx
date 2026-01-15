@@ -73,7 +73,7 @@ export function AttributeGroupForm({ initialData, onSubmit, isLoading }: Attribu
         resolver: zodResolver(attributeGroupSchema),
         defaultValues: initialData || {
             name: "",
-            module: MODULES.SYSTEM,
+            module: MODULES,
             description: "",
             isActive: true,
             fields: [{ key: "", label: "", type: "text", required: false }],

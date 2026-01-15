@@ -111,7 +111,7 @@ export default function LoginModal({ open = false, onOpenChange }: LoginModalPro
                         <TabsContent value="login" className="space-y-4">
                             <div className="space-y-2"><label>Email</label><Input name="email" type="email" value={formData.email} onChange={handleChange} required /></div>
                             <div className="space-y-2">
-                                <div className="flex justify-between items-center"><label>Password</label><Link href="/forgot-password" disabled className="text-xs text-primary pointer-events-none opacity-50">Forgot Password?</Link></div>
+                                <div className="flex justify-between items-center"><label>Password</label><span className="text-xs text-primary pointer-events-none opacity-50 cursor-not-allowed">Forgot Password?</span></div>
                                 <div className="relative">
                                     <Input name="password" type={showPassword ? "text" : "password"} value={formData.password} onChange={handleChange} required className="pr-10" />
                                     <Button type="button" variant="ghost" size="sm" className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent" onClick={() => setShowPassword(!showPassword)}>

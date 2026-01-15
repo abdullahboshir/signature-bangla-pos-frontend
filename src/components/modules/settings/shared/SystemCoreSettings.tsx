@@ -15,6 +15,17 @@ interface SystemCoreSettingsProps {
 }
 
 export default function SystemCoreSettings({ data, onChange, onNestedChange }: SystemCoreSettingsProps) {
+    // Helper to tunnel updates into 'core' object
+    const handleCoreChange = (key: string, value: any) => {
+        onChange('core', key, value);
+    };
+
+    const handleCoreNestedChange = (subsection: string, key: string, value: any) => {
+        onNestedChange('core', subsection, key, value);
+    };
+
+    const coreData = data?.core || {};
+
     return (
         <div className="space-y-4">
             {/* Platform Governance */}
@@ -30,7 +41,7 @@ export default function SystemCoreSettings({ data, onChange, onNestedChange }: S
                             <Input
                                 placeholder="XXXX-XXXX-XXXX-XXXX"
                                 value={data?.licenseKey || ""}
-                                onChange={(e) => onChange('licenseKey', '', e.target.value)}
+                                onChange={(e) => onChange('licenseKey', '', e.target.value)} // Root level
                             />
                         </div>
                         <div className="space-y-2">
@@ -38,7 +49,7 @@ export default function SystemCoreSettings({ data, onChange, onNestedChange }: S
                             <Input
                                 type="number"
                                 value={data?.softDeleteRetentionDays || 30}
-                                onChange={(e) => onChange('softDeleteRetentionDays', '', parseInt(e.target.value))}
+                                onChange={(e) => onChange('softDeleteRetentionDays', '', parseInt(e.target.value))} // Root level
                             />
                         </div>
                     </div>
@@ -49,7 +60,7 @@ export default function SystemCoreSettings({ data, onChange, onNestedChange }: S
                         </div>
                         <Switch
                             checked={data?.isRetentionPolicyEnabled || false}
-                            onCheckedChange={(c) => onChange('isRetentionPolicyEnabled', '', c)}
+                            onCheckedChange={(c) => onChange('isRetentionPolicyEnabled', '', c)} // Root level
                         />
                     </div>
                 </CardContent>
@@ -66,8 +77,8 @@ export default function SystemCoreSettings({ data, onChange, onNestedChange }: S
                         <div className="space-y-2">
                             <Label>Storage Driver</Label>
                             <Select
-                                value={data?.storageDriver || "local"}
-                                onValueChange={(v) => onChange('storageDriver', '', v)} // Direct update on root of SystemSettings
+                                value={coreData.storageDriver || "local"}
+                                onValueChange={(v) => handleCoreChange('storageDriver', v)} // core.storageDriver
                             >
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
@@ -81,8 +92,8 @@ export default function SystemCoreSettings({ data, onChange, onNestedChange }: S
                             <Label>Max Storage Limit (GB)</Label>
                             <Input
                                 type="number"
-                                value={data?.maxStorageLimitGB || 0}
-                                onChange={(e) => onChange('maxStorageLimitGB', '', parseInt(e.target.value))}
+                                value={coreData.maxStorageLimitGB || 0}
+                                onChange={(e) => handleCoreChange('maxStorageLimitGB', parseInt(e.target.value))} // core.maxStorageLimitGB
                             />
                         </div>
                     </div>
@@ -100,44 +111,44 @@ export default function SystemCoreSettings({ data, onChange, onNestedChange }: S
                         <div className="space-y-2">
                             <Label>Host</Label>
                             <Input
-                                value={data?.smtp?.host || ""}
-                                onChange={(e) => onNestedChange('smtp', '', 'host', e.target.value)}
+                                value={coreData.smtp?.host || ""}
+                                onChange={(e) => handleCoreNestedChange('smtp', 'host', e.target.value)}
                             />
                         </div>
                         <div className="space-y-2">
                             <Label>Port</Label>
                             <Input
                                 type="number"
-                                value={data?.smtp?.port || 587}
-                                onChange={(e) => onNestedChange('smtp', '', 'port', parseInt(e.target.value))}
+                                value={coreData.smtp?.port || 587}
+                                onChange={(e) => handleCoreNestedChange('smtp', 'port', parseInt(e.target.value))}
                             />
                         </div>
                         <div className="space-y-2">
                             <Label>User</Label>
                             <Input
-                                value={data?.smtp?.user || ""}
-                                onChange={(e) => onNestedChange('smtp', '', 'user', e.target.value)}
+                                value={coreData.smtp?.user || ""}
+                                onChange={(e) => handleCoreNestedChange('smtp', 'user', e.target.value)}
                             />
                         </div>
                         <div className="space-y-2">
                             <Label>From Email</Label>
                             <Input
-                                value={data?.smtp?.fromEmail || ""}
-                                onChange={(e) => onNestedChange('smtp', '', 'fromEmail', e.target.value)}
+                                value={coreData.smtp?.fromEmail || ""}
+                                onChange={(e) => handleCoreNestedChange('smtp', 'fromEmail', e.target.value)}
                             />
                         </div>
                         <div className="space-y-2">
                             <Label>From Name</Label>
                             <Input
-                                value={data?.smtp?.fromName || "System"}
-                                onChange={(e) => onNestedChange('smtp', '', 'fromName', e.target.value)}
+                                value={coreData.smtp?.fromName || "System"}
+                                onChange={(e) => handleCoreNestedChange('smtp', 'fromName', e.target.value)}
                             />
                         </div>
                         <div className="flex items-center justify-between mt-6">
                             <Label>Secure Connection (SSL/TLS)</Label>
                             <Switch
-                                checked={data?.smtp?.secure || false}
-                                onCheckedChange={(c) => onNestedChange('smtp', '', 'secure', c)}
+                                checked={coreData.smtp?.secure || false}
+                                onCheckedChange={(c) => handleCoreNestedChange('smtp', 'secure', c)}
                             />
                         </div>
                     </div>
@@ -155,8 +166,8 @@ export default function SystemCoreSettings({ data, onChange, onNestedChange }: S
                         <div className="space-y-2">
                             <Label>Schedule</Label>
                             <Select
-                                value={data?.backup?.schedule || "daily"}
-                                onValueChange={(v) => onNestedChange('backup', '', 'schedule', v)}
+                                value={coreData.backup?.schedule || "daily"}
+                                onValueChange={(v) => handleCoreNestedChange('backup', 'schedule', v)}
                             >
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
@@ -170,23 +181,23 @@ export default function SystemCoreSettings({ data, onChange, onNestedChange }: S
                             <Label>Retention Count</Label>
                             <Input
                                 type="number"
-                                value={data?.backup?.retentionCount || 7}
-                                onChange={(e) => onNestedChange('backup', '', 'retentionCount', parseInt(e.target.value))}
+                                value={coreData.backup?.retentionCount || 7}
+                                onChange={(e) => handleCoreNestedChange('backup', 'retentionCount', parseInt(e.target.value))}
                             />
                         </div>
                     </div>
                     <div className="space-y-2">
                         <Label>Storage Path</Label>
                         <Input
-                            value={data?.backup?.storagePath || "/backups"}
-                            onChange={(e) => onNestedChange('backup', '', 'storagePath', e.target.value)}
+                            value={coreData.backup?.storagePath || "/backups"}
+                            onChange={(e) => handleCoreNestedChange('backup', 'storagePath', e.target.value)}
                         />
                     </div>
                     <div className="flex items-center justify-between">
                         <div className="space-y-0.5"><Label>Encryption Enabled</Label></div>
                         <Switch
-                            checked={data?.backup?.encryptionEnabled || false}
-                            onCheckedChange={(c) => onNestedChange('backup', '', 'encryptionEnabled', c)}
+                            checked={coreData.backup?.encryptionEnabled || false}
+                            onCheckedChange={(c) => handleCoreNestedChange('backup', 'encryptionEnabled', c)}
                         />
                     </div>
                 </CardContent>

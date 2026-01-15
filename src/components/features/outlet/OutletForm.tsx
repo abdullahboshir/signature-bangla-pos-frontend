@@ -211,10 +211,19 @@ export function OutletForm({ preSelectedSlug, initialData, isEditMode = false }:
 
     const onSubmit = async (values: FormValues) => {
         try {
+            const selectedBU = businessUnits.find((bu: any) => bu._id?.toString() === values.businessUnitId || bu.id === values.businessUnitId);
+            const derivedCompanyId = companyId || localStorage.getItem("active-company-id") || selectedBU?.company?._id || selectedBU?.company || selectedBU?.companyId;
+
+            if (!derivedCompanyId) {
+                toast.error("Critical Error: Company Identity missing. Please reload or select a valid Business Unit.");
+                return;
+            }
+
             const payload = {
                 ...values,
                 code: values.code.toUpperCase(),
                 businessUnit: values.businessUnitId,
+                company: derivedCompanyId, // [FIX] Inject Company ID from best available source
                 location: {
                     ...values.location,
                     coordinates: values.location.coordinates?.lat && values.location.coordinates?.lng
@@ -343,7 +352,7 @@ export function OutletForm({ preSelectedSlug, initialData, isEditMode = false }:
                     </TabsContent>
 
                     <TabsContent value="modules">
-                        <ModuleFields prefix="activeModules" allowedModules={allowedModules} />
+                        <ModuleFields prefix="activeModules" allowedModules={allowedModules} hiddenModules={['erp']} />
                     </TabsContent>
                 </Tabs>
 

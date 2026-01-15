@@ -30,10 +30,10 @@ interface ITax {
     type: 'percentage' | 'fixed';
     isActive: boolean;
     isDefault?: boolean;
-    module: string;
+    availableModules: string[];
 }
 
-import { ModuleSelect } from "@/components/forms/module-select";
+import { ModuleMultiSelect } from "@/components/forms/module-multi-select";
 
 import { useParams } from "next/navigation";
 import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi";
@@ -217,14 +217,15 @@ export const TaxList = () => {
                 defaultValue: "active"
             },
             {
-                name: "module",
-                label: "Module",
+                name: "availableModules",
+                // label: "Available Modules",
                 type: "custom",
                 render: () => (
-                    <ModuleSelect
-                        name="module"
-                        label="Module"
-                        placeholder="Select Module"
+                    <ModuleMultiSelect
+                        name="availableModules"
+                        label="Select Modules"
+                        placeholder="Select Modules"
+                        include={['pos', 'ecommerce', 'logistics', 'crm', 'marketing', 'integrations']}
                     />
                 )
             }
@@ -239,6 +240,7 @@ export const TaxList = () => {
                 }))
             ];
             // Scoped View for Super Admin
+            let isBusinessUnitDisabled = false;
             if (paramBusinessUnit) {
                 const currentBU = businessUnits.find((b: any) =>
                     b.id === paramBusinessUnit ||
@@ -250,6 +252,7 @@ export const TaxList = () => {
                         { label: "Global (No Business Unit)", value: "global" },
                         { label: currentBU.name, value: currentBU._id }
                     ];
+                    isBusinessUnitDisabled = true;
                 }
             }
 
@@ -259,7 +262,7 @@ export const TaxList = () => {
                 type: "select",
                 options: options,
                 placeholder: "Select Business Unit",
-                disabled: false
+                disabled: isBusinessUnitDisabled
             });
         }
         return fields;
@@ -270,14 +273,14 @@ export const TaxList = () => {
             return {
                 ...editingTax,
                 status: editingTax.isActive ? 'active' : 'inactive',
-                module: editingTax.module || "system",
+                availableModules: editingTax.availableModules || ["system"],
                 businessUnit: (editingTax as any).businessUnit || "global"
             };
         }
         return {
             status: "active",
             type: 'percentage',
-            module: "system",
+            availableModules: ["system"],
             businessUnit: isSuperAdmin ? (paramBusinessUnit ? businessUnits.find((b: any) => b.slug === paramBusinessUnit || b._id === paramBusinessUnit)?._id : "global") : "global"
         }
     };

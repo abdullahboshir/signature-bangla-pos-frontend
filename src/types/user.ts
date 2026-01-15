@@ -1,8 +1,8 @@
 export interface IPermissionAssignment {
   role: any;
-  scopeType: 'global' | 'business-unit' | 'outlet';
+  scopeType: "global" | "business-unit" | "outlet";
   scopeId?: string | null;
-  scopeModel?: 'BusinessUnit' | 'Outlet' | null;
+  scopeModel?: "BusinessUnit" | "Outlet" | null;
 }
 
 export interface User {
@@ -15,31 +15,31 @@ export interface User {
   };
   fullName?: string; // Virtual property often coming from backend
   phone?: string;
-  
+
   // Enterprise Access Model
   globalRoles?: any[]; // Global Roles
   businessAccess?: any[]; // Scoped Access
-  
+
   // Auth & Roles (Legacy Compatibility)
-  role: string[]; 
+  role: string[];
   roles: any[];
   permissions: any[]; // Legacy or simple strings
   isSuperAdmin?: boolean;
-  
+
   // Organization
   businessUnits?: any[];
   branches?: string[];
-  
+
   // User Details
   designation?: string;
   profileImg?: string;
   avatar?: string;
-  
+
   // Status
   status?: string;
   isActive?: boolean;
   isDeleted?: boolean;
-  
+
   // Authorization Context (Effective Permissions)
   hierarchyLevel?: number;
   dataScope?: string; // e.g. 'global', 'business', 'outlet', 'own'
@@ -49,16 +49,18 @@ export interface User {
     customers: number;
   };
   effectivePermissions?: any[]; // Populated permission objects
-  
+
   createdAt?: string;
   updatedAt?: string;
   context?: {
     primary?: {
       businessUnit?: { _id: string; slug: string; id: string };
+      company?: { _id: string; name: string; slug: string };
       outlet?: { _id: string; name: string };
       role?: string;
     };
     available?: Array<{
+      company: { _id: string; slug: string; id: string; name: string };
       businessUnit: { _id: string; slug: string; id: string; name: string };
       outlets: Array<{ _id: string; name: string }>;
       outletCount: number;

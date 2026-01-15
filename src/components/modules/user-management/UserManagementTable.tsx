@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { AutoFormModal } from "@/components/shared/AutoFormModal"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { useGetAllUsersQuery, useCreateUserMutation, useUpdateUserMutation, useDeleteUserMutation } from "@/redux/api/iam/userApi"
 
 import Swal from "sweetalert2"
@@ -54,6 +54,8 @@ interface UserManagementTableProps {
 export function UserManagementTable({ viewScope = 'all' }: UserManagementTableProps) {
     const params = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const companyId = searchParams.get('companyId');
     const { currentBusinessUnit } = useCurrentBusinessUnit();
     const { user: currentUser } = useAuth();
 
@@ -91,14 +93,14 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
         data: rawUsers,
         isLoading: isLoadingUsers,
         refetch: refetchUsers
-    } = useGetAllUsersQuery({});
+    } = useGetAllUsersQuery({ companyId: companyId || undefined });
 
     const { hasPermission } = usePermissions();
 
-    const { data: rawRoles = [] } = useGetRolesQuery({});
+    const { data: rawRoles = [] } = useGetRolesQuery({ companyId: companyId || undefined });
 
     // Fetch Business Units for Super Admin to populate dropdown
-    const { data: rawBusinessUnits = [] } = useGetBusinessUnitsQuery(undefined, { skip: !isSuperAdmin });
+    const { data: rawBusinessUnits = [] } = useGetBusinessUnitsQuery({ companyId: companyId || undefined }, { skip: !isSuperAdmin });
 
     // Fetch All Outlets for Lookup (handling missing population)
     const { data: rawOutlets } = useGetOutletsQuery({ limit: 1000 }, { skip: !isSuperAdmin });
@@ -616,7 +618,7 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
             <DataPageLayout
                 title="All Users"
                 description="View and manage all user accounts across the system."
-                createAction={hasPermission(PERMISSION_KEYS.USER.CREATE) ? {
+                createAction={hasPermission(PERMISSION_KEYS.USER.CREATE) || hasPermission(PERMISSION_KEYS.STAFF.CREATE) ? {
                     label: "Add User",
                     onClick: handleCreate
                 } : undefined}

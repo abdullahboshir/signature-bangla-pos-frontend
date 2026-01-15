@@ -13,11 +13,11 @@ const data = [
     { name: "Jul", total: 4200 },
 ];
 
-export function GrowthChart() {
+export function GrowthChart({ title }: { title?: string }) {
     return (
-        <Card className="col-span-4">
+        <Card className="col-span-4 h-full">
             <CardHeader>
-                <CardTitle>Platform Revenue Growth</CardTitle>
+                <CardTitle>{title || "Revenue Growth"}</CardTitle>
             </CardHeader>
             <CardContent className="pl-2">
                 <ResponsiveContainer width="100%" height={350}>

@@ -13,7 +13,7 @@ import { Loader2 } from "lucide-react"
 import { useGetRolesQuery } from "@/redux/api/iam/roleApi"
 import { useCreateUserMutation } from "@/redux/api/iam/userApi"
 import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi"
-import { useGetOutletQuery } from "@/redux/api/organization/outletApi"
+
 import { useGetPermissionsQuery } from "@/redux/api/iam/roleApi"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus } from "lucide-react"
@@ -26,7 +26,16 @@ export default function AddUserPage() {
   const params = useParams()
   const paramBusinessUnit = params["business-unit"] as string
 
-  // Compute Locked BU ID
+  // Query Hooks
+  const { data: rolesData, isLoading: isLoadingRoles } = useGetRolesQuery({})
+  const { data: businessUnitsData, isLoading: isLoadingBUs } = useGetBusinessUnitsQuery(undefined)
+
+  const roles = Array.isArray(rolesData) ? rolesData : []
+  // Handle BU data safely
+  const businessUnits = Array.isArray(businessUnitsData) ? businessUnitsData :
+    ((businessUnitsData as any)?.data || businessUnitsData || []);
+
+  // Compute Locked BU ID (moved after businessUnits is defined)
   const lockedBusinessUnitId = useMemo(() => {
     if (!paramBusinessUnit || !businessUnits || businessUnits.length === 0) return undefined;
     const matched = businessUnits.find((b: any) =>
@@ -36,15 +45,6 @@ export default function AddUserPage() {
     );
     return matched?._id || matched?.id;
   }, [paramBusinessUnit, businessUnits]);
-
-  // Query Hooks
-  const { data: rolesData, isLoading: isLoadingRoles } = useGetRolesQuery({})
-  const { data: businessUnitsData, isLoading: isLoadingBUs } = useGetBusinessUnitsQuery(undefined)
-
-  const roles = Array.isArray(rolesData) ? rolesData : []
-  // Handle BU data safely
-  const businessUnits = Array.isArray(businessUnitsData) ? businessUnitsData :
-    ((businessUnitsData as any)?.data || businessUnitsData || []);
 
 
   const [formData, setFormData] = useState({
@@ -190,7 +190,7 @@ export default function AddUserPage() {
   return (
     <div className="container mx-auto py-6 space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Add New User</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Add Staff</h1>
         <p className="text-muted-foreground">
           Create a new user account and assign roles/permissions.
         </p>

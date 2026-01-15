@@ -234,6 +234,8 @@ export const BrandList = () => {
             ];
 
             // Scoped View for Super Admin
+            let isBusinessUnitDisabled = false;
+
             if (paramBusinessUnit) {
                 const currentBU = businessUnits.find((b: any) =>
                     b.id === paramBusinessUnit ||
@@ -242,9 +244,10 @@ export const BrandList = () => {
                 );
                 if (currentBU) {
                     options = [
-                        { label: "Global (No Business Unit)", value: "global" },
+                        { label: "Global (No Business Unit)", value: "global"},
                         { label: currentBU.name, value: currentBU._id }
                     ];
+                    isBusinessUnitDisabled = true;
                 }
             }
 
@@ -254,18 +257,19 @@ export const BrandList = () => {
                 type: "select",
                 options: options,
                 placeholder: "Select Business Unit",
-                disabled: false
+                disabled: isBusinessUnitDisabled
             });
         }
         fields.push({
             name: "availableModules",
-            label: "Available Modules",
+            // label: "Available Modules",
             type: "custom",
             render: () => (
                 <ModuleMultiSelect
                     name="availableModules"
                     label="Available Modules"
                     placeholder="Select available modules..."
+                    include={['pos', 'ecommerce', 'logistics', 'crm', 'marketing', 'integrations']}
                 />
             )
         });
@@ -320,7 +324,7 @@ export const BrandList = () => {
                     businessUnit: (editingBrand.businessUnit as any)?.id || (editingBrand.businessUnit as any)?._id || editingBrand.businessUnit || "global"
                 } : {
                     status: "active",
-                    availableModules: [],
+                    availableModules: ['pos', 'ecommerce', 'logistics', 'crm', 'marketing', 'integrations'],
                     businessUnit: isSuperAdmin ? (paramBusinessUnit ? businessUnits.find((b: any) => b.slug === paramBusinessUnit || b._id === paramBusinessUnit)?._id : "global") : "global"
                 }}
                 onSubmit={handleSubmit}

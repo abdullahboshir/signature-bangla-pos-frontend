@@ -9,8 +9,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Building2, Plus } from "lucide-react";
+import { isSuperAdmin as checkIsSuperAdmin, isCompanyOwner as checkIsCompanyOwner } from "@/config/auth-constants";
+import { useCurrentRole } from "@/hooks/useCurrentRole";
 
 interface CompanySwitcherProps {
     currentCompanyId: string | null;
@@ -20,10 +22,25 @@ interface CompanySwitcherProps {
 export function CompanySwitcher({ currentCompanyId, companies }: CompanySwitcherProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const pathname = usePathname();
+    const { currentRole } = useCurrentRole();
 
     const { setActiveBusinessUnit } = useAuth();
+    
+    const isCompanyAdminRoute = pathname.startsWith('/company-admin');
+    const isSuperAdminRole = checkIsSuperAdmin(currentRole);
+    const isCompanyOwnerRole = checkIsCompanyOwner(currentRole) && !isSuperAdminRole;
+    
+    // Determine base path based on role
+    const getBasePath = () => {
+        if (isSuperAdminRole) return '/global';
+        if (isCompanyOwnerRole || isCompanyAdminRoute) return '/company-admin';
+        return '/global';
+    };
+    
     const handleSwitchCompany = (companyId: string) => {
         const params = new URLSearchParams(searchParams.toString());
+        const basePath = getBasePath();
 
         if (companyId === 'add-new') {
             router.push(`/global/companies/add`);
@@ -36,11 +53,11 @@ export function CompanySwitcher({ currentCompanyId, companies }: CompanySwitcher
             localStorage.removeItem('active-business-unit');
 
             params.delete('company');
-            router.push(`/global/dashboard`);
+            router.push(`${basePath}/dashboard`);
         } else {
             // Set company context
             params.set('company', companyId);
-            router.push(`/global/dashboard?${params.toString()}`);
+            router.push(`${basePath}/dashboard?${params.toString()}`);
         }
     };
 

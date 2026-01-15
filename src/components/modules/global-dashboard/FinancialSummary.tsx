@@ -1,46 +1,46 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowUpRight, ArrowDownRight, CreditCard, DollarSign } from "lucide-react";
 
-export function FinancialSummary() {
+export function FinancialSummary({ stats }: { stats: any }) {
+    const totalSales = stats?.totalSales || stats?.revenue || "৳ 0.00";
+    const totalExpense = stats?.totalExpense || stats?.expense || "৳ 0.00";
+    
     return (
-        <Card className="col-span-1 lg:col-span-4">
+        <Card className="col-span-1 lg:col-span-4 h-full">
             <CardHeader>
-                <CardTitle>Financial Overview</CardTitle>
+                <CardTitle>Financial Summary</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
                         <div className="flex items-center text-sm text-muted-foreground">
                             <CreditCard className="mr-2 h-4 w-4" />
-                            Pending Payouts
+                            Total Sales / Revenue
                         </div>
-                        <div className="text-2xl font-bold">BDT 45,231.89</div>
+                        <div className="text-xl font-bold">{totalSales}</div>
                         <p className="text-xs text-muted-foreground">
-                            Scheduled for next Tuesday
+                            Gross processed amount
                         </p>
                     </div>
                     <div className="space-y-2">
                         <div className="flex items-center text-sm text-muted-foreground">
                             <DollarSign className="mr-2 h-4 w-4" />
-                            Total Processed (YTD)
+                            Total Expenses
                         </div>
-                        <div className="text-2xl font-bold">BDT 2,345,000.00</div>
-                        <div className="flex items-center text-xs text-green-500">
-                            <ArrowUpRight className="mr-1 h-3 w-3" />
-                            +20.1% from last year
+                        <div className="text-xl font-bold">{totalExpense}</div>
+                        <div className="flex items-center text-xs text-orange-500">
+                            Operational costs
                         </div>
                     </div>
                     <div className="space-y-2">
                         <div className="flex items-center text-sm text-muted-foreground">
-                            <ArrowDownRight className="mr-2 h-4 w-4" />
-                            Refund Rate
+                            <ArrowUpRight className="mr-2 h-4 w-4" />
+                            Net Performance
                         </div>
-                        <div className="text-2xl font-bold">1.2%</div>
-                        <div className="flex items-center text-xs text-green-500">
-                            <ArrowDownRight className="mr-1 h-3 w-3" />
-                            -0.4% from last month
-                        </div>
+                        <div className="text-xl font-bold">{stats?.net || "৳ 0.00"}</div>
+                        <p className="text-xs text-green-500">
+                            Final profit summary
+                        </p>
                     </div>
                 </div>
             </CardContent>

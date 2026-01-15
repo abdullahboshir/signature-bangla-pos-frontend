@@ -1,22 +1,12 @@
-import { baseApi } from './baseApi';
+import { baseApi } from "./baseApi";
 
 export interface CrudApiConfig {
-  /** Resource name (singular, lowercase) - e.g., 'brand', 'unit' */
   resourceName: string;
-  
-  /** Base URL for the resource - e.g., '/super-admin/brands' */
   baseUrl: string;
-  
-  /** Tag type for cache invalidation */
-  tagType: any; // Changed from string to any to accept tag types
-  
-  /** Optional: Custom transform for list response */
+  tagType: any;
   transformList?: (response: any) => any;
-  
-  /** Optional: Custom transform for single item response */
   transformItem?: (response: any) => any;
-  
-  /** Optional: Disable specific endpoints */
+
   endpoints?: {
     create?: boolean;
     getAll?: boolean;
@@ -31,28 +21,27 @@ export const createCrudApi = (config: CrudApiConfig) => {
     resourceName,
     baseUrl,
     tagType,
-    transformList = (response: any) => 
-      response.data?.data?.result || 
-      response.data?.data || 
-      response.data?.result || 
-      response.data || 
+    transformList = (response: any) =>
+      response.data?.data?.result ||
+      response.data?.data ||
+      response.data?.result ||
+      response.data ||
       [],
     transformItem = (response: any) => response.data?.data || response.data,
-    endpoints = {}
+    endpoints = {},
   } = config;
 
-  // All endpoints enabled by default
   const enabledEndpoints = {
     create: true,
     getAll: true,
     getOne: true,
     update: true,
     delete: true,
-    ...endpoints
+    ...endpoints,
   };
 
-  // Capitalize first letter for hook names
-  const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
+  const capitalize = (str: string) =>
+    str.charAt(0).toUpperCase() + str.slice(1);
   const capitalizedName = capitalize(resourceName);
 
   const api = baseApi.injectEndpoints({
@@ -64,8 +53,8 @@ export const createCrudApi = (config: CrudApiConfig) => {
         endpointConfig[`create${capitalizedName}`] = build.mutation({
           query: (data: any) => ({
             url: baseUrl,
-            method: 'POST',
-            contentType: 'application/json',
+            method: "POST",
+            contentType: "application/json",
             data,
           }),
           transformResponse: transformItem,
@@ -78,7 +67,7 @@ export const createCrudApi = (config: CrudApiConfig) => {
         endpointConfig[`get${capitalizedName}s`] = build.query({
           query: (params: any) => ({
             url: baseUrl,
-            method: 'GET',
+            method: "GET",
             params,
           }),
           transformResponse: transformList,
@@ -91,7 +80,7 @@ export const createCrudApi = (config: CrudApiConfig) => {
         endpointConfig[`get${capitalizedName}`] = build.query({
           query: (id: any) => ({
             url: `${baseUrl}/${id}`,
-            method: 'GET',
+            method: "GET",
           }),
           transformResponse: transformItem,
           providesTags: [tagType as any],
@@ -103,8 +92,8 @@ export const createCrudApi = (config: CrudApiConfig) => {
         endpointConfig[`update${capitalizedName}`] = build.mutation({
           query: (data: any) => ({
             url: `${baseUrl}/${data.id}`,
-            method: 'PATCH',
-            contentType: 'application/json',
+            method: "PATCH",
+            contentType: "application/json",
             data: data.body,
           }),
           transformResponse: transformItem,
@@ -117,7 +106,7 @@ export const createCrudApi = (config: CrudApiConfig) => {
         endpointConfig[`delete${capitalizedName}`] = build.mutation({
           query: (id: any) => ({
             url: `${baseUrl}/${id}`,
-            method: 'DELETE',
+            method: "DELETE",
           }),
           transformResponse: transformItem,
           invalidatesTags: [tagType as any],
@@ -130,30 +119,35 @@ export const createCrudApi = (config: CrudApiConfig) => {
 
   // Generate hooks object
   const hooks: any = {};
-  
+
   if (enabledEndpoints.create) {
-    hooks[`useCreate${capitalizedName}Mutation`] = 
-      (api as any)[`useCreate${capitalizedName}Mutation`];
+    hooks[`useCreate${capitalizedName}Mutation`] = (api as any)[
+      `useCreate${capitalizedName}Mutation`
+    ];
   }
-  
+
   if (enabledEndpoints.getAll) {
-    hooks[`useGet${capitalizedName}sQuery`] = 
-      (api as any)[`useGet${capitalizedName}sQuery`];
+    hooks[`useGet${capitalizedName}sQuery`] = (api as any)[
+      `useGet${capitalizedName}sQuery`
+    ];
   }
-  
+
   if (enabledEndpoints.getOne) {
-    hooks[`useGet${capitalizedName}Query`] = 
-      (api as any)[`useGet${capitalizedName}Query`];
+    hooks[`useGet${capitalizedName}Query`] = (api as any)[
+      `useGet${capitalizedName}Query`
+    ];
   }
-  
+
   if (enabledEndpoints.update) {
-    hooks[`useUpdate${capitalizedName}Mutation`] = 
-      (api as any)[`useUpdate${capitalizedName}Mutation`];
+    hooks[`useUpdate${capitalizedName}Mutation`] = (api as any)[
+      `useUpdate${capitalizedName}Mutation`
+    ];
   }
-  
+
   if (enabledEndpoints.delete) {
-    hooks[`useDelete${capitalizedName}Mutation`] = 
-      (api as any)[`useDelete${capitalizedName}Mutation`];
+    hooks[`useDelete${capitalizedName}Mutation`] = (api as any)[
+      `useDelete${capitalizedName}Mutation`
+    ];
   }
 
   return { api, hooks };

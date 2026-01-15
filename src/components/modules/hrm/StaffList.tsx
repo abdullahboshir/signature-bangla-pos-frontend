@@ -6,12 +6,15 @@ import { DataTable } from "@/components/shared/DataTable"
 import { Users, Plus } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
 import { PERMISSION_KEYS } from "@/config/permission-keys"
+import { useParams, useRouter } from "next/navigation"
 import { ColumnDef } from "@tanstack/react-table"
 import { useGetAllUsersQuery } from "@/redux/api/iam/userApi"
 import { Badge } from "@/components/ui/badge"
 
 export default function StaffList() {
     const { hasPermission } = usePermissions();
+    const router = useRouter();
+    const params = useParams();
     const { data: rawData, isLoading } = useGetAllUsersQuery({});
 
     // Filter mainly staff members (non-customers) or show all with role badge
@@ -64,7 +67,13 @@ export default function StaffList() {
                     <CardDescription>Manage employee information and records.</CardDescription>
                 </div>
                 {hasPermission(PERMISSION_KEYS.STAFF.CREATE) && (
-                    <Button>
+                    <Button onClick={() => {
+                        if (params["business-unit"]) {
+                            router.push(`/${params["business-unit"]}/user-management/business-users/add`);
+                        } else {
+                            router.push('/global/user-management/business-users/add');
+                        }
+                    }}>
                         <Plus className="mr-2 h-4 w-4" />
                         Add Staff
                     </Button>

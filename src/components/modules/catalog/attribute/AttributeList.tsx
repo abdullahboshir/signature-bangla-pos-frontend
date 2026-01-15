@@ -201,6 +201,7 @@ export const AttributeList = () => {
                 }))
             ];
             // Scoped View for Super Admin
+              let isBusinessUnitDisabled = false;
             if (paramBusinessUnit) {
                 const currentBU = businessUnits.find((b: any) =>
                     b.id === paramBusinessUnit ||
@@ -213,6 +214,7 @@ export const AttributeList = () => {
                         { label: currentBU.name, value: currentBU._id }
                     ];
                 }
+                isBusinessUnitDisabled = true;
             }
 
             fields.push({
@@ -221,7 +223,7 @@ export const AttributeList = () => {
                 type: "select",
                 options: options,
                 placeholder: "Select Business Unit",
-                disabled: false // Always enable for Super Admin so they can switch between Global/Scoped
+                disabled: isBusinessUnitDisabled // Always enable for Super Admin so they can switch between Global/Scoped
             });
         }
         return fields;

@@ -1,4 +1,5 @@
 "use client"
+import { useRouter, useSearchParams } from "next/navigation"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -7,9 +8,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, Plus, MinusIcon } from "lucide-react"
 import { useGetRolesQuery, useGetPermissionsQuery, useGetPermissionGroupsQuery, useGetPermissionResourcesQuery } from "@/redux/api/iam/roleApi"
-import { isSuperAdmin } from "@/config/auth-constants"
+import { isSuperAdmin, USER_ROLES, matchesRole } from "@/config/auth-constants"
 import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi"
 import { useGetSystemSettingsQuery } from "@/redux/api/system/settingsApi";
+import { useAuth } from "@/hooks/useAuth";
 import { OutletMultiSelect } from "@/components/modules/user-management/OutletMultiSelect"
 import { User } from "@/types/user";
 import { RESOURCE_KEYS, PLATFORM_RESOURCES, MODULE_RESOURCE_MAP } from "@/config/permission-keys";
@@ -35,8 +37,59 @@ export interface UserFormProps {
 }
 
 export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, apiError, targetScope, initialBusinessUnitSlug }: UserFormProps) {
-    const { data: rolesData } = useGetRolesQuery({}, { refetchOnMountOrArgChange: true })
-    const { data: businessUnitsData } = useGetBusinessUnitsQuery(undefined)
+    const searchParams = useSearchParams();
+    const { user: currentUser } = useAuth();
+    
+    const availableCompanies = useMemo(() => {
+        const contexts = currentUser?.context?.available || [];
+        const companiesMap = new Map();
+        contexts.forEach((ctx: any) => {
+            if (ctx.company && ctx.company._id) {
+                companiesMap.set(ctx.company._id, ctx.company);
+            }
+        });
+        return Array.from(companiesMap.values());
+    }, [currentUser]);
+
+    const [selectedCompanyId, setSelectedCompanyId] = useState<string>(() => {
+        const urlCompanyId = searchParams.get('company') || searchParams.get('companyId');
+        if (urlCompanyId) return urlCompanyId;
+        
+        // Auto-detect if only 1 company
+        if (availableCompanies.length === 1) return availableCompanies[0]._id;
+        
+        // Fallback to primary company if it's in the available list
+        const primaryCompanyId = (currentUser as any)?.context?.primary?.company?._id || (currentUser as any)?.company?._id || (currentUser as any)?.companyId;
+        if (primaryCompanyId) return primaryCompanyId;
+
+        return "";
+    });
+
+    // Handle delayed loading of availableCompanies
+    useEffect(() => {
+        if (!selectedCompanyId && availableCompanies.length === 1) {
+            setSelectedCompanyId(availableCompanies[0]._id);
+        }
+    }, [availableCompanies, selectedCompanyId]);
+
+    useEffect(() => {
+        const urlCompanyId = searchParams.get('company') || searchParams.get('companyId');
+        if (urlCompanyId && urlCompanyId !== selectedCompanyId) {
+            setSelectedCompanyId(urlCompanyId);
+        }
+    }, [searchParams, selectedCompanyId]);
+    const isPlatformUser = useMemo(() => {
+        return currentUser?.roles?.some((r: any) => 
+            matchesRole(typeof r === 'string' ? r : r.name, [
+                USER_ROLES.SUPER_ADMIN, 
+                USER_ROLES.PLATFORM_ADMIN, 
+                USER_ROLES.PLATFORM_SUPPORT
+            ])
+        );
+    }, [currentUser]);
+
+    const { data: rolesData } = useGetRolesQuery({ company: selectedCompanyId || undefined }, { refetchOnMountOrArgChange: true, skip: !selectedCompanyId && !isPlatformUser })
+    const { data: businessUnitsData } = useGetBusinessUnitsQuery({ company: selectedCompanyId || undefined }, { skip: !selectedCompanyId && !isPlatformUser })
     const { data: permissionGroupsData } = useGetPermissionGroupsQuery({ limit: 1000 })
     const { data: permissionsDataForLookup } = useGetPermissionsQuery({ limit: 5000 }, { refetchOnMountOrArgChange: true })
     const { data: allResources } = useGetPermissionResourcesQuery(undefined);
@@ -222,13 +275,15 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.firstName || !formData.email) { toast.error("Please fill all required fields"); return; }
+        if (availableCompanies.length > 0 && !selectedCompanyId) { toast.error("Please select a company"); return; }
         if (roleAssignments.length === 0) { toast.error("Please assign at least one role"); return; }
         const permissionsPayload: any[] = [];
         roleAssignments.forEach(r => {
+            const assignmentCompany = selectedCompanyId || null;
             if (r.businessUnit) {
-                if (r.outlets.length > 0) r.outlets.forEach(outletId => permissionsPayload.push({ role: r.role, businessUnit: r.businessUnit, outlet: outletId, scope: 'OUTLET', isPrimary: false }));
-                else permissionsPayload.push({ role: r.role, businessUnit: r.businessUnit, outlet: null, scope: 'BUSINESS', isPrimary: false, status: 'ACTIVE' });
-            } else permissionsPayload.push({ role: r.role, businessUnit: null, outlet: null, scope: 'GLOBAL', isPrimary: false, status: 'ACTIVE' });
+                if (r.outlets.length > 0) r.outlets.forEach(outletId => permissionsPayload.push({ role: r.role, company: assignmentCompany, businessUnit: r.businessUnit, outlet: outletId, scope: 'OUTLET', isPrimary: false }));
+                else permissionsPayload.push({ role: r.role, company: assignmentCompany, businessUnit: r.businessUnit, outlet: null, scope: 'BUSINESS', isPrimary: false, status: 'ACTIVE' });
+            } else permissionsPayload.push({ role: r.role, company: assignmentCompany, businessUnit: null, outlet: null, scope: 'GLOBAL', isPrimary: false, status: 'ACTIVE' });
         });
         if (permissionsPayload.length > 0) permissionsPayload[0].isPrimary = true;
         const payload: any = {
@@ -241,6 +296,7 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
             roles: permissionsPayload.map(p => p.role),
             businessUnits: permissionsPayload.map(p => p.businessUnit).filter(Boolean),
             businessUnit: permissionsPayload.find(p => p.businessUnit)?.businessUnit || null,
+            company: selectedCompanyId || permissionsPayload.find(p => p.company)?.company || null,
         };
         if (formData.password) payload.password = formData.password;
         else if (mode === 'create') payload.password = "@Abcd1234@";
@@ -265,26 +321,59 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
                         <CardHeader className="pb-3"><div className="flex items-center justify-between"><div><CardTitle>Role Assignments</CardTitle><CardDescription>Assign Scoped Roles.</CardDescription></div><Button type="button" size="sm" onClick={addRoleAssignment} variant="outline"><Plus className="h-4 w-4" /></Button></div></CardHeader>
                         <CardContent>
                             <div className="space-y-4">
+                                {(!isPlatformUser && availableCompanies.length > 1) && (
+                                    <div className="space-y-1 pb-2 border-b">
+                                        <Label className="text-xs text-muted-foreground">Select Company</Label>
+                                        <Select value={selectedCompanyId} onValueChange={(val) => {
+                                            setSelectedCompanyId(val);
+                                            setRoleAssignments([]); // Reset assignments as they are company-specific
+                                        }}>
+                                            <SelectTrigger className="h-9">
+                                                <SelectValue placeholder="Select Company" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {availableCompanies.map((comp: any) => (
+                                                    <SelectItem key={comp._id} value={comp._id}>{comp.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+                                {(!isPlatformUser && availableCompanies.length === 1) && (
+                                    <div className="space-y-1 pb-2 border-b">
+                                        <Label className="text-xs text-muted-foreground">Selected Company</Label>
+                                        <div className="text-sm font-medium px-1 underline decoration-primary/30 underline-offset-4">
+                                            {availableCompanies[0].name}
+                                        </div>
+                                    </div>
+                                )}
                                 {roleAssignments.length === 0 ? <div className="text-sm text-center text-muted-foreground py-8 border border-dashed rounded-md">No roles assigned.</div> : (
                                     <div className="space-y-3">
                                         {roleAssignments.map((assignment) => (
                                             <div key={assignment.tempId} className="border rounded-md p-3 relative bg-card">
                                                 <div className="absolute top-2 right-2"><Button variant="ghost" size="icon" onClick={() => removeRoleAssignment(assignment.tempId)} className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50"><MinusIcon className="h-3 w-3" /></Button></div>
                                                 <div className="space-y-3 text-sm ">
-                                                    <div className="space-y-1"><Label className="text-xs text-muted-foreground">Business Unit</Label>{targetScope === 'GLOBAL' ? <div className="flex h-9 w-full items-center px-3 py-2 text-sm border rounded-md bg-muted text-muted-foreground">Global (Platform User)</div> : (
-                                                        <select className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50" value={assignment.businessUnit} onChange={(e) => { updateRoleAssignment(assignment.tempId, "businessUnit", e.target.value); updateRoleAssignment(assignment.tempId, "outlets", []); updateRoleAssignment(assignment.tempId, "role", ""); }} disabled={!!lockedBusinessUnitId}><option value="">Global (No Business Unit)</option>{businessUnits.map((bu: any) => <option key={bu._id} value={bu._id}>{bu.name}</option>)}</select>
+                                                    <div className="space-y-1"><Label className="text-xs text-muted-foreground">Business Unit</Label>{targetScope === 'GLOBAL' ? <div className="flex h-9 w-full items-center px-3 py-2 text-sm border rounded-md bg-muted text-muted-foreground">{isPlatformUser ? "Platform (Global)" : "Company Wide"}</div> : (
+                                                    <select className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50" value={assignment.businessUnit} onChange={(e) => { updateRoleAssignment(assignment.tempId, "businessUnit", e.target.value); updateRoleAssignment(assignment.tempId, "outlets", []); updateRoleAssignment(assignment.tempId, "role", ""); }} disabled={!!lockedBusinessUnitId}>
+                                                            {isPlatformUser && <option value="">Platform (Global)</option>}
+                                                            {!isPlatformUser && <option value="">Company (Direct)</option>}
+                                                            {!isPlatformUser && <option value="" disabled>Select Business Unit</option>}
+                                                            {businessUnits.map((bu: any) => <option key={bu._id} value={bu._id}>{bu.name}</option>)}
+                                                        </select>
                                                     )}</div>
                                                     {assignment.businessUnit && <div className="space-y-1"><Label className="text-xs text-muted-foreground">Outlets (Optional)</Label><OutletMultiSelect businessUnitId={assignment.businessUnit} selectedOutlets={assignment.outlets} onChange={(newOutlets) => { updateRoleAssignment(assignment.tempId, "outlets", newOutlets); updateRoleAssignment(assignment.tempId, "role", ""); }} /></div>}
                                                     <div className="space-y-1"><Label className="text-xs text-muted-foreground">Role</Label><Select value={assignment.role} onValueChange={(val) => updateRoleAssignment(assignment.tempId, "role", val)}><SelectTrigger><SelectValue placeholder="Select Role" /></SelectTrigger><SelectContent className="max-h-116">
                                                         {roles.filter((r: any) => {
-                                                            if (isSuperAdmin(r.id)) return false;
                                                             const hasOutlets = assignment.outlets && assignment.outlets.length > 0;
                                                             if (hasOutlets) return r.roleScope === 'OUTLET';
-                                                            if (targetScope === 'GLOBAL') return r.roleScope === 'GLOBAL';
-                                                            return r.roleScope === 'BUSINESS' || r.roleScope === 'GLOBAL';
+                                                            if (targetScope === 'GLOBAL' || (assignment.businessUnit === "" && isPlatformUser)) return r.roleScope === 'GLOBAL';
+                                                            
+                                                            // Business Context: Allow Company, Business, and Outlet roles as candidates (filtered by specific logic above if needed)
+                                                            // But strictly exclude GLOBAL roles for non-platform contexts.
+                                                            return r.roleScope !== 'GLOBAL';
                                                         }).map((role: any) => {
                                                             let scopeBadge = null;
-                                                            if (role.roleScope === 'GLOBAL') scopeBadge = <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-purple-500/20 text-purple-600 rounded">Global</span>;
+                                                            if (role.roleScope === 'GLOBAL') scopeBadge = <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-purple-500/20 text-purple-600 rounded">Platform</span>;
                                                             else if (role.roleScope === 'BUSINESS') scopeBadge = <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-blue-500/20 text-blue-600 rounded">Business</span>;
                                                             else if (role.roleScope === 'OUTLET') scopeBadge = <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-green-500/20 text-green-600 rounded">Outlet</span>;
                                                             return <SelectItem key={role._id} value={role._id}><div className="flex items-center justify-between w-full"><span>{role.name}</span>{scopeBadge}</div></SelectItem>;

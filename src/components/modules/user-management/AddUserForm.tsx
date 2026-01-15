@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { usePermissions } from "@/hooks/usePermissions";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,7 +19,7 @@ import { useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitA
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrentBusinessUnit } from "@/hooks/useCurrentBusinessUnit";
 import { DataPageLayout } from "@/components/shared/DataPageLayout";
-import { USER_STATUS, ROLE_SCOPE } from "@/config/auth-constants";
+import { USER_STATUS, ROLE_SCOPE, USER_ROLES, matchesRole, normalizeAuthString } from "@/config/auth-constants";
 
 const userFormSchema = z.object({
     firstName: z.string().min(2, "First name is required"),
@@ -43,9 +43,16 @@ export default function AddUserForm({ isPlatformUser = false }: AddUserFormProps
     const { currentBusinessUnit } = useCurrentBusinessUnit();
     const { isSuperAdmin } = usePermissions();
 
+    const searchParams = useSearchParams();
+    const companyId = searchParams.get('companyId');
+
     const [createUser, { isLoading }] = useCreateUserMutation();
-    const { data: rawRoles = [] } = useGetRolesQuery({});
-    const { data: rawBusinessUnits = [] } = useGetBusinessUnitsQuery(undefined, { skip: !isSuperAdmin });
+    const { data: rawRoles = [] } = useGetRolesQuery({ companyId: companyId || undefined });
+    // Company Owners should ALSO be able to fetch business units for their context
+    const canSeeBUs = isSuperAdmin || (currentUser?.roles?.some((r: any) => 
+        matchesRole(typeof r === 'string' ? r : r.name, [USER_ROLES.COMPANY_OWNER])
+    ));
+    const { data: rawBusinessUnits = [] } = useGetBusinessUnitsQuery({ companyId: companyId || undefined }, { skip: !canSeeBUs });
 
     // Normalize Data
     // Normalize Data
@@ -58,14 +65,14 @@ export default function AddUserForm({ isPlatformUser = false }: AddUserFormProps
                 // Platform Context: Only Global Roles
                 return role.roleScope === ROLE_SCOPE.GLOBAL;
             } else {
-                // Business Context: Only Business/Outlet Roles (Not Global)
+                // Business Context: Only Business/Outlet/Company Roles (NOT Global for non-platform)
+                // We exclude GLOBAL because Global Roles are for Platform administration.
+                // COMPANY, BUSINESS, and OUTLET roles are relevant for business-level users.
                 return role.roleScope !== ROLE_SCOPE.GLOBAL;
             }
         });
     }, [rawRolesArray, isPlatformUser]);
     const availableBusinessUnits = Array.isArray(rawBusinessUnits) ? rawBusinessUnits : [];
-    console.log("availableRoles", rawRoles);
-    console.log("availableBusinessUnits", availableBusinessUnits);
     const form = useForm({
         resolver: zodResolver(userFormSchema),
         defaultValues: {
@@ -256,8 +263,8 @@ export default function AddUserForm({ isPlatformUser = false }: AddUserFormProps
                                 />
                             </div>
 
-                            {/* Business Unit Selection for Super Admin (Hidden for Platform Users) */}
-                            {(isSuperAdmin && !isPlatformUser) && (
+                            {/* Business Unit Selection for Super Admin & Company Owner (Hidden for Platform Users) */}
+                            {(canSeeBUs && !isPlatformUser) && (
                                 <FormField
                                     control={form.control}
                                     name="businessUnit"

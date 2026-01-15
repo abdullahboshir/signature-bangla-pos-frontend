@@ -21,6 +21,7 @@ interface ModuleSelectProps {
     label?: string;
     placeholder?: string;
     exclude?: ModuleType[];
+    include?: (ModuleType | string)[];
     className?: string;
     disabled?: boolean;
 }
@@ -30,11 +31,16 @@ export const ModuleSelect = ({
     label = "Module",
     placeholder = "Select a module",
     exclude = [],
+    include,
     className,
     disabled
 }: ModuleSelectProps) => {
     const { control } = useFormContext();
-    const options = getModuleOptions(exclude);
+    let options = getModuleOptions(exclude);
+
+    if (include && include.length > 0) {
+        options = options.filter(opt => include.includes(opt.value));
+    }
 
     return (
         <FormField

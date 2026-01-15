@@ -25,7 +25,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useGetPackagesQuery } from "@/redux/api/platform/packageApi";
-import { useCreateLicenseMutation } from "@/redux/api/platform/licenseApi";
+import { useCreateLicenseMutation, useGetLicensesQuery } from "@/redux/api/platform/licenseApi";
 import { Input } from "@/components/ui/input";
 import { Loader2, ShieldCheck, User, Building, LayoutDashboard, Database, ChevronDown, ChevronUp, RefreshCcw } from "lucide-react";
 import { CompanyColumn } from "./columns";
@@ -55,6 +55,103 @@ export function SubscriptionDialog({ company, open, onOpenChange }: Subscription
     const [isCalculating, setIsCalculating] = useState(false);
 
     const pkg = useMemo(() => packages?.data?.find((p: any) => p._id === selectedPackage), [packages, selectedPackage]);
+
+    console.log('pkg', pkg, backendPricing, isCalculating, packages)
+
+    // [NEW] Fetch existing license to prefill form
+    const { data: licenseData, isLoading: isLoadingLicense } = useGetLicensesQuery(
+        { clientId: company.id || (company as any)._id || (company as any).value },
+        { skip: !open } // Only fetch when dialog is open
+    );
+
+    const activeLicense = useMemo(() => {
+        if (!licenseData) return null;
+        
+        console.log("SubscriptionDialog: licenseData received:", licenseData);
+
+        // Based on axiosInstance + axiosBaseQuery:
+        // axiosInstance returns response.data (Body)
+        // axiosBaseQuery returns { data: Body }
+        // RTK Query hook returns { data: Body, ... }
+        // So 'licenseData' variable here IS the Body.
+        
+        const responseBody = licenseData;
+
+        let list: any[] = [];
+        
+        // Structure check:
+        // 1. Direct array: [ ... ]
+        // 2. { data: [...] } (Common API wrapper)
+        // 3. { result: [...] }
+        // 4. { data: { result: [...] } }
+        
+        if (Array.isArray(responseBody)) {
+            list = responseBody;
+        } else if (responseBody?.data && Array.isArray(responseBody.data)) {
+            list = responseBody.data;
+        } else if (responseBody?.result && Array.isArray(responseBody.result)) {
+            list = responseBody.result;
+        } else if (responseBody?.data?.result && Array.isArray(responseBody.data.result)) {
+            list = responseBody.data.result;
+        } else if (responseBody?.docs && Array.isArray(responseBody.docs)) {
+            list = responseBody.docs;
+        }
+
+        console.log("SubscriptionDialog: Extracted list:", list);
+
+        if (list.length > 0) return list[0]; 
+
+        // If body itself is the license object (not array)
+        if (responseBody?.packageId || responseBody?._id) return responseBody;
+        if (responseBody?.data?.packageId) return responseBody.data;
+
+        return null;
+    }, [licenseData]);
+
+    // PREFILL FORM with existing license data OR Fallback to Company details
+    useEffect(() => {
+        if (!open) return;
+
+        if (activeLicense) {
+            console.log("Prefilling from Active License:", activeLicense);
+            if (activeLicense.packageId) setSelectedPackage(activeLicense.packageId._id || activeLicense.packageId);
+            if (activeLicense.status) setStatus(activeLicense.status);
+            
+            // Prefill modules
+            if (activeLicense.customModules) {
+                const modules: Record<string, boolean> = {};
+                Object.entries(activeLicense.customModules).forEach(([key, val]: [string, any]) => {
+                    modules[key] = val.enabled;
+                });
+                setCustomModules(modules);
+            }
+
+            // Prefill limits
+            if (activeLicense.overriddenLimits) {
+                setCustomLimits(activeLicense.overriddenLimits);
+            }
+        } else if (company && !isLoadingLicense) {
+            // FALLBACK: Use Company Data directly if License API validation fails/is empty
+            console.log("Prefilling from Company Data (Fallback):", company);
+            
+            // 1. Try to match Package
+            if (company.subscription?.planName && packages?.data) {
+                const matchedPkg = packages.data.find((p: any) => p.name === company.subscription?.planName);
+                if (matchedPkg) setSelectedPackage(matchedPkg._id);
+            }
+
+            // 2. Prefill Status
+            if (company.subscription?.status) {
+                setStatus(company.subscription.status === 'expired' ? 'active' : company.subscription.status); 
+                // Default to active if expired, assuming they want to renew
+            }
+
+            // 3. Prefill Modules
+            if (company.activeModules) {
+                setCustomModules(company.activeModules);
+            }
+        }
+    }, [activeLicense, open, company, packages, isLoadingLicense]);
 
     // FETCH Real-time pricing from backend when configuration changes
     useEffect(() => {
@@ -233,28 +330,34 @@ export function SubscriptionDialog({ company, open, onOpenChange }: Subscription
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-2 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
-                                    {Object.entries(pkg.moduleAccess).map(([key, config]: [string, any]) => (
-                                        <div key={key} className="flex items-center justify-between gap-2 p-1.5 transition-colors hover:bg-white/50 rounded-md border border-transparent hover:border-primary/10">
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="checkbox"
-                                                    id={`mod-dl-${key}`}
-                                                    checked={customModules[key]}
-                                                    disabled={config.enabled && pkg.slug !== 'trial'} // Package base modules are mandatory except in trials where we might want to trim
-                                                    onChange={(e) => setCustomModules(prev => ({ ...prev, [key]: e.target.checked }))}
-                                                    className="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
-                                                />
-                                                <label htmlFor={`mod-dl-${key}`} className="text-[11px] font-semibold capitalize cursor-pointer">
-                                                    {key}
-                                                </label>
+                                    {Object.entries(pkg.moduleAccess).map(([key, config]: [string, any]) => {
+                                        const isErp = key === 'erp';
+                                        return (
+                                            <div key={key} className="flex items-center justify-between gap-2 p-1.5 transition-colors hover:bg-white/50 rounded-md border border-transparent hover:border-primary/10">
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        id={`mod-dl-${key}`}
+                                                        checked={isErp ? true : customModules[key]}
+                                                        disabled={isErp || (config.enabled && pkg.slug !== 'trial')} // Package base modules are mandatory except in trials, ERP is ALWAYS mandatory
+                                                        onChange={(e) => setCustomModules(prev => ({ ...prev, [key]: e.target.checked }))}
+                                                        className="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer disabled:opacity-50"
+                                                    />
+                                                    <label htmlFor={`mod-dl-${key}`} className="text-[11px] font-semibold capitalize cursor-pointer flex items-center gap-1.5">
+                                                        {key}
+                                                        {isErp && <span className="text-[9px] bg-primary/10 text-primary px-1 rounded border border-primary/20">CORE</span>}
+                                                    </label>
+                                                </div>
+                                                {isErp ? (
+                                                     <span className="text-[9px] font-medium text-muted-foreground bg-gray-100 px-1.5 rounded">Included</span>
+                                                ) : (config.monthlyPrice > 0 && !config.enabled) && (
+                                                    <span className={cn("text-[9px] font-bold px-1 rounded bg-emerald-50 text-emerald-600 border border-emerald-100", !customModules[key] && "opacity-40 grayscale")}>
+                                                        +{config.monthlyPrice}
+                                                    </span>
+                                                )}
                                             </div>
-                                            {(config.monthlyPrice > 0 && !config.enabled) && (
-                                                <span className={cn("text-[9px] font-bold px-1 rounded bg-emerald-50 text-emerald-600 border border-emerald-100", !customModules[key] && "opacity-40 grayscale")}>
-                                                    +{config.monthlyPrice}
-                                                </span>
-                                            )}
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}

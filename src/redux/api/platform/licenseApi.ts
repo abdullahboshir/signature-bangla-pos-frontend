@@ -24,7 +24,7 @@ export const licenseApi = baseApi.injectEndpoints({
         method: "POST",
         data: data,
       }),
-      invalidatesTags: [tagTypes.license],
+      invalidatesTags: [tagTypes.license, tagTypes.company],
     }),
     updateLicense: build.mutation({
       query: (data) => ({
@@ -32,14 +32,14 @@ export const licenseApi = baseApi.injectEndpoints({
         method: "PATCH",
         data: data.body,
       }),
-      invalidatesTags: [tagTypes.license],
+      invalidatesTags: [tagTypes.license, tagTypes.company],
     }),
     deleteLicense: build.mutation({
       query: (id) => ({
         url: `/platform/licenses/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [tagTypes.license],
+      invalidatesTags: [tagTypes.license, tagTypes.company],
     }),
   }),
 });

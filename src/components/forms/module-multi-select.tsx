@@ -32,6 +32,7 @@ interface ModuleMultiSelectProps {
     label?: string;
     placeholder?: string;
     exclude?: ModuleType[];
+    include?: ModuleType[];
     className?: string;
     value?: string[];
     onChange?: (value: string[]) => void;
@@ -43,6 +44,7 @@ export const ModuleMultiSelect = ({
     label = "Available Modules",
     placeholder = "Select modules...",
     exclude = [],
+    include,
     className,
     value: controlledValue,
     onChange: controlledOnChange,
@@ -50,7 +52,9 @@ export const ModuleMultiSelect = ({
 }: ModuleMultiSelectProps) => {
     const formContext = useFormContext();
     const [open, setOpen] = React.useState(false);
-    const options = getModuleOptions(exclude);
+    const options = getModuleOptions(exclude).filter(opt =>
+        include ? include.includes(opt.value) : true
+    );
 
     // Render function for the inner content to avoid code duplication
     const renderSelect = (value: string[], onChange: (val: string[]) => void) => {

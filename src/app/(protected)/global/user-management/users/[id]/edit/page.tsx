@@ -44,7 +44,7 @@ export default function GlobalEditUserPage() {
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Edit User (Global)</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Edit User</h1>
                     <p className="text-muted-foreground">
                         Manage user details, roles, and permissions across system.
                     </p>

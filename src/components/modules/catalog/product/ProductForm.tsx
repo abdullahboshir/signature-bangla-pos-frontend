@@ -6,7 +6,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Check, Loader2, Upload, X, Trash2, Plus } from "lucide-react";
+import { Check, Loader2, Upload, X, Trash2, Plus, Settings, LinkIcon } from "lucide-react";
 
 import { useGetCategoriesQuery } from "@/redux/api/catalog/categoryApi";
 
@@ -47,6 +47,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 
 import { defaultProductValues, productSchema, ProductFormValues } from "./product.schema";
 import { VariantGenerator } from "./components/VariantGenerator";
@@ -54,8 +59,10 @@ import { RelatedProducts } from "./components/RelatedProducts";
 import {
     PRODUCT_STATUS,
     PRODUCT_STATUS_OPTIONS,
-    WEIGHT_UNIT_OPTIONS,
-    DIMENSION_UNIT_OPTIONS
+    DIMENSION_UNIT_OPTIONS,
+    PRODUCT_DOMAIN_OPTIONS,
+    AVAILABLE_MODULES_OPTIONS,
+    WEIGHT_UNIT_OPTIONS
 } from "@/constant/product.constant";
 
 
@@ -258,6 +265,32 @@ export default function ProductForm({ initialData }: ProductFormProps) {
             }
 
 
+            // Sync root images with details images
+            payload.images = payload.details?.images || [];
+            // Sync root model and origin
+            payload.productmodel = payload.details?.model || payload.productmodel || "";
+            payload.origine = payload.details?.origin || payload.origine || "";
+            // Sync root tax and delivery (Required by Backend)
+            payload.tax = payload.pricing?.tax || payload.tax || { taxable: false, taxClass: "standard", taxRate: 0 };
+            payload.delivery = payload.shipping?.delivery || payload.delivery || { estimatedDelivery: "3-5 days", availableFor: "home_delivery" };
+
+            // Ensure physical properties are correctly mapped for variants
+            if (payload.variants && Array.isArray(payload.variants)) {
+                payload.variants = payload.variants.map((v: any) => ({
+                    ...v,
+                    physicalProperties: v.physicalProperties || {
+                        weight: v.weight || 0,
+                        weightUnit: v.weightUnit || "kg",
+                        dimensions: v.dimensions || {
+                            length: v.length || 0,
+                            width: v.width || 0,
+                            height: v.height || 0,
+                            unit: v.dimensionUnit || "cm"
+                        }
+                    }
+                }));
+            }
+
             if (initialData && initialData._id) {
                 await updateProduct({ id: initialData._id, body: payload }).unwrap();
                 toast.success("Product updated successfully!");
@@ -298,10 +331,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                         <TabsTrigger value="inventory">Inventory</TabsTrigger>
                         <TabsTrigger value="details">Details</TabsTrigger>
                         <TabsTrigger value="variants">Variants</TabsTrigger>
-                        {/* Shipping Tab - Hide if Digital or Service */}
-                        {!form.watch("attributes.isDigital") && !form.watch("attributes.isService") && (
-                            <TabsTrigger value="shipping">Shipping</TabsTrigger>
-                        )}
+                        <TabsTrigger value="shipping">Shipping</TabsTrigger>
                         <TabsTrigger value="seo">SEO</TabsTrigger>
                         <TabsTrigger value="recommended">Recommended</TabsTrigger>
                         {dynamicFields.length > 0 && <TabsTrigger value="attributes">{attributeGroupData?.data?.name || "Attributes"}</TabsTrigger>}
@@ -408,6 +438,37 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                                         ))}
                                                     </SelectContent>
                                                 </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+
+                                <Separator className="my-4" />
+                                <div className="space-y-4">
+                                    <h3 className="text-sm font-semibold">Visibility & Channel Settings</h3>
+                                    <FormField
+                                        control={form.control}
+                                        name="availableModules"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Available In Modules</FormLabel>
+                                                <div className="flex flex-wrap gap-2 pt-1">
+                                                    {AVAILABLE_MODULES_OPTIONS.map((module) => (
+                                                        <div key={module.value} className="flex items-center space-x-2 border rounded-md px-3 py-1 bg-background">
+                                                            <Checkbox 
+                                                                id={`module-${module.value}`}
+                                                                checked={(field.value || []).includes(module.value)}
+                                                                onCheckedChange={(checked) => {
+                                                                    const current = field.value || [];
+                                                                    if (checked) field.onChange([...current, module.value]);
+                                                                    else field.onChange(current.filter(v => v !== module.value));
+                                                                }}
+                                                            />
+                                                            <Label htmlFor={`module-${module.value}`} className="text-xs cursor-pointer">{module.label}</Label>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -767,52 +828,53 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                 {/* Images placeholder */}
                                 <div className="space-y-4">
                                     <FormLabel>Product Images</FormLabel>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        {/* Current Images List */}
-                                        {form.watch("details.images")?.map((img: string, idx: number) => (
-                                            <div key={idx} className="relative group border rounded-md overflow-hidden aspect-square">
-                                                <img src={img} alt={`Product ${idx}`} className="w-full h-full object-cover" />
-                                                <Button
-                                                    type="button"
-                                                    variant="destructive"
-                                                    size="icon"
-                                                    className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => {
-                                                        const current = form.getValues("details.images");
-                                                        form.setValue("details.images", current.filter((_, i) => i !== idx));
-                                                    }}
-                                                >
-                                                    <X className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        ))}
-
-                                        {/* Add New Image Area */}
-                                        <div className="border-2 border-dashed rounded-md flex flex-col items-center justify-center p-4 space-y-2 aspect-square text-muted-foreground hover:bg-muted/50 transition-colors">
+                                    <div className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center gap-4 bg-muted/50">
+                                        <div className="flex flex-wrap gap-4 justify-center">
+                                            {(form.watch("details.images") || []).map((img: string, idx: number) => (
+                                                <div key={idx} className="relative group w-24 h-24 border rounded-md overflow-hidden bg-background">
+                                                    <img src={img} alt="Product" className="w-full h-full object-cover" />
+                                                    <Button
+                                                        type="button"
+                                                        variant="destructive"
+                                                        size="icon"
+                                                        className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        onClick={() => {
+                                                            const current = form.getValues("details.images") || [];
+                                                            form.setValue("details.images", current.filter((_, i) => i !== idx));
+                                                        }}
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            ))}
                                             <div className="flex flex-col items-center gap-1 text-center">
                                                 <Upload className="h-8 w-8 mb-2" />
                                                 <span className="text-xs">Upload from PC</span>
-                                                <Input
+                                                 <Input
                                                     type="file"
                                                     accept="image/*"
+                                                    multiple
                                                     className="hidden"
                                                     id="img-upload"
                                                     onChange={async (e) => {
-                                                        const file = e.target.files?.[0];
-                                                        if (file) {
+                                                        const files = e.target.files;
+                                                        if (files && files.length > 0) {
                                                             try {
-                                                                const formData = new FormData();
-                                                                formData.append('image', file);
-                                                                toast.info("Uploading image...");
+                                                                toast.info(`Uploading ${files.length} images...`);
+                                                                const newUrls: string[] = [];
 
-                                                                const res = await uploadFile(formData).unwrap();
+                                                                for (let i = 0; i < files.length; i++) {
+                                                                    const formData = new FormData();
+                                                                    formData.append('image', files[i]);
+                                                                    const res = await uploadFile(formData).unwrap();
+                                                                    const url = res?.url || res?.data?.url;
+                                                                    if (url) newUrls.push(url);
+                                                                }
 
-                                                                // Handle response structure { url: "..." } or { data: { url: "..." } }
-                                                                const url = res?.url || res?.data?.url;
-                                                                if (url) {
+                                                                if (newUrls.length > 0) {
                                                                     const current = form.getValues("details.images") || [];
-                                                                    form.setValue("details.images", [...current, url]);
-                                                                    toast.success("Image uploaded!");
+                                                                    form.setValue("details.images", [...current, ...newUrls]);
+                                                                    toast.success(`${newUrls.length} images uploaded!`);
                                                                 }
                                                             } catch (err) {
                                                                 console.error(err);
@@ -826,18 +888,20 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                                 </Button>
                                             </div>
                                             <div className="w-full h-px bg-border my-2" />
-                                            <div className="w-full">
+                                             <div className="w-full">
                                                 <Input
-                                                    placeholder="Or paste URL"
+                                                    placeholder="Or paste URLs (separated by comma or enter)"
                                                     className="h-8 text-xs"
                                                     onKeyDown={(e) => {
                                                         if (e.key === 'Enter') {
                                                             e.preventDefault();
                                                             const val = e.currentTarget.value;
                                                             if (val) {
+                                                                const urls = val.split(/[,\s\n]+/).filter(u => u.trim() !== "");
                                                                 const current = form.getValues("details.images") || [];
-                                                                form.setValue("details.images", [...current, val]);
+                                                                form.setValue("details.images", [...current, ...urls]);
                                                                 e.currentTarget.value = "";
+                                                                toast.success(`${urls.length} URLs added`);
                                                             }
                                                         }
                                                     }}
@@ -846,6 +910,56 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                         </div>
                                     </div>
                                     <FormMessage>{form.formState.errors.details?.images?.message}</FormMessage>
+
+                                    <Separator className="my-6" />
+
+                                    <div className="space-y-4">
+                                        <h3 className="text-sm font-semibold">Compliance & Safety</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
+                                            <FormField
+                                                control={form.control}
+                                                name="compliance.hasCertification"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                                                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                                        <div className="space-y-1"><FormLabel>Has Certification</FormLabel></div>
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            {form.watch("compliance.hasCertification") && (
+                                                <FormField
+                                                    control={form.control}
+                                                    name="compliance.certifications"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Certifications (e.g. ISO, CE)</FormLabel>
+                                                            <FormControl><Input placeholder="Certifications" {...field} value={field.value?.join(", ")} onChange={e => field.onChange(e.target.value.split(",").map(s => s.trim()))} /></FormControl>
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            )}
+                                            <FormField
+                                                control={form.control}
+                                                name="compliance.safetyStandards"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Safety Standards</FormLabel>
+                                                        <FormControl><Input placeholder="Safety Standards" {...field} /></FormControl>
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name="compliance.importRestrictions"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Import Restrictions</FormLabel>
+                                                        <FormControl><Input placeholder="Import Restrictions" {...field} /></FormControl>
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-4">
@@ -1020,33 +1134,57 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                                                                     if (files && files.length > 0) {
                                                                                         try {
                                                                                             const newUrls: string[] = [];
-                                                                                            toast.info(`Uploading ${files.length} images...`);
+                                                                                            toast.info(`Uploading ${files.length} variant images...`);
 
                                                                                             for (let i = 0; i < files.length; i++) {
                                                                                                 const formData = new FormData();
+                                                                                                formData.append('image', files[i]);
                                                                                                 const res = await uploadFile(formData).unwrap();
-                                                                                                // uploadApi transforms response to return url string or data object
-                                                                                                if (typeof res === 'string') {
-                                                                                                    newUrls.push(res);
-                                                                                                } else if (res?.url) {
-                                                                                                    newUrls.push(res.url);
-                                                                                                } else if (res?.success && res?.data?.url) {
-                                                                                                    newUrls.push(res.data.url);
-                                                                                                }
+                                                                                                const url = res?.url || res?.data?.url || (typeof res === 'string' ? res : null);
+                                                                                                if (url) newUrls.push(url);
                                                                                             }
 
                                                                                             if (newUrls.length > 0) {
                                                                                                 field.onChange([...(field.value || []), ...newUrls]);
-                                                                                                toast.success("Images uploaded");
+                                                                                                toast.success(`${newUrls.length} variant images uploaded`);
                                                                                             }
                                                                                         } catch (err) {
                                                                                             console.error(err);
-                                                                                            toast.error("Upload failed");
+                                                                                            toast.error("Variant upload failed");
                                                                                         }
                                                                                     }
                                                                                 }}
                                                                             />
                                                                         </label>
+                                                                        <Popover>
+                                                                            <PopoverTrigger asChild>
+                                                                                <Button type="button" variant="outline" size="icon" className="h-12 w-12 border-dashed">
+                                                                                    <LinkIcon className="h-4 w-4" />
+                                                                                </Button>
+                                                                            </PopoverTrigger>
+                                                                            <PopoverContent className="w-80">
+                                                                                <div className="space-y-2">
+                                                                                    <Label className="text-xs">Paste Image URLs</Label>
+                                                                                    <Input
+                                                                                        placeholder="URLs separated by commas"
+                                                                                        className="h-8 text-xs"
+                                                                                        onKeyDown={(e) => {
+                                                                                            if (e.key === 'Enter') {
+                                                                                                e.preventDefault();
+                                                                                                const val = e.currentTarget.value;
+                                                                                                if (val) {
+                                                                                                    const urls = val.split(/[,\s\n]+/).filter(u => u.trim() !== "");
+                                                                                                    field.onChange([...(field.value || []), ...urls]);
+                                                                                                    e.currentTarget.value = "";
+                                                                                                    toast.success(`${urls.length} variant URLs added`);
+                                                                                                }
+                                                                                            }
+                                                                                        }}
+                                                                                    />
+                                                                                    <p className="text-[10px] text-muted-foreground text-center">Press Enter to add</p>
+                                                                                </div>
+                                                                            </PopoverContent>
+                                                                        </Popover>
                                                                     </div>
                                                                     {/* Bulk Apply Options */}
                                                                     {(field.value || []).length > 0 && form.watch(`variants.${index}.options`)?.map((opt: any, optIdx: number) => (
@@ -1118,7 +1256,79 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                                         )}
                                                     />
 
-                                                    <div className="col-span-1 flex justify-end">
+                                                    <div className="col-span-1 flex justify-end gap-1">
+                                                        <Popover>
+                                                            <PopoverTrigger asChild>
+                                                                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                                                    <Settings className="h-4 w-4" />
+                                                                </Button>
+                                                            </PopoverTrigger>
+                                                            <PopoverContent className="w-80">
+                                                                <div className="grid gap-4">
+                                                                    <div className="space-y-2">
+                                                                        <h4 className="font-medium leading-none">Physical Properties</h4>
+                                                                        <p className="text-sm text-muted-foreground">Set weight and dimensions for this variant.</p>
+                                                                    </div>
+                                                                    <div className="grid grid-cols-2 gap-2">
+                                                                        <FormField
+                                                                            control={form.control}
+                                                                            name={`variants.${index}.weight`}
+                                                                            render={({ field }) => (
+                                                                                <FormItem className="space-y-1">
+                                                                                    <FormLabel className="text-[10px] uppercase">Weight</FormLabel>
+                                                                                    <FormControl><Input type="number" step="0.01" className="h-8 text-xs" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl>
+                                                                                </FormItem>
+                                                                            )}
+                                                                        />
+                                                                        <FormField
+                                                                            control={form.control}
+                                                                            name={`variants.${index}.weightUnit`}
+                                                                            render={({ field }) => (
+                                                                                <FormItem className="space-y-1">
+                                                                                    <FormLabel className="text-[10px] uppercase">Unit</FormLabel>
+                                                                                    <Select onValueChange={field.onChange} value={field.value || "kg"}>
+                                                                                        <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger></FormControl>
+                                                                                        <SelectContent>
+                                                                                            {WEIGHT_UNIT_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                                                                                        </SelectContent>
+                                                                                    </Select>
+                                                                                </FormItem>
+                                                                            )}
+                                                                        />
+                                                                    </div>
+                                                                    <div className="grid grid-cols-4 gap-2">
+                                                                        {['length', 'width', 'height'].map((dim) => (
+                                                                            <FormField
+                                                                                key={dim}
+                                                                                control={form.control}
+                                                                                name={`variants.${index}.${dim}` as any}
+                                                                                render={({ field }) => (
+                                                                                    <FormItem className="space-y-1">
+                                                                                        <FormLabel className="text-[10px] uppercase">{dim[0]}</FormLabel>
+                                                                                        <FormControl><Input type="number" step="0.01" className="h-8 text-xs" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl>
+                                                                                    </FormItem>
+                                                                                )}
+                                                                            />
+                                                                        ))}
+                                                                        <FormField
+                                                                            control={form.control}
+                                                                            name={`variants.${index}.dimensionUnit`}
+                                                                            render={({ field }) => (
+                                                                                <FormItem className="space-y-1">
+                                                                                    <FormLabel className="text-[10px] uppercase">Unit</FormLabel>
+                                                                                    <Select onValueChange={field.onChange} value={field.value || "cm"}>
+                                                                                        <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger></FormControl>
+                                                                                        <SelectContent>
+                                                                                            {DIMENSION_UNIT_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                                                                                        </SelectContent>
+                                                                                    </Select>
+                                                                                </FormItem>
+                                                                            )}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            </PopoverContent>
+                                                        </Popover>
                                                         <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/90" onClick={() => removeVariant(index)}>
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
@@ -1132,9 +1342,8 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                         </Card>
                     </TabsContent>
 
-                    {/* Shipping Content - Hide if Digital or Service */}
-                    {!form.watch("attributes.isDigital") && !form.watch("attributes.isService") && (
-                        <TabsContent value="shipping">
+                    {/* Shipping Content */}
+                    <TabsContent value="shipping">
                             <Card>
                                 <CardHeader><CardTitle>Shipping</CardTitle></CardHeader>
                                 <CardContent>
@@ -1231,7 +1440,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                                 </CardContent>
                             </Card>
                         </TabsContent>
-                    )}
+
 
                     <TabsContent value="seo">
                         <Card>

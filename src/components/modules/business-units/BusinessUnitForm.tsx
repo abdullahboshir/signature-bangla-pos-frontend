@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useCreateBusinessUnitMutation, useUpdateBusinessUnitMutation, useGetBusinessUnitsQuery } from "@/redux/api/organization/businessUnitApi";
 import { useGetAllCompaniesQuery } from "@/redux/api/platform/companyApi";
+import { useGetAttributeGroupsQuery } from "@/redux/api/catalog/attributeGroupApi";
 
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -100,6 +101,9 @@ const formSchema = z.object({
     // Modules (Allow undefined to prevent silent blocks during creation)
     activeModules: z.record(z.string(), z.boolean().or(z.undefined())).default({}),
 
+    // Catalog Configuration
+    attributeGroup: z.string().optional(),
+
     // Context
     company: z.string().optional(),
 });
@@ -120,6 +124,8 @@ export function BusinessUnitForm({ slug }: BusinessUnitFormProps = {}) {
     const [updateBusinessUnit, { isLoading: isUpdating }] = useUpdateBusinessUnitMutation();
     const { data: businessUnits = [], isLoading: loadingBU } = useGetBusinessUnitsQuery({}, { skip: !isEditMode });
     const { data: rawCompanies, isLoading: isLoadingCompanies } = useGetAllCompaniesQuery({});
+    const { data: attributeGroupsData } = useGetAttributeGroupsQuery({});
+    const attributeGroups = attributeGroupsData?.result || attributeGroupsData || [];
     const { user } = useAuth();
     const isSuperAdmin = checkIsSuperAdmin(user?.role) || (user?.globalRoles || []).some((r: any) => {
         const rName = typeof r === 'string' ? r : r.id || r.name;
@@ -429,6 +435,24 @@ export function BusinessUnitForm({ slug }: BusinessUnitFormProps = {}) {
                                         )}
                                     />
 
+                                    <FormField
+                                        control={form.control}
+                                        name="attributeGroup"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Attribute Group (Product Specs)</FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value || ""}>
+                                                    <FormControl><SelectTrigger><SelectValue placeholder="Select Attribute Group" /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="none">None (No Dynamic Attributes)</SelectItem>
+                                                        {(attributeGroups as any[]).map((g: any) => <SelectItem key={g._id} value={g._id}>{g.name}</SelectItem>)}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormDescription className="text-xs">Links dynamic product attributes to this Business Unit</FormDescription>
+                                            </FormItem>
+                                        )}
+                                    />
+
                                     <div className="grid grid-cols-2 gap-3">
                                         <InputField name="id" label="Unique ID" placeholder="acme-retail" required />
                                         <InputField name="slug" label="Slug" placeholder="acme-retail" required />
@@ -451,7 +475,7 @@ export function BusinessUnitForm({ slug }: BusinessUnitFormProps = {}) {
                     </TabsContent>
 
                     <TabsContent value="modules">
-                        <ModuleFields prefix="activeModules" allowedModules={allowedModules} />
+                        <ModuleFields prefix="activeModules" allowedModules={allowedModules} hiddenModules={['erp']} />
                     </TabsContent>
                 </Tabs>
 

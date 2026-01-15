@@ -12,6 +12,7 @@ import {
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
+import { isSuperAdmin as checkIsSuperAdmin, isCompanyOwner as checkIsCompanyOwner, USER_ROLES } from "@/config/auth-constants";
 
 
 interface BusinessUnitSwitcherProps {
@@ -39,7 +40,21 @@ export function BusinessUnitSwitcher({ currentBusinessUnit, effectiveCompanyId, 
   }, [activeUnit]);
 
 
+  const pathname = usePathname();
+  const isCompanyAdminRoute = pathname.startsWith('/company-admin');
+  const isSuperAdminRole = checkIsSuperAdmin(currentRole);
+  const isCompanyOwnerRole = checkIsCompanyOwner(currentRole) && !isSuperAdminRole;
+  
+  // Determine base path based on role
+  const getBasePath = () => {
+    if (isSuperAdminRole) return '/global';
+    if (isCompanyOwnerRole || isCompanyAdminRoute) return '/company-admin';
+    return '/global';
+  };
+
   const handleSwitchUnit = (unitId: string) => {
+    const basePath = getBasePath();
+    
     if (unitId === 'all') {
       // Clear Unit Context and show Company Overview
       setActiveBusinessUnit(null);
@@ -47,17 +62,17 @@ export function BusinessUnitSwitcher({ currentBusinessUnit, effectiveCompanyId, 
       localStorage.removeItem("active-outlet-id");
 
       if (effectiveCompanyId) {
-        router.push(`/global/dashboard?company=${effectiveCompanyId}`);
+        router.push(`${basePath}/dashboard?company=${effectiveCompanyId}`);
       } else {
-        router.push(`/global/dashboard`);
+        router.push(`${basePath}/dashboard`);
       }
       return;
     }
 
     if (unitId === 'add-new') {
       const url = effectiveCompanyId
-        ? `/global/business-units/new?company=${effectiveCompanyId}`
-        : `/global/business-units/new`;
+        ? `${basePath}/business-units/new?company=${effectiveCompanyId}`
+        : `${basePath}/business-units/new`;
       router.push(url);
       return;
     }

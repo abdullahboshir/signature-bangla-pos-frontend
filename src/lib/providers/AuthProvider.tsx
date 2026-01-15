@@ -21,7 +21,7 @@ import {
 } from "@/redux/api/iam/authApi";
 import { jwtDecode } from "jwt-decode";
 import { authKey } from "@/constant/authKey";
-import { USER_ROLES, matchesRole, isSuperAdmin as checkIsSuperAdmin } from "@/config/auth-constants";
+import { USER_ROLES, matchesRole, isSuperAdmin as checkIsSuperAdmin, isCompanyOwner as checkIsCompanyOwner } from "@/config/auth-constants";
 
 interface AuthContextType {
     user: User | null;
@@ -43,8 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [activeBusinessUnit, setActiveBusinessUnitState] = useState<string | null>(() => {
         if (typeof window !== 'undefined') {
             const path = window.location.pathname;
-            // If we land on a global path, ignore persisted context on boot
-            if (path.startsWith('/global') || path.startsWith('/super-admin')) {
+            // If we land on a global or company-admin path, ignore persisted context on boot
+            if (path.startsWith('/global') || path.startsWith('/super-admin') || path.startsWith('/company-admin')) {
                 return null;
             }
             return localStorage.getItem('active-business-unit');
@@ -135,10 +135,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
                 // LOGIC: Redirection based on Scope
                 if (scope === 'COMPANY') {
-                    // Company Owner/Manager -> Go to Global/Company View
-                    redirect = "/global/dashboard";
+                    // Company Owner/Manager -> Go to Company Admin View (not global)
+                    redirect = "/company-admin/dashboard";
                 } else {
-                    const slug = businessUnit?.slug || "unknown";
+                    const slug = businessUnit?.slug || businessUnit?._id || context.primary.company?.slug || "unknown";
 
                     // Find the full details in available list to check outlet counts
                     const availableEntry = context.available?.find((a: any) =>

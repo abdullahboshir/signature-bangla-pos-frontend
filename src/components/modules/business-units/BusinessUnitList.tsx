@@ -15,20 +15,22 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Edit, Trash, Store, Eye, MapPin, Building2, Plus, UserPlus } from "lucide-react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCurrentRole } from "@/hooks/useCurrentRole";
 import { DataPageLayout } from "@/components/shared/DataPageLayout";
 
 export default function BusinessUnitList() {
-    const { data: rawUnits, isLoading } = useGetBusinessUnitsQuery({}) as any;
-    const router = useRouter();
-    const params = useParams();
     const searchParams = useSearchParams();
+    const companyIdFromUrl = searchParams.get("company-admin") || searchParams.get("company");
+    const { data: rawUnits, isLoading } = useGetBusinessUnitsQuery(companyIdFromUrl ? { company: companyIdFromUrl } : {}) as any;
+    const router = useRouter();
+    const pathname = usePathname();
+    const params = useParams();
     const { currentRole } = useCurrentRole();
     const role = currentRole as string;
 
+  
     const businessUnits = Array.isArray(rawUnits) ? rawUnits : (rawUnits?.data || rawUnits?.result || []);
-    const companyIdFromUrl = searchParams.get("company");
 
     const filteredUnits = Array.isArray(businessUnits) ? businessUnits.filter((unit: any) => {
         if (!companyIdFromUrl) return true;
@@ -138,8 +140,18 @@ export default function BusinessUnitList() {
                                 <Eye className="mr-2 h-4 w-4" /> View Dashboard
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => {
-                                const url = `/global/business-units/${unit.id}/edit`;
-                                router.push(companyIdFromUrl ? `${url}?company=${companyIdFromUrl}` : url);
+                                const targetCompanyId = companyIdFromUrl || (typeof unit.company === 'object' ? unit.company?._id || unit.company?.id : unit.company);
+                                const identifier = unit.slug || unit.id || unit._id;
+                                const globalUrl = `/global/business-units/${identifier}/edit`;
+                                const companyAdminUrl = `/company-admin/business-units/${identifier}/edit`;
+                                
+                                // Check if we are in a company admin context (either by URL param or role)
+                                if (role === 'company-owner' || role === 'company-admin' || pathname?.includes('/company-admin')) {
+                                     const targetUrl = companyIdFromUrl ? `${companyAdminUrl}?company=${companyIdFromUrl}` : companyAdminUrl;
+                                     router.push(targetUrl);
+                                } else {
+                                    router.push(globalUrl);
+                                }
                             }}>
                                 <Edit className="mr-2 h-4 w-4" /> Edit Details
                             </DropdownMenuItem>

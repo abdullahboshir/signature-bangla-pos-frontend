@@ -33,32 +33,30 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
   const { user, isLoading: isUserLoading } = useAuth()
   const { currentRole } = useCurrentRole();
 
-  // Cache the company owner status to prevent flicker during refetch
+  // Cache settings to prevent flicker during refetch
   const cachedCompanyOwnerRef = useRef<boolean>(false);
   const cachedSuperAdminRef = useRef<boolean>(false);
 
-  // Fetch System Settings for Feature Toggling
+  // Fetch System Settings
   const { data: systemSettings } = useGetSystemSettingsQuery(undefined);
 
-  // Handle both "business-unit" and "businessUnit" params
+  // 1. Resolve Business Unit Context
   let businessUnit = (params["business-unit"] || params.businessUnit) as string
 
-  // RESERVED GLOBAL MODULES
   const RESERVED_PATHS = [
     "user-management", "finance", "reports", "support", "system",
     "logistics", "risk", "business-units", "settings", "profile", "dashboard"
   ];
 
+  // Detect if we're on company-admin route
+  const isCompanyAdminRoute = pathname.startsWith('/company-admin');
+
   if (!businessUnit) {
     const segments = pathname.split('/').filter(Boolean);
     if (segments.length >= 1) {
       const firstSegment = segments[0];
-      // const secondSegment = segments[1]; // Removed as it was causing the bug (skipping the slug)
+      const GLOBAL_ROOTS = ["auth", "global", "company-admin", "home", "api", "_next", "favicon.ico"];
 
-      const GLOBAL_ROOTS = ["auth", "global", "home", "api", "_next", "favicon.ico"];
-
-      // If the first segment is NOT a global root AND NOT a reserved module name,
-      // then it must be the Business Unit slug (e.g. /my-shop/dashboard)
       if (
         !GLOBAL_ROOTS.includes(firstSegment) &&
         !RESERVED_PATHS.includes(firstSegment)
@@ -68,46 +66,40 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
     }
   }
 
-  if (pathname.startsWith('/global')) {
+  if (pathname.startsWith('/global') || pathname.startsWith('/company-admin')) {
     businessUnit = "";
-  }
-
-  // Derive role based on current auth state (Priority 1)
-  let role = currentRole as string;
-
-  // Fallback to params or path (Priority 2)
-  if (!role) {
-    if (params.role) {
-      role = normalizeAuthString(params.role as string);
-    } else if (pathname.startsWith('/super-admin')) {
-      role = USER_ROLES.SUPER_ADMIN;
-    } else if (pathname.startsWith('/global')) {
-      const isOwner = (user?.globalRoles || []).some((r: any) =>
-        checkIsCompanyOwnerHelper(typeof r === 'string' ? r : r.slug || r.name)
-      );
-      role = isOwner ? USER_ROLES.COMPANY_OWNER : USER_ROLES.SUPER_ADMIN;
-    }
-    else if (businessUnit) {
-      role = USER_ROLES.ADMIN;
-    }
   }
 
   const outletId = (params.outletId as string) || searchParams.get('outlet');
   const companyId = searchParams.get('company');
 
-  // Compute current values from user data
-  const currentIsSuperAdmin = user?.isSuperAdmin || (user?.globalRoles || []).some((r: any) =>
+  // 2. Identify Roles & Scopes Robustly
+  const currentIsSuperAdmin = !!(user?.isSuperAdmin || (user?.globalRoles || []).some((r: any) =>
     checkIsSuperAdminHelper(typeof r === 'string' ? r : r.slug || r.name)
-  );
+  ));
 
-  const currentIsCompanyOwner = (user?.globalRoles || []).some((r: any) =>
+  const currentIsCompanyOwner = !!((user?.globalRoles || []).some((r: any) =>
     checkIsCompanyOwnerHelper(typeof r === 'string' ? r : r.slug || r.name)
   ) || (user?.businessAccess || []).some((acc: any) =>
     checkIsCompanyOwnerHelper(typeof acc.role === 'string' ? acc.role : acc.role?.slug || acc.role?.name) ||
     acc.scope === 'COMPANY'
-  );
+  ));
 
-  // Update refs when user data is available (not loading)
+  // Determine Active Role
+  let role = currentRole as string;
+  if (!role) {
+    if (pathname.startsWith('/global')) {
+      // Global route is only for super-admin/platform users
+      role = USER_ROLES.SUPER_ADMIN;
+    } else if (pathname.startsWith('/company-admin')) {
+      // Company-admin route is for company owners
+      role = USER_ROLES.COMPANY_OWNER;
+    } else if (businessUnit) {
+      role = USER_ROLES.ADMIN;
+    }
+  }
+
+  // Update refs when user data is available
   useEffect(() => {
     if (!isUserLoading && user) {
       cachedSuperAdminRef.current = currentIsSuperAdmin;
@@ -115,83 +107,61 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
     }
   }, [isUserLoading, user, currentIsSuperAdmin, currentIsCompanyOwner]);
 
-  // Use cached values during loading to prevent flicker
   const isSuperAdmin = isUserLoading ? cachedSuperAdminRef.current : currentIsSuperAdmin;
   const isCompanyOwner = isUserLoading ? cachedCompanyOwnerRef.current : currentIsCompanyOwner;
 
-  console.log("isSuperAdmin", isSuperAdmin);
-
-  // Both super_admin and company_owner need to fetch business units
+  // 3. Fetch Contextual Data (Business Units / Outlets)
   const canFetchAllUnits = isSuperAdmin || isCompanyOwner;
-
   const { data: allBusinessUnits } = useGetBusinessUnitsQuery(
     canFetchAllUnits && companyId ? { company: companyId } : undefined,
     { skip: !canFetchAllUnits }
   );
 
-  const businessUnitsResult = Array.isArray(allBusinessUnits) ? allBusinessUnits : (allBusinessUnits as any)?.data || (allBusinessUnits as any)?.result || [];
+  const businessUnitsResult = Array.isArray(allBusinessUnits) ? allBusinessUnits : (allBusinessUnits as any)?.data || [];
   const contextAvailable = user?.context?.available || [];
-  let uniqueUserBUs: any[] = [];
+  let availableUnits: any[] = [];
 
-  if (contextAvailable.length > 0) {
-    uniqueUserBUs = contextAvailable.map((ctx: any) => ({
+  if (canFetchAllUnits) {
+    availableUnits = businessUnitsResult;
+  } else if (contextAvailable.length > 0) {
+    availableUnits = contextAvailable.map((ctx: any) => ({
       ...(ctx.businessUnit || ctx.company),
       outlets: ctx.outlets || []
     }));
   } else {
-    const userBusinessUnits = (user?.businessAccess || []).map((acc: any) => acc.businessUnit).filter((bu: any) => bu);
-    uniqueUserBUs = [...new Map(userBusinessUnits.map((bu: any) => [bu._id || bu.id, bu])).values()];
+    const userBUs = (user?.businessAccess || []).map((acc: any) => acc.businessUnit).filter(Boolean);
+    availableUnits = [...new Map(userBUs.map((bu: any) => [bu._id || bu.id, bu])).values()];
   }
 
-  const availableUnits = canFetchAllUnits ? businessUnitsResult : uniqueUserBUs;
   const activeUnit = businessUnit
-    ? availableUnits.find((u: any) =>
-      u.id === businessUnit || u.slug === businessUnit || u._id?.toString() === businessUnit
-    )
+    ? availableUnits.find((u: any) => u.id === businessUnit || u.slug === businessUnit || u._id?.toString() === businessUnit)
     : null;
 
   const { data: activeOutletData } = useGetOutletQuery(outletId as string, { skip: !outletId });
   const activeOutlet = activeOutletData?.data || activeOutletData || null;
 
+  // 4. Resolve Active Modules for Filtering
   const outletModules = activeOutlet?.activeModules;
   const unitModules = activeUnit?.activeModules || activeUnit?.company?.activeModules;
   const userModules = (user as any)?.company?.activeModules;
   const activeModules = outletModules || unitModules || userModules || systemSettings?.enabledModules || {};
 
-  // Dynamic Context Switching:
-  // If Company Owner enters a Business Unit (e.g. /business-units/xyz), 
-  // they should see the 'Business Admin' menu (Outlets, POS, Inventory), 
-  // not the high-level Company Owner menu (Governance, Shares).
-  let menuRole = role;
-  const isOwnerContext = isCompanyOwner || role === 'company-owner' || role === 'owner' || role === USER_ROLES.COMPANY_OWNER;
+  // 5. Menu Generation
+  const isOwnerContext = isCompanyOwner || role === USER_ROLES.COMPANY_OWNER || role === 'owner';
+  let menuRole = (isOwnerContext && businessUnit) ? 'business-admin' : role;
 
-  if (isOwnerContext && businessUnit) {
-    menuRole = 'business-admin';
-  }
+  const rawMenuItems = getSidebarMenu(menuRole, businessUnit || "", outletId as string, companyId, isCompanyAdminRoute);
 
-
-  const rawMenuItems = getSidebarMenu(menuRole, businessUnit || "", outletId as string, companyId)
-
+  // 6. Filter Menu Items by Module configuration
   const configuredMenuItems = useMemo(() => {
     const filterByConfig = (items: any[]): any[] => {
       return items.reduce((acc: any[], item: any) => {
         if (item.module) {
           const moduleKey = item.module.toLowerCase();
-
-          // Relaxed: Business Admin also gets access to operational modules regardless of global toggle (often misconfigured)
-          // Fix: Company Owner string check should grant FULL access (like Super Admin), not restricted whitelist
-          console.log("role", role);
-          const isOwnerRole = ['company-owner', 'owner', USER_ROLES.COMPANY_OWNER].includes(role);
-          const bypassRoles = ['business-admin', 'store-manager', 'admin', 'manager', 'staff'];
-
-          // [STRICT] Even Owners/Admins should follow context-level module gating for operational clarity
-          // Only Super Admin should have absolute bypass for debugging/config
+          // Hide item if specifically disabled in current context
           if (!isSuperAdmin && activeModules[moduleKey] === false) {
             return acc;
           }
-
-          const hasFullModuleAccess = isCompanyOwner || isSuperAdmin || isOwnerRole ||
-            (bypassRoles.includes(role) && OPERATIONAL_MODULES.includes(moduleKey));
         }
         const newItem = { ...item };
         if (newItem.children) {
@@ -202,82 +172,66 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
       }, []);
     };
     return filterByConfig(rawMenuItems);
-  }, [rawMenuItems, activeModules, role, isCompanyOwner, isSuperAdmin]);
+  }, [rawMenuItems, activeModules, isSuperAdmin]);
 
-
+  // 7. Filter Menu Items by Permissions
   const permittedMenuItems = useMemo(() => {
     if (!user && !isUserLoading) return [];
-    // Use the cached/stable values calculated above
     const isSuperAdminUser = isSuperAdmin;
-    const isCompanyOwnerUser = isCompanyOwner || role === 'company-owner' || role === 'owner' || role === USER_ROLES.COMPANY_OWNER;
-    const aggregatedPermissions = (user as any)?.effectivePermissions || user?.permissions || [];
+    const isCompanyOwnerUser = isCompanyOwner || role === USER_ROLES.COMPANY_OWNER || role === 'owner';
+    const effectivePermissions = (user as any)?.effectivePermissions || [];
 
     const filterByPermission = (items: any[]): any[] => {
-      try {
-        return items.reduce((acc: any[], item: any) => {
-          let hasAccess = true;
-          // Super Admin and Company Owner          // Relaxed: Business Admin also gets access to operational modules
-          const moduleKey = item.module ? item.module.toLowerCase() : '';
-          const bypassRoles = ['business-admin', 'store-manager', 'admin', 'manager', 'staff']; // Added safe fallback roles
-          const isOperationalBypass = bypassRoles.includes(role) &&
-            OPERATIONAL_MODULES.includes(moduleKey);
+      return items.reduce((acc: any[], item: any) => {
+        let hasAccess = false;
+        const moduleKey = item.module ? item.module.toLowerCase() : '';
+        const bypassRoles = ['business-admin', 'store-manager', 'admin', 'manager'];
+        const isOperationalBypass = bypassRoles.includes(role) && OPERATIONAL_MODULES.includes(moduleKey);
 
-          if (role === 'company-owner' || role === 'owner') {
-            console.log(`[Access] Module: ${moduleKey} | Role: ${role} | OwnerAccess: ${isCompanyOwnerUser} | Bypass: ${isOperationalBypass} -> GRANTED`);
-          }
+        if (isSuperAdminUser || isCompanyOwnerUser || isOperationalBypass) {
+          hasAccess = true;
+        } else if (item.resource) {
+          const resource = item.resource.toLowerCase();
+          const action = (item.action || 'read').toLowerCase();
+          hasAccess = effectivePermissions.some((p: string) => {
+            const pLower = p.toLowerCase();
+            return pLower === `${resource}:${action}` || pLower === `*` || (pLower === resource && !action);
+          });
+        } else {
+          hasAccess = true; // No resource key = public/generic
+        }
 
-          if (isSuperAdminUser || isCompanyOwnerUser || isOperationalBypass) {
-            hasAccess = true;
-          } else if (item.resource) {
-            hasAccess = aggregatedPermissions.some((p: any) => {
-              if (!p) return false;
-              if (typeof p === 'string') {
-                const resource = item.resource.toLowerCase();
-                const action = item.action ? item.action.toLowerCase() : null;
-                const pStr = p.toLowerCase();
-                if (action) return pStr === `${resource}:${action}` || pStr === `${resource}_${action}` || pStr === `*`;
-                return pStr.startsWith(`${resource}:`) || pStr.startsWith(`${resource}_`) || pStr === resource;
-              }
-              const permResource = p.resource || p.source || p.module;
-              const permAction = p.action;
-              const normalize = (s: string) => s ? s.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
-              const resourceMatch = normalize(permResource) === normalize(item.resource) || permResource === '*';
-              const actionMatch = item.action ? (permAction === item.action || permAction === '*') : true;
-              return resourceMatch && actionMatch;
-            });
-          }
-
-          if (hasAccess) {
-            const newItem = { ...item };
-            if (newItem.children) {
-              newItem.children = filterByPermission(newItem.children);
-              if (item.children && newItem.children.length === 0) hasAccess = false;
+        if (hasAccess) {
+          const newItem = { ...item };
+          if (newItem.children) {
+            newItem.children = filterByPermission(newItem.children);
+            // Hide parent if it has children defined but none are accessible
+            if (item.children && item.children.length > 0 && newItem.children.length === 0) {
+              hasAccess = false;
             }
-            if (hasAccess) acc.push(newItem);
           }
-          return acc;
-        }, []);
-      } catch (err) {
-        return [];
-      }
+          if (hasAccess) acc.push(newItem);
+        }
+        return acc;
+      }, []);
     };
     return filterByPermission(configuredMenuItems);
-  }, [configuredMenuItems, user, isSuperAdmin, isCompanyOwner, isUserLoading]);
+  }, [configuredMenuItems, user, isSuperAdmin, isCompanyOwner, isUserLoading, role]);
 
-
+  // 8. Search Filtering
   const finalMenuItems = useMemo(() => {
     if (!searchQuery.trim()) return permittedMenuItems;
     const lowerQuery = searchQuery.toLowerCase();
     const searchFilter = (items: any[]): any[] => {
       return items.reduce((acc: any[], item: any) => {
-        const title = item.title || "";
-        const matchesTitle = title.toLowerCase().includes(lowerQuery);
-        let matchingChildren = [];
+        const matchesTitle = (item.title || "").toLowerCase().includes(lowerQuery);
+        let matchingChildren: any[] = [];
         if (item.children) matchingChildren = searchFilter(item.children);
+        
         if (matchesTitle || matchingChildren.length > 0) {
           acc.push({
             ...item,
-            children: matchingChildren.length > 0 ? matchingChildren : (matchesTitle ? item.children : [])
+            children: matchingChildren
           });
         }
         return acc;
@@ -300,7 +254,7 @@ export function Sidebar({ className, onItemClick }: SidebarProps) {
         <SidebarMenu items={finalMenuItems} isCollapsed={isCollapsed} onItemClick={onItemClick} currentPath={pathname} businessUnit={businessUnit} role={role} />
       </div>
       <div className="border-t p-3 flex justify-end">
-        <button onClick={() => setIsCollapsed(!isCollapsed)} className={cn("flex h-8 w-8 items-center justify-center rounded-md border text-muted-foreground hover:bg-accent hover:text-foreground transition-all", isCollapsed ? "mr-auto ml-auto" : "")} title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}>
+        <button onClick={() => setIsCollapsed(!isCollapsed)} className={cn("flex h-8 w-8 items-center justify-center rounded-md border text-muted-foreground hover:bg-accent hover:text-foreground transition-all", isCollapsed ? "mx-auto" : "")} title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}>
           {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>
       </div>

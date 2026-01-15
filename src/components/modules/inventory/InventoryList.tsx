@@ -50,7 +50,7 @@ export const InventoryList = () => {
     //     toast.info("Please use the 'Adjustments' page to modify stock.");
     // };
 
-    // Columns matching ProductInventory structure
+    // Columns matching ProductStock structure
     const columns: ColumnDef<any>[] = [
         {
             accessorKey: "product.name",

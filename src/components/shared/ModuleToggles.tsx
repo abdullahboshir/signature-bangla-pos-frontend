@@ -40,12 +40,15 @@ const MODULES = [
     { key: "saas", label: "SaaS Ecosystem", icon: CreditCard, description: "Multi-tenant subscription management, licensing & billing orchestration", color: "text-cyan-500" },
 ]
 
-export function ModuleToggles({ value, onChange, disabledModules = [], compact = false }: ModuleTogglesProps) {
+export function ModuleToggles({ value, onChange, disabledModules = [], hiddenModules = [], compact = false }: ModuleTogglesProps & { hiddenModules?: string[] }) {
     const handleToggle = (key: string, checked: boolean) => {
         onChange({ ...value, [key]: checked })
     }
 
     const enabledCount = Object.values(value).filter(Boolean).length
+
+    // Filter modules based on visibility
+    const visibleModules = MODULES.filter(m => !hiddenModules.includes(m.key));
 
     if (compact) {
         return (
@@ -63,7 +66,7 @@ export function ModuleToggles({ value, onChange, disabledModules = [], compact =
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {MODULES.map((module) => {
+                        {visibleModules.map((module) => {
                             const Icon = module.icon
                             const isDisabled = disabledModules.includes(module.key)
                             return (
@@ -112,43 +115,54 @@ export function ModuleToggles({ value, onChange, disabledModules = [], compact =
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-                {MODULES.map((module) => {
+                {visibleModules.map((module) => {
                     const Icon = module.icon
-                    const isDisabled = disabledModules.includes(module.key)
+                    const isErp = module.key === 'erp'
+                    const isDisabled = disabledModules.includes(module.key) || isErp
 
                     return (
-                        <div
-                            key={module.key}
-                            className={`flex items-center justify-between p-4 border rounded-lg bg-background transition-all ${value[module.key as keyof ModuleTogglesData] ? 'border-primary bg-primary/5' : ''
-                                } ${isDisabled ? 'opacity-50' : ''}`}
-                        >
-                            <div className="flex items-start gap-3 flex-1">
-                                <Icon className={`h-5 w-5 mt-0.5 ${module.color}`} />
-                                <div className="flex-1">
-                                    <Label
-                                        htmlFor={`module-${module.key}`}
-                                        className="font-semibold cursor-pointer"
-                                    >
-                                        {module.label}
-                                    </Label>
-                                    <p className="text-sm text-muted-foreground mt-0.5">
-                                        {module.description}
-                                    </p>
-                                    {isDisabled && (
-                                        <p className="text-xs text-orange-600 mt-1">
-                                            ⚠️ Disabled by parent settings
-                                        </p>
-                                    )}
+                                <div
+                                    key={module.key}
+                                    className={`flex items-center justify-between p-4 border rounded-lg bg-background transition-all ${value[module.key as keyof ModuleTogglesData] || isErp ? 'border-primary bg-primary/5' : ''
+                                        } ${isDisabled ? 'opacity-50' : ''}`}
+                                >
+                                    <div className="flex items-start gap-3 flex-1">
+                                        <Icon className={`h-5 w-5 mt-0.5 ${module.color}`} />
+                                        <div className="flex-1">
+                                            <Label
+                                                htmlFor={`module-${module.key}`}
+                                                className="font-semibold cursor-pointer"
+                                            >
+                                                {module.label}
+                                                {isErp && (
+                                                    <span className="ml-2 text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200 uppercase font-bold tracking-wide">
+                                                        Core
+                                                    </span>
+                                                )}
+                                            </Label>
+                                            <p className="text-sm text-muted-foreground mt-0.5">
+                                                {module.description}
+                                            </p>
+                                            {isDisabled && !isErp && (
+                                                <p className="text-xs text-orange-600 mt-1">
+                                                    ⚠️ Disabled by parent settings
+                                                </p>
+                                            )}
+                                            {isErp && (
+                                                <p className="text-xs text-blue-600 mt-1 font-medium">
+                                                    included by default
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <Switch
+                                        id={`module-${module.key}`}
+                                        checked={isErp ? true : (value[module.key as keyof ModuleTogglesData] || false)}
+                                        onCheckedChange={(checked) => handleToggle(module.key, checked)}
+                                        disabled={isDisabled}
+                                    />
                                 </div>
-                            </div>
-                            <Switch
-                                id={`module-${module.key}`}
-                                checked={value[module.key as keyof ModuleTogglesData] || false}
-                                onCheckedChange={(checked) => handleToggle(module.key, checked)}
-                                disabled={isDisabled}
-                            />
-                        </div>
-                    )
+                            )
                 })}
             </CardContent>
         </Card>

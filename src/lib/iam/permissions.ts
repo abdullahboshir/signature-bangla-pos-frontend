@@ -1,5 +1,7 @@
-
-import { isSuperAdmin as checkIsSuperAdminHelper } from "@/config/auth-constants";
+import {
+  isSuperAdmin as checkIsSuperAdminHelper,
+  isCompanyOwner,
+} from "@/config/auth-constants";
 
 export interface UserPermission {
   action: string;
@@ -11,7 +13,7 @@ export interface UserPermission {
 export interface UserRole {
   name: string;
   slug?: string;
-  permissions: UserPermission[] | string[]; 
+  permissions: UserPermission[] | string[];
 }
 
 export interface UserData {
@@ -19,29 +21,40 @@ export interface UserData {
   effectivePermissions?: string[]; // 🟢 Added effectivePermissions support
   roles?: (UserRole | string)[];
   globalRoles?: (UserRole | string)[]; // Added support for globalRoles
+  role?: string[]; // 🟢 Added handling for backend's flat role array
   permissions?: {
-      role?: {
-          permissions?: (UserPermission | string)[];
-      }
+    role?: {
+      permissions?: (UserPermission | string)[];
+    };
   }[];
 }
 
 /**
  * Check if user is Super Admin
  */
-export const checkIsSuperAdmin = (user: UserData | null | undefined): boolean => {
+export const checkIsSuperAdmin = (
+  user: UserData | null | undefined
+): boolean => {
   if (!user) return false;
-  
+
   // 1. Direct property check
   if (user.isSuperAdmin) return true;
 
   // 2. Check globalRoles
-  if (user.globalRoles?.some((r: any) => checkIsSuperAdminHelper(typeof r === 'string' ? r : r.slug || r.name))) {
+  if (
+    user.globalRoles?.some((r: any) =>
+      checkIsSuperAdminHelper(typeof r === "string" ? r : r.slug || r.name)
+    )
+  ) {
     return true;
   }
 
   // 3. Check roles (legacy/scoped)
-  if (user.roles?.some((r: any) => checkIsSuperAdminHelper(typeof r === 'string' ? r : r.slug || r.name))) {
+  if (
+    user.roles?.some((r: any) =>
+      checkIsSuperAdminHelper(typeof r === "string" ? r : r.slug || r.name)
+    )
+  ) {
     return true;
   }
 
@@ -54,11 +67,21 @@ export const checkIsSuperAdmin = (user: UserData | null | undefined): boolean =>
  * - Legacy: nested permissions via roles
  * - Modern: flattened string array ["product:create", "product:update"] in effectivePermissions
  */
-export const checkPermission = (user: UserData | null | undefined, permissionCode: string): boolean => {
+export const checkPermission = (
+  user: UserData | null | undefined,
+  permissionCode: string
+): boolean => {
   if (!user) return false;
 
-  // 1. Super Admin Bypass
-  if (checkIsSuperAdmin(user)) return true;
+  // 1. Super Admin or Company Owner Bypass
+  // Company Owners typically need full access to their company's resources
+  const allRoles = [
+    ...(user.roles || []),
+    ...(user.globalRoles || []),
+    ...(user.role || []), // Handle flat role array from backend
+  ].map((r: any) => (typeof r === "string" ? r : r.slug || r.name));
+
+  if (checkIsSuperAdmin(user) || isCompanyOwner(allRoles)) return true;
 
   // 2. Check Modern Effective Permissions (Priority)
   if (user.effectivePermissions && Array.isArray(user.effectivePermissions)) {
@@ -66,28 +89,38 @@ export const checkPermission = (user: UserData | null | undefined, permissionCod
   }
 
   // 3. Fallback: Check if flattened permissions in 'permissions' (string[])
-  if (user.permissions && Array.isArray(user.permissions) && typeof user.permissions[0] === 'string') {
+  if (
+    user.permissions &&
+    Array.isArray(user.permissions) &&
+    typeof user.permissions[0] === "string"
+  ) {
     return (user.permissions as string[]).includes(permissionCode);
   }
 
   // 4. Fallback: Check Role-based Permissions (legacy nested structure)
   if (user.permissions && Array.isArray(user.permissions)) {
-      return user.permissions.some((assignment: any) => {
-          const rolePerms = assignment.role?.permissions || [];
-          return rolePerms.some((p: any) => {
-               const pCode = typeof p === 'string' ? p : p.name;
-               return pCode === permissionCode;
-          });
+    return user.permissions.some((assignment: any) => {
+      const rolePerms = assignment.role?.permissions || [];
+      return rolePerms.some((p: any) => {
+        const pCode = typeof p === "string" ? p : p.name;
+        return pCode === permissionCode;
       });
+    });
   }
 
   return false;
 };
 
-export const checkAnyPermission = (user: UserData | null | undefined, permissions: string[]): boolean => {
-  return permissions.some(p => checkPermission(user, p));
+export const checkAnyPermission = (
+  user: UserData | null | undefined,
+  permissions: string[]
+): boolean => {
+  return permissions.some((p) => checkPermission(user, p));
 };
 
-export const checkAllPermissions = (user: UserData | null | undefined, permissions: string[]): boolean => {
-  return permissions.every(p => checkPermission(user, p));
+export const checkAllPermissions = (
+  user: UserData | null | undefined,
+  permissions: string[]
+): boolean => {
+  return permissions.every((p) => checkPermission(user, p));
 };

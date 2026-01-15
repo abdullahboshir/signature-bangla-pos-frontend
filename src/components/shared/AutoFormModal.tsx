@@ -53,7 +53,8 @@ export function AutoFormModal<T extends FieldValues>({
     onSubmit,
     isLoading = false,
     defaultValues,
-    submitLabel = "Save"
+    submitLabel = "Save",
+    className
 }: AutoFormModalProps<T>) {
     const methods = useForm<T>({
         defaultValues: defaultValues as any,
@@ -81,7 +82,7 @@ export function AutoFormModal<T extends FieldValues>({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[525px] max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogContent className={cn("sm:max-w-[525px] max-h-[90vh] overflow-hidden flex flex-col", className)}>
                 <DialogHeader>
                     <DialogTitle>{title}</DialogTitle>
                     {description && <DialogDescription>{description}</DialogDescription>}

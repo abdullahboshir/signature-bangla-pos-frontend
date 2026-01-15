@@ -23,7 +23,6 @@ export default function AddBusinessUserPage() {
             router.back()
         } catch (error: any) {
             console.error("User creation error:", error)
-            // Prioritize backend message (e.g. "User with this email already exists!")
             if (error?.data?.message) {
                 toast.error(error.data.message);
             } else if (error?.data?.errorSources) {
@@ -41,7 +40,7 @@ export default function AddBusinessUserPage() {
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Add New Staff (Global)</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Add Business Staff</h1>
                     <p className="text-muted-foreground">
                         Create a new user account and assign roles.
                     </p>

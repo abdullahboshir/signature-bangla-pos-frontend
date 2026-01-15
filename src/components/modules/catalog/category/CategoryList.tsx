@@ -270,13 +270,14 @@ export const CategoryList = () => {
 
         fields.push({
             name: "availableModules",
-            label: "Available Modules",
+            // label: "Available Modules",
             type: "custom",
             render: () => (
                 <ModuleMultiSelect
                     name="availableModules"
                     label="Available Modules"
                     placeholder="Select available modules..."
+                    include={['pos', 'ecommerce', 'logistics', 'crm', 'marketing', 'integrations']}
                 />
             )
         });
@@ -306,7 +307,7 @@ export const CategoryList = () => {
         return {
             isActive: "true",
             parentId: "null",
-            availableModules: [],
+            availableModules: ['pos', 'ecommerce', 'logistics', 'crm', 'marketing', 'integrations'],
             businessUnit: isSuperAdmin ? defaultBUValue : paramBusinessUnit
         };
     };

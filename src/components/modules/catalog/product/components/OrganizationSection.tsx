@@ -109,6 +109,7 @@ export const OrganizationSection = ({ form, units, businessUnits, isLocked }: Or
                         name="availableModules"
                         label="Available Modules"
                         placeholder="Select where this product is available..."
+                        include={['pos', 'ecommerce', 'logistics', 'crm', 'marketing', 'integrations']}
                     />
                 </div>
 

@@ -113,8 +113,9 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
     ? fullPotentialUnits.find((u: any) => u.id === businessUnitSlug || u.slug === businessUnitSlug || u._id?.toString() === businessUnitSlug)
     : null;
 
-  // Determine if current route is a global route
+  // Determine if current route is a global route or company-admin route
   const isGlobalRoute = pathname.startsWith('/global');
+  const isCompanyAdminRoute = pathname.startsWith('/company-admin');
 
   // Derive company ID from active unit
   const derivedCompanyId = activeUnitFromUrl?.company
@@ -192,8 +193,10 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
   const handleExitContext = () => {
     localStorage.removeItem('active-business-unit');
     setActiveBusinessUnit(null);
-    if (isSuperAdmin || isCompanyOwner || normalizeAuthString(role) === USER_ROLES.COMPANY_OWNER) {
+    if (isSuperAdmin) {
       router.push('/global/dashboard');
+    } else if (isCompanyOwner || normalizeAuthString(role) === USER_ROLES.COMPANY_OWNER) {
+      router.push('/company-admin/dashboard');
     }
   };
 
@@ -234,10 +237,36 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
               <OutletSwitcher currentBusinessUnitSlug={businessUnitSlug} effectiveCompanyId={effectiveCompanyId} activeUnit={activeUnit || activeUnitFromUrl} />
             )}
           </div>
-          <div className="flex-1 flex justify-center items-center">
-            <button onClick={() => setIsCommandPaletteOpen(true)} className="hidden lg:flex w-full max-w-sm relative items-center gap-2 px-3 h-9 bg-muted/50 border border-muted-foreground/20 rounded-md hover:bg-background transition-colors text-sm text-muted-foreground">
+          <div className="flex-1 flex justify-center items-center px-4">
+            {/* CONTEXT INDICATOR (Top Bar) */}
+            {/* <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground bg-muted/30 px-3 py-1.5 rounded-full border border-border/40">
+                <span className={cn("font-medium", effectiveCompanyId ? "text-foreground" : "")}>
+                    {activeCompany?.name || "Platform"}
+                </span>
+                
+                {activeUnit && (
+                    <>
+                        <span className="text-muted-foreground/60">/</span>
+                        <span className={cn("font-medium", activeUnit ? "text-foreground" : "")}>
+                            {activeUnit.name}
+                        </span>
+                    </>
+                )}
+
+                {activeOutlet && (
+                    <>
+                        <span className="text-muted-foreground/60">/</span>
+                        <span className="flex items-center gap-1 font-semibold text-primary">
+                            <MapPin className="h-3.5 w-3.5" />
+                            {activeOutlet.name}
+                        </span>
+                    </>
+                )}
+            </div> */}
+
+            <button onClick={() => setIsCommandPaletteOpen(true)} className="hidden lg:flex w-full ml-4 max-w-xs relative items-center gap-2 px-3 h-9 bg-muted/50 border border-muted-foreground/20 rounded-md hover:bg-background transition-colors text-sm text-muted-foreground">
               <Search className="h-4 w-4" />
-              <span>Search products, pages...</span>
+              <span>Search...</span>
               <div className="ml-auto text-[10px] border px-1.5 rounded bg-background">Ctrl+K</div>
             </button>
           </div>

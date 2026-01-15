@@ -61,6 +61,14 @@ export function SystemSettingsInterface() {
         }))
     }
 
+    // Special handler for Core nested fields which might be emitted as onNestedChange('core', 'smtp', ...)
+    // But SystemCoreSettings calls onNestedChange('smtp', '', 'host', val) currently? 
+    // Wait, the plan says update SystemCoreSettings to: onNestedChange('core', 'smtp', key, val)
+    // So SystemSettingsInterface needs a handler that accepts 4 args? Or reuse handleDeepNestedChange?
+    // handleDeepNestedChange uses (section, subsection, key, value). 
+    // If I call onNestedChange('core', 'smtp', 'host', val), that fits handleDeepNestedChange signature if I rename the prop in child.
+
+
     // Deep nested handler (e.g., observability.healthCheck, gatewayGovernance.rateLimiting)
     const handleDeepNestedChange = (section: string, subsection: string, key: string, value: any) => {
         setLocalSettings((prev: any) => ({
@@ -131,7 +139,7 @@ export function SystemSettingsInterface() {
                         <SystemCoreSettings
                             data={localSettings}
                             onChange={handleRootChange}
-                            onNestedChange={handleNestedChange}
+                            onNestedChange={handleDeepNestedChange}
                         />
                     </TabsContent>
 

@@ -35,6 +35,16 @@ export const companyApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: [tagTypes.company],
     }),
+    getCompanyDashboardStats: builder.query({
+      query: (companyId: string) => ({
+        url: `${API_ENDPOINTS.PLATFORM.COMPANIES}/${companyId}/dashboard`,
+        method: "GET",
+      }),
+      transformResponse: (response: any) => response.data,
+      providesTags: (result, error, arg) => [
+        { type: tagTypes.company, id: arg },
+      ],
+    }),
   }),
 });
 
@@ -43,4 +53,5 @@ export const {
   useGetCompanyQuery,
   useCreateCompanyMutation,
   useUpdateCompanyMutation,
+  useGetCompanyDashboardStatsQuery,
 } = companyApi;

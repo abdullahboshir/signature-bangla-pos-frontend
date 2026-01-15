@@ -147,7 +147,7 @@ export default function PackageForm({ initialData, isEdit = false }: PackageForm
         limits: PACKAGE_LIMITS.reduce((acc, limit) => ({ ...acc, [limit.key]: -1 }), {}),
         moduleAccess: PACKAGE_FEATURES.reduce((acc, feature) => ({
             ...acc,
-            [feature.key]: { enabled: false, monthlyPrice: 0 }
+            [feature.key]: { enabled: (feature as any).mandatory || false, monthlyPrice: 0 }
         }), {}),
     }
 
@@ -387,6 +387,7 @@ export default function PackageForm({ initialData, isEdit = false }: PackageForm
                                                                 <Switch
                                                                     checked={field.value}
                                                                     onCheckedChange={field.onChange}
+                                                                    disabled={(feature as any).mandatory}
                                                                 />
                                                             </FormControl>
                                                         )}

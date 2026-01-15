@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { Loader2, Save, Key, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { resolveModules, validateModuleToggle } from "@/config/package-features"
 
 export function ModuleToggleSettings() {
     const { data: settings, isLoading } = useGetSystemSettingsQuery(undefined);
@@ -32,7 +33,7 @@ export function ModuleToggleSettings() {
 
     useEffect(() => {
         if (settings?.enabledModules) {
-            setModules({
+            const loadedModules = {
                 pos: settings.enabledModules.pos ?? true,
                 erp: settings.enabledModules.erp ?? true,
                 hrm: settings.enabledModules.hrm ?? true,
@@ -44,7 +45,9 @@ export function ModuleToggleSettings() {
                 integrations: settings.enabledModules.integrations ?? true,
                 governance: settings.enabledModules.governance ?? false,
                 saas: settings.enabledModules.saas ?? true,
-            });
+            };
+            // Apply auto-enable logic when loading from settings
+            setModules(resolveModules(loadedModules) as typeof modules);
             if (settings.licenseKey) {
                 setLicenseKey(settings.licenseKey);
             }
@@ -52,10 +55,21 @@ export function ModuleToggleSettings() {
     }, [settings]);
 
     const handleToggle = (key: keyof typeof modules, checked: boolean) => {
-        setModules(prev => ({
-            ...prev,
-            [key]: checked
-        }));
+        // Validate the toggle action
+        const validation = validateModuleToggle(modules, key, checked);
+        if (!validation.valid) {
+            toast.error(validation.message);
+            return;
+        }
+
+        setModules(prev => {
+            const updated = {
+                ...prev,
+                [key]: checked
+            };
+            // Apply auto-enable logic
+            return resolveModules(updated) as typeof prev;
+        });
     };
 
     const handleSave = async () => {

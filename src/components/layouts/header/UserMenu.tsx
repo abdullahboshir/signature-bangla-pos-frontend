@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/hooks/useAuth"
-import { isSuperAdmin as checkIsSuperAdmin, USER_ROLES } from "@/config/auth-constants"
+import { isSuperAdmin as checkIsSuperAdmin, isCompanyOwner as checkIsCompanyOwner, USER_ROLES } from "@/config/auth-constants"
 
 interface UserData {
   fullName: string
@@ -133,7 +133,16 @@ export function UserMenu({ user }: UserMenuProps) {
           <DropdownMenuItem asChild className="cursor-pointer">
             <Link href="/global">
               <Shield className="mr-2 h-4 w-4" />
-              <span>Admin Panel</span>
+              <span>Platform Admin</span>
+            </Link>
+          </DropdownMenuItem>
+        )}
+
+        {checkIsCompanyOwner(roleStr) && !checkIsSuperAdmin(roleStr) && (
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link href="/company-admin">
+              <Shield className="mr-2 h-4 w-4" />
+              <span>Company Admin</span>
             </Link>
           </DropdownMenuItem>
         )}

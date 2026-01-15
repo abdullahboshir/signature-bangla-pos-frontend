@@ -1,6 +1,6 @@
 export enum tagTypes {
-  auth = 'auth',
-  user = 'user',
+  auth = "auth",
+  user = "user",
   superAdmin = "superAdmin",
   admin = "admin",
   manager = "manager",
@@ -52,6 +52,7 @@ export enum tagTypes {
   meeting = "meeting",
   compliance = "compliance",
   company = "company",
+  warranty = "warranty",
 }
 
 export const tagTypesList = Object.values(tagTypes);
