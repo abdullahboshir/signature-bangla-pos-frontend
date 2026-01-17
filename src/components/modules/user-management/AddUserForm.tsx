@@ -48,7 +48,7 @@ export default function AddUserForm({ isPlatformUser = false }: AddUserFormProps
 
     const [createUser, { isLoading }] = useCreateUserMutation();
     const { data: rawRoles = [] } = useGetRolesQuery({ companyId: companyId || undefined });
-    // Company Owners should ALSO be able to fetch business units for their context
+    // Organization Owners should ALSO be able to fetch business units for their context
     const canSeeBUs = isSuperAdmin || (currentUser?.roles?.some((r: any) => 
         matchesRole(typeof r === 'string' ? r : r.name, [USER_ROLES.COMPANY_OWNER])
     ));
@@ -65,7 +65,7 @@ export default function AddUserForm({ isPlatformUser = false }: AddUserFormProps
                 // Platform Context: Only Global Roles
                 return role.roleScope === ROLE_SCOPE.GLOBAL;
             } else {
-                // Business Context: Only Business/Outlet/Company Roles (NOT Global for non-platform)
+                // Business Context: Only Business/Outlet/Organization Roles (NOT Global for non-platform)
                 // We exclude GLOBAL because Global Roles are for Platform administration.
                 // COMPANY, BUSINESS, and OUTLET roles are relevant for business-level users.
                 return role.roleScope !== ROLE_SCOPE.GLOBAL;
@@ -263,7 +263,7 @@ export default function AddUserForm({ isPlatformUser = false }: AddUserFormProps
                                 />
                             </div>
 
-                            {/* Business Unit Selection for Super Admin & Company Owner (Hidden for Platform Users) */}
+                            {/* Business Unit Selection for Super Admin & Organization Owner (Hidden for Platform Users) */}
                             {(canSeeBUs && !isPlatformUser) && (
                                 <FormField
                                     control={form.control}

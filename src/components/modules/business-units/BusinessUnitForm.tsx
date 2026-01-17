@@ -105,7 +105,7 @@ const formSchema = z.object({
     attributeGroup: z.string().optional(),
 
     // Context
-    company: z.string().optional(),
+    organization: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -117,7 +117,7 @@ interface BusinessUnitFormProps {
 export function BusinessUnitForm({ slug }: BusinessUnitFormProps = {}) {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const companyIdFromUrl = searchParams.get("company");
+    const companyIdFromUrl = searchParams.get("organization");
     const isEditMode = !!slug;
 
     const [createBusinessUnit, { isLoading: isCreating }] = useCreateBusinessUnitMutation();
@@ -169,13 +169,13 @@ export function BusinessUnitForm({ slug }: BusinessUnitFormProps = {}) {
                 [MODULES.INTEGRATIONS]: false,
                 [MODULES.SAAS]: false,
             },
-            company: companyIdFromUrl || (allCompanies.length === 1 && !isSuperAdmin ? (allCompanies[0]._id || allCompanies[0].id) : ""),
+            organization: companyIdFromUrl || (allCompanies.length === 1 && !isSuperAdmin ? (allCompanies[0]._id || allCompanies[0].id) : ""),
         },
     });
 
-    const selectedCompanyId = form.watch("company") || companyIdFromUrl;
+    const selectedCompanyId = form.watch("organization") || companyIdFromUrl;
     const parentCompany = allCompanies.find((c: any) => c?._id === selectedCompanyId || c.id === selectedCompanyId);
-    const companyName = parentCompany?.name || "Unknown Company";
+    const companyName = parentCompany?.name || "Unknown Organization";
     const allowedModules = parentCompany?.activeModules;
 
     const businessUnit = isEditMode ? businessUnits.find((bu: any) => bu.slug === slug || bu.id === slug) : null;
@@ -190,22 +190,22 @@ export function BusinessUnitForm({ slug }: BusinessUnitFormProps = {}) {
         }
     }, [watchName, form]);
 
-    // Initialize form with company context from URL if available (for New mode)
+    // Initialize form with organization context from URL if available (for New mode)
     useEffect(() => {
-        if (!isEditMode && companyIdFromUrl && !form.getValues("company")) {
-            form.setValue("company", companyIdFromUrl);
+        if (!isEditMode && companyIdFromUrl && !form.getValues("organization")) {
+            form.setValue("organization", companyIdFromUrl);
         }
     }, [isEditMode, companyIdFromUrl, form]);
 
-    // [New] Auto-select company if only one is available (for Company Owners)
+    // [New] Auto-select organization if only one is available (for Organization Owners)
     useEffect(() => {
-        if (!isEditMode && !companyIdFromUrl && allCompanies.length === 1 && !form.getValues("company")) {
+        if (!isEditMode && !companyIdFromUrl && allCompanies.length === 1 && !form.getValues("organization")) {
             const singleCompanyId = allCompanies[0]._id || allCompanies[0].id;
-            form.setValue("company", singleCompanyId);
+            form.setValue("organization", singleCompanyId);
         }
     }, [isEditMode, companyIdFromUrl, allCompanies, form]);
 
-    // PRE-SELECT: Auto-enable modules from parent Company on creation
+    // PRE-SELECT: Auto-enable modules from parent Organization on creation
     useEffect(() => {
         if (!isEditMode && allowedModules && !form.formState.dirtyFields.activeModules) {
             form.setValue("activeModules", allowedModules);
@@ -250,7 +250,7 @@ export function BusinessUnitForm({ slug }: BusinessUnitFormProps = {}) {
                 },
                 settings: businessUnit.settings || { currency: "BDT", language: "en", timezone: "Asia/Dhaka" },
                 activeModules: businessUnit.activeModules || {},
-                company: businessUnit.company?._id || businessUnit.company?.id || businessUnit.company || "",
+                organization: businessUnit.organization?._id || businessUnit.organization?.id || businessUnit.organization || "",
             });
         }
     }, [isEditMode, businessUnit, form]);
@@ -269,15 +269,15 @@ export function BusinessUnitForm({ slug }: BusinessUnitFormProps = {}) {
     const onSubmit = async (values: FormValues) => {
         console.log('BU_FORM_SUBMIT_START:', values);
         try {
-            const finalCompanyId = values.company || selectedCompanyId || companyIdFromUrl;
+            const finalCompanyId = values.organization || selectedCompanyId || companyIdFromUrl;
             if (!finalCompanyId) {
-                console.error('BU_FORM_ERROR: No company ID found');
+                console.error('BU_FORM_ERROR: No organization ID found');
                 return;
             }
 
             const payload = {
                 ...values,
-                company: finalCompanyId,
+                organization: finalCompanyId,
                 branding: {
                     ...values.branding,
                     logo: values.branding.logoUrl || "",
@@ -308,8 +308,8 @@ export function BusinessUnitForm({ slug }: BusinessUnitFormProps = {}) {
                 }
             };
 
-            if (!payload.company) {
-                toast.error("Company context is missing. Please select a company first.");
+            if (!payload.organization) {
+                toast.error("Organization context is missing. Please select a organization first.");
                 return;
             }
 
@@ -364,15 +364,15 @@ export function BusinessUnitForm({ slug }: BusinessUnitFormProps = {}) {
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {/* Company Selection Logic: 
+                                    {/* Organization Selection Logic: 
                                         1. If coming from URL context (e.g. child list) -> Readonly
                                         2. If Super Admin -> Always Dropdown
                                         3. If Owner & multiple companies -> Dropdown
-                                        4. If Owner & 1 company -> Auto-select & Readonly
+                                        4. If Owner & 1 organization -> Auto-select & Readonly
                                     */}
                                     {(companyIdFromUrl || (!isSuperAdmin && allCompanies.length === 1)) ? (
                                         <div className="space-y-2 col-span-1 md:col-span-2">
-                                            <FormLabel>Parent Company</FormLabel>
+                                            <FormLabel>Parent Organization</FormLabel>
                                             <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md border text-sm">
                                                 <Building2 className="h-4 w-4 text-muted-foreground" />
                                                 <span className="font-semibold">{companyName}</span>
@@ -382,14 +382,14 @@ export function BusinessUnitForm({ slug }: BusinessUnitFormProps = {}) {
                                     ) : (
                                         <FormField
                                             control={form.control}
-                                            name="company"
+                                            name="organization"
                                             render={({ field }) => (
                                                 <FormItem className="col-span-1 md:col-span-2">
-                                                    <FormLabel>Parent Company <span className="text-red-500">*</span></FormLabel>
+                                                    <FormLabel>Parent Organization <span className="text-red-500">*</span></FormLabel>
                                                     <Select onValueChange={field.onChange} value={field.value}>
                                                         <FormControl>
                                                             <SelectTrigger>
-                                                                <SelectValue placeholder="Select Parent Company" />
+                                                                <SelectValue placeholder="Select Parent Organization" />
                                                             </SelectTrigger>
                                                         </FormControl>
                                                         <SelectContent>

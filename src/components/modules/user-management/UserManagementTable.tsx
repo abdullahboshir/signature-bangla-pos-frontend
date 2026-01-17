@@ -263,7 +263,7 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
     const handleCreate = () => {
         // Strict Routing based on View Scope
         if (viewScope === 'platform') {
-            router.push('/global/user-management/platform-users/add');
+            router.push('/platform/user-management/platform-users/add');
             return;
         }
 
@@ -272,7 +272,7 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
             if (params["business-unit"]) {
                 router.push(`/${params["business-unit"]}/user-management/business-users/add`);
             } else {
-                router.push('/global/user-management/business-users/add');
+                router.push('/platform/user-management/business-users/add');
             }
             return;
         }
@@ -282,7 +282,7 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
             router.push(`/${params["business-unit"]}/user-management/add-user`);
         } else {
             // Default to business user add if not specified
-            router.push('/global/user-management/business-users/add');
+            router.push('/platform/user-management/business-users/add');
         }
     }
 
@@ -294,7 +294,7 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
         if (params["business-unit"]) {
             router.push(`/${params["business-unit"]}/user-management/users/${userId}/edit`);
         } else {
-            router.push(`/global/user-management/users/${userId}/edit`);
+            router.push(`/platform/user-management/users/${userId}/edit`);
         }
     }
 
@@ -588,7 +588,7 @@ export function UserManagementTable({ viewScope = 'all' }: UserManagementTablePr
                                 <DropdownMenuItem onClick={() => {
                                     // Navigate to user profile
                                     if (isSuperAdmin) {
-                                        router.push(`/global/user-management/users/${row.original._id || row.original.id}`)
+                                        router.push(`/platform/user-management/users/${row.original._id || row.original.id}`)
                                     } else if (params["business-unit"]) {
                                         router.push(`/${params["business-unit"]}/user-management/users/${row.original._id || row.original.id}`)
                                     }

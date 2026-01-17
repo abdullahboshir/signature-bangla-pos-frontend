@@ -51,7 +51,7 @@ export enum tagTypes {
   voting = "voting",
   meeting = "meeting",
   compliance = "compliance",
-  company = "company",
+  organization = "organization",
   warranty = "warranty",
 }
 

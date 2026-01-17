@@ -130,7 +130,7 @@ export default function PackageList() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-[160px]">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => router.push(`/global/packages/${row.original.id}/edit`)}>
+                        <DropdownMenuItem onClick={() => router.push(`/platform/packages/${row.original.id}/edit`)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Edit Plan
                         </DropdownMenuItem>
@@ -159,7 +159,7 @@ export default function PackageList() {
                         </CardTitle>
                         <CardDescription>Manage subscription plans and licensing.</CardDescription>
                     </div>
-                    <Button size="sm" onClick={() => router.push('/global/packages/new')}>
+                    <Button size="sm" onClick={() => router.push('/platform/packages/new')}>
                         <Plus className="h-4 w-4 mr-2" /> New Package
                     </Button>
                 </div>

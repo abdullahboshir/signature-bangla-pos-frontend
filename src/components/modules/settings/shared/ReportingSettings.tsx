@@ -162,7 +162,7 @@ export default function ReportingSettings({ data, onChange }: ReportingSettingsP
                                     <div className="space-y-2">
                                         <Label className="flex items-center gap-2"><Mail className="h-4 w-4" /> Recipients</Label>
                                         <Input
-                                            placeholder="stakeholder@company.com, admin@company.com (Comma separated)"
+                                            placeholder="stakeholder@organization.com, admin@organization.com (Comma separated)"
                                             value={report.recipients.join(", ")}
                                             onChange={(e) => handleReportChange(index, "recipients", e.target.value.split(",").map(r => r.trim()))}
                                         />

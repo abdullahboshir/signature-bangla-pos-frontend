@@ -30,7 +30,7 @@ export default function AssetList() {
     ];
 
     if (!hasPermission(PERMISSION_KEYS.ASSET.READ)) {
-        return <div className="p-4 text-center text-muted-foreground">You do not have permission to view company assets.</div>
+        return <div className="p-4 text-center text-muted-foreground">You do not have permission to view organization assets.</div>
     }
 
     return (
@@ -41,7 +41,7 @@ export default function AssetList() {
                         <Monitor className="h-5 w-5" />
                         Assets
                     </CardTitle>
-                    <CardDescription>Manage company equipment and assets.</CardDescription>
+                    <CardDescription>Manage organization equipment and assets.</CardDescription>
                 </div>
                 <Button disabled={true}>
                     <Plus className="mr-2 h-4 w-4" />

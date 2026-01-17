@@ -72,21 +72,21 @@ export const APP_MODULES: Record<string, AppModule> = {
     module: "system",
   },
 
-  COMPANIES: {
-    title: "Companies",
-    path: "companies",
+  ORGANIZATIONS: {
+    title: "Organizations",
+    path: "organizations",
     icon: Building,
     resource: RESOURCE_KEYS.ACCOUNT,
     module: "platform",
     children: [
       {
-        title: "All Companies",
-        path: "companies",
+        title: "All Organizations",
+        path: "organizations",
         resource: RESOURCE_KEYS.ACCOUNT,
       },
       {
-        title: "Add Company",
-        path: "companies/add",
+        title: "Add Organization",
+        path: "organizations/add",
         resource: RESOURCE_KEYS.ACCOUNT,
         action: ACTION_KEYS.CREATE,
       },
@@ -518,11 +518,11 @@ export const APP_MODULES: Record<string, AppModule> = {
     ],
   },
 
-  COMPANY_SETTINGS: {
-    title: "Company Settings",
-    path: "company-settings",
+  ORGANIZATION_SETTINGS: {
+    title: "Organization Settings",
+    path: "organization-settings",
     icon: Settings,
-    resource: RESOURCE_KEYS.COMPANY_SETTING,
+    resource: RESOURCE_KEYS.ORGANIZATION_SETTING,
     module: "system",
   },
 
@@ -630,7 +630,7 @@ export const APP_MODULES: Record<string, AppModule> = {
 // Deprecated alias for backward compatibility until refactor complete
 export const ROUTE_PATHS = {
   DASHBOARD: "dashboard",
-  COMPANIES: "companies",
+  ORGANIZATIONS: "organizations",
   BUSINESS_UNITS: "business-units",
   CATALOG: {
     ROOT: "catalog",

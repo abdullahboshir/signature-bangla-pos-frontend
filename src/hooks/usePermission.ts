@@ -2,7 +2,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrentRole } from "@/hooks/useCurrentRole";
 import { useMemo } from "react";
-import { isCompanyOwner, USER_ROLES } from "@/config/auth-constants";
+import { isOrganizationOwner, USER_ROLES } from "@/config/auth-constants";
 
 export function usePermission() {
   const { user } = useAuth();
@@ -16,7 +16,7 @@ export function usePermission() {
   const can = (resource: string, action: string): boolean => {
     if (user?.isSuperAdmin) return true;
 
-    const isOwnerRole = isCompanyOwner(currentRole) || currentRole === USER_ROLES.COMPANY_OWNER || currentRole === 'owner';
+    const isOwnerRole = isOrganizationOwner(currentRole) || currentRole === USER_ROLES.COMPANY_OWNER || currentRole === 'owner';
     const hasOwnerScope = (user?.businessAccess || []).some((acc: any) => acc.scope === 'COMPANY');
         
     if (isOwnerRole || hasOwnerScope) return true;

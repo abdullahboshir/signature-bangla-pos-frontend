@@ -44,22 +44,22 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
         const contexts = currentUser?.context?.available || [];
         const companiesMap = new Map();
         contexts.forEach((ctx: any) => {
-            if (ctx.company && ctx.company._id) {
-                companiesMap.set(ctx.company._id, ctx.company);
+            if (ctx.organization && ctx.organization._id) {
+                companiesMap.set(ctx.organization._id, ctx.organization);
             }
         });
         return Array.from(companiesMap.values());
     }, [currentUser]);
 
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>(() => {
-        const urlCompanyId = searchParams.get('company') || searchParams.get('companyId');
+        const urlCompanyId = searchParams.get('organization') || searchParams.get('companyId');
         if (urlCompanyId) return urlCompanyId;
         
-        // Auto-detect if only 1 company
+        // Auto-detect if only 1 organization
         if (availableCompanies.length === 1) return availableCompanies[0]._id;
         
-        // Fallback to primary company if it's in the available list
-        const primaryCompanyId = (currentUser as any)?.context?.primary?.company?._id || (currentUser as any)?.company?._id || (currentUser as any)?.companyId;
+        // Fallback to primary organization if it's in the available list
+        const primaryCompanyId = (currentUser as any)?.context?.primary?.organization?._id || (currentUser as any)?.organization?._id || (currentUser as any)?.companyId;
         if (primaryCompanyId) return primaryCompanyId;
 
         return "";
@@ -73,7 +73,7 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
     }, [availableCompanies, selectedCompanyId]);
 
     useEffect(() => {
-        const urlCompanyId = searchParams.get('company') || searchParams.get('companyId');
+        const urlCompanyId = searchParams.get('organization') || searchParams.get('companyId');
         if (urlCompanyId && urlCompanyId !== selectedCompanyId) {
             setSelectedCompanyId(urlCompanyId);
         }
@@ -88,8 +88,8 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
         );
     }, [currentUser]);
 
-    const { data: rolesData } = useGetRolesQuery({ company: selectedCompanyId || undefined }, { refetchOnMountOrArgChange: true, skip: !selectedCompanyId && !isPlatformUser })
-    const { data: businessUnitsData } = useGetBusinessUnitsQuery({ company: selectedCompanyId || undefined }, { skip: !selectedCompanyId && !isPlatformUser })
+    const { data: rolesData } = useGetRolesQuery({ organization: selectedCompanyId || undefined }, { refetchOnMountOrArgChange: true, skip: !selectedCompanyId && !isPlatformUser })
+    const { data: businessUnitsData } = useGetBusinessUnitsQuery({ organization: selectedCompanyId || undefined }, { skip: !selectedCompanyId && !isPlatformUser })
     const { data: permissionGroupsData } = useGetPermissionGroupsQuery({ limit: 1000 })
     const { data: permissionsDataForLookup } = useGetPermissionsQuery({ limit: 5000 }, { refetchOnMountOrArgChange: true })
     const { data: allResources } = useGetPermissionResourcesQuery(undefined);
@@ -275,15 +275,15 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.firstName || !formData.email) { toast.error("Please fill all required fields"); return; }
-        if (availableCompanies.length > 0 && !selectedCompanyId) { toast.error("Please select a company"); return; }
+        if (availableCompanies.length > 0 && !selectedCompanyId) { toast.error("Please select a organization"); return; }
         if (roleAssignments.length === 0) { toast.error("Please assign at least one role"); return; }
         const permissionsPayload: any[] = [];
         roleAssignments.forEach(r => {
             const assignmentCompany = selectedCompanyId || null;
             if (r.businessUnit) {
-                if (r.outlets.length > 0) r.outlets.forEach(outletId => permissionsPayload.push({ role: r.role, company: assignmentCompany, businessUnit: r.businessUnit, outlet: outletId, scope: 'OUTLET', isPrimary: false }));
-                else permissionsPayload.push({ role: r.role, company: assignmentCompany, businessUnit: r.businessUnit, outlet: null, scope: 'BUSINESS', isPrimary: false, status: 'ACTIVE' });
-            } else permissionsPayload.push({ role: r.role, company: assignmentCompany, businessUnit: null, outlet: null, scope: 'GLOBAL', isPrimary: false, status: 'ACTIVE' });
+                if (r.outlets.length > 0) r.outlets.forEach(outletId => permissionsPayload.push({ role: r.role, organization: assignmentCompany, businessUnit: r.businessUnit, outlet: outletId, scope: 'OUTLET', isPrimary: false }));
+                else permissionsPayload.push({ role: r.role, organization: assignmentCompany, businessUnit: r.businessUnit, outlet: null, scope: 'BUSINESS', isPrimary: false, status: 'ACTIVE' });
+            } else permissionsPayload.push({ role: r.role, organization: assignmentCompany, businessUnit: null, outlet: null, scope: 'GLOBAL', isPrimary: false, status: 'ACTIVE' });
         });
         if (permissionsPayload.length > 0) permissionsPayload[0].isPrimary = true;
         const payload: any = {
@@ -296,7 +296,7 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
             roles: permissionsPayload.map(p => p.role),
             businessUnits: permissionsPayload.map(p => p.businessUnit).filter(Boolean),
             businessUnit: permissionsPayload.find(p => p.businessUnit)?.businessUnit || null,
-            company: selectedCompanyId || permissionsPayload.find(p => p.company)?.company || null,
+            organization: selectedCompanyId || permissionsPayload.find(p => p.organization)?.organization || null,
         };
         if (formData.password) payload.password = formData.password;
         else if (mode === 'create') payload.password = "@Abcd1234@";
@@ -323,13 +323,13 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
                             <div className="space-y-4">
                                 {(!isPlatformUser && availableCompanies.length > 1) && (
                                     <div className="space-y-1 pb-2 border-b">
-                                        <Label className="text-xs text-muted-foreground">Select Company</Label>
+                                        <Label className="text-xs text-muted-foreground">Select Organization</Label>
                                         <Select value={selectedCompanyId} onValueChange={(val) => {
                                             setSelectedCompanyId(val);
-                                            setRoleAssignments([]); // Reset assignments as they are company-specific
+                                            setRoleAssignments([]); // Reset assignments as they are organization-specific
                                         }}>
                                             <SelectTrigger className="h-9">
-                                                <SelectValue placeholder="Select Company" />
+                                                <SelectValue placeholder="Select Organization" />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 {availableCompanies.map((comp: any) => (
@@ -341,7 +341,7 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
                                 )}
                                 {(!isPlatformUser && availableCompanies.length === 1) && (
                                     <div className="space-y-1 pb-2 border-b">
-                                        <Label className="text-xs text-muted-foreground">Selected Company</Label>
+                                        <Label className="text-xs text-muted-foreground">Selected Organization</Label>
                                         <div className="text-sm font-medium px-1 underline decoration-primary/30 underline-offset-4">
                                             {availableCompanies[0].name}
                                         </div>
@@ -353,10 +353,10 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
                                             <div key={assignment.tempId} className="border rounded-md p-3 relative bg-card">
                                                 <div className="absolute top-2 right-2"><Button variant="ghost" size="icon" onClick={() => removeRoleAssignment(assignment.tempId)} className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50"><MinusIcon className="h-3 w-3" /></Button></div>
                                                 <div className="space-y-3 text-sm ">
-                                                    <div className="space-y-1"><Label className="text-xs text-muted-foreground">Business Unit</Label>{targetScope === 'GLOBAL' ? <div className="flex h-9 w-full items-center px-3 py-2 text-sm border rounded-md bg-muted text-muted-foreground">{isPlatformUser ? "Platform (Global)" : "Company Wide"}</div> : (
+                                                    <div className="space-y-1"><Label className="text-xs text-muted-foreground">Business Unit</Label>{targetScope === 'GLOBAL' ? <div className="flex h-9 w-full items-center px-3 py-2 text-sm border rounded-md bg-muted text-muted-foreground">{isPlatformUser ? "Platform (Global)" : "Organization Wide"}</div> : (
                                                     <select className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50" value={assignment.businessUnit} onChange={(e) => { updateRoleAssignment(assignment.tempId, "businessUnit", e.target.value); updateRoleAssignment(assignment.tempId, "outlets", []); updateRoleAssignment(assignment.tempId, "role", ""); }} disabled={!!lockedBusinessUnitId}>
                                                             {isPlatformUser && <option value="">Platform (Global)</option>}
-                                                            {!isPlatformUser && <option value="">Company (Direct)</option>}
+                                                            {!isPlatformUser && <option value="">Organization (Direct)</option>}
                                                             {!isPlatformUser && <option value="" disabled>Select Business Unit</option>}
                                                             {businessUnits.map((bu: any) => <option key={bu._id} value={bu._id}>{bu.name}</option>)}
                                                         </select>
@@ -368,7 +368,7 @@ export function UserForm({ initialData, mode, onSubmit, isSubmitting, onCancel, 
                                                             if (hasOutlets) return r.roleScope === 'OUTLET';
                                                             if (targetScope === 'GLOBAL' || (assignment.businessUnit === "" && isPlatformUser)) return r.roleScope === 'GLOBAL';
                                                             
-                                                            // Business Context: Allow Company, Business, and Outlet roles as candidates (filtered by specific logic above if needed)
+                                                            // Business Context: Allow Organization, Business, and Outlet roles as candidates (filtered by specific logic above if needed)
                                                             // But strictly exclude GLOBAL roles for non-platform contexts.
                                                             return r.roleScope !== 'GLOBAL';
                                                         }).map((role: any) => {

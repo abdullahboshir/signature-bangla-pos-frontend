@@ -17,32 +17,38 @@ const setAuthCookie = (token: string) => {
   if (typeof document === "undefined") return;
   const days = 7;
   const expires = new Date(Date.now() + days * 86400 * 1000).toUTCString();
-  document.cookie = `${authKey}=${encodeURIComponent(token)}; expires=${expires}; path=/; SameSite=Lax`;
+  document.cookie = `${authKey}=${encodeURIComponent(
+    token
+  )}; expires=${expires}; path=/; SameSite=Lax`;
 };
 
 // REQUEST INTERCEPTOR
 axiosInstance.interceptors.request.use((config) => {
   const token = getToken();
   // Don't attach token for login/register endpoints to avoid backend conflict
-  const isPublicAuth = config.url?.includes("/login") || config.url?.includes("/register");
-  
+  const isPublicAuth =
+    config.url?.includes("/login") || config.url?.includes("/register");
+
   if (token && !isPublicAuth) {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
-    // Context-Aware Header Injection
-    const businessUnitId = localStorage.getItem("active-business-unit");
-    const outletId = localStorage.getItem("active-outlet-id");
-    const companyId = localStorage.getItem("active-company-id");
-    
-    // Only inject if NOT a public auth route and ID exists
-    const isPublicAuthRoute = config.url?.includes("/login") || config.url?.includes("/register") || config.url?.includes("/refresh-token");
-    
-    if (!isPublicAuthRoute) {
-        if (businessUnitId) config.headers["x-business-unit-id"] = businessUnitId;
-        if (outletId) config.headers["x-outlet-id"] = outletId;
-        if (companyId) config.headers["x-company-id"] = companyId;
-    }
+  // Context-Aware Header Injection
+  const businessUnitId = localStorage.getItem("active-business-unit");
+  const outletId = localStorage.getItem("active-outlet-id");
+  const companyId = localStorage.getItem("active-organization-id");
+
+  // Only inject if NOT a public auth route and ID exists
+  const isPublicAuthRoute =
+    config.url?.includes("/login") ||
+    config.url?.includes("/register") ||
+    config.url?.includes("/refresh-token");
+
+  if (!isPublicAuthRoute) {
+    if (businessUnitId) config.headers["x-business-unit-id"] = businessUnitId;
+    if (outletId) config.headers["x-outlet-id"] = outletId;
+    if (companyId) config.headers["x-organization-id"] = companyId;
+  }
   return config;
 });
 
@@ -79,7 +85,10 @@ axiosInstance.interceptors.response.use(
     // JWT expired → backend will return 401
     if (error?.response?.status === 401 && !originalRequest._retry) {
       // Prevent infinite loops: Don't retry if the failed request was already for login or refresh
-      if (originalRequest.url.includes("/auth/login") || originalRequest.url.includes("/auth/refresh-token")) {
+      if (
+        originalRequest.url.includes("/auth/login") ||
+        originalRequest.url.includes("/auth/refresh-token")
+      ) {
         return Promise.reject(error);
       }
 
@@ -112,14 +121,16 @@ axiosInstance.interceptors.response.use(
 
         if (newToken) {
           setAuthCookie(newToken); // Update client cookie
-          axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
+          axiosInstance.defaults.headers.common[
+            "Authorization"
+          ] = `Bearer ${newToken}`;
           processQueue(null, newToken);
-          
+
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
           return axiosInstance(originalRequest);
         } else {
-           processQueue(new Error("No token returned"), null);
-           return Promise.reject(error);
+          processQueue(new Error("No token returned"), null);
+          return Promise.reject(error);
         }
       } catch (refreshError) {
         processQueue(refreshError, null);

@@ -11,13 +11,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { MetricCards } from "@/components/modules/global-dashboard/MetricCards";
-import { GrowthChart } from "@/components/modules/global-dashboard/GrowthChart";
-import { FinancialSummary } from "@/components/modules/global-dashboard/FinancialSummary";
-import { RecentActivity } from "@/components/modules/global-dashboard/RecentActivity";
-import { TopPerformers } from "@/components/modules/global-dashboard/TopPerformers";
-import { ModuleUsageStats } from "@/components/modules/global-dashboard/ModuleUsageStats";
-import { SystemHealth } from "@/components/modules/global-dashboard/SystemHealth";
+import { MetricCards } from "@/components/modules/platform-dashboard/MetricCards";
+import { GrowthChart } from "@/components/modules/platform-dashboard/GrowthChart";
+import { FinancialSummary } from "@/components/modules/platform-dashboard/FinancialSummary";
+import { RecentActivity } from "@/components/modules/platform-dashboard/RecentActivity";
+import { TopPerformers } from "@/components/modules/platform-dashboard/TopPerformers";
+import { ModuleUsageStats } from "@/components/modules/platform-dashboard/ModuleUsageStats";
+import { SystemHealth } from "@/components/modules/platform-dashboard/SystemHealth";
 
 export default function BusinessUnitDashboard() {
     const params = useParams();

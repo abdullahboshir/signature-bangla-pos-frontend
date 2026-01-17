@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface BrandingSettingsProps {
     data: any;
     onChange: (section: string, ...rest: any[]) => void;
-    context: 'platform' | 'company' | 'business' | 'outlet';
+    context: 'platform' | 'organization' | 'business' | 'outlet';
 }
 
 export default function BrandingSettings({ data, onChange, context }: BrandingSettingsProps) {
@@ -50,7 +50,7 @@ export default function BrandingSettings({ data, onChange, context }: BrandingSe
                 <CardHeader>
                     <CardTitle>
                         {context === 'platform' ? 'Platform Identity' :
-                            context === 'outlet' ? 'Outlet Identity' : 'Company Brand'}
+                            context === 'outlet' ? 'Outlet Identity' : 'Organization Brand'}
                     </CardTitle>
                     <CardDescription>Customize the visual identity and presentation.</CardDescription>
                 </CardHeader>

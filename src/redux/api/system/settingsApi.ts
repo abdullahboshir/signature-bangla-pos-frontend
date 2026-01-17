@@ -1,11 +1,11 @@
 import { tagTypes } from "../../tag-types";
 import { baseApi } from "../base/baseApi";
-import { 
-  ISystemSettings, 
-  IPlatformSettings, 
-  ICompanySettings, 
-  IBusinessUnitSettings, 
-  IOutletSettings 
+import {
+  ISystemSettings,
+  IPlatformSettings,
+  ICompanySettings,
+  IBusinessUnitSettings,
+  IOutletSettings,
 } from "../../../types/settings";
 
 export const settingsApi = baseApi.injectEndpoints({
@@ -20,7 +20,10 @@ export const settingsApi = baseApi.injectEndpoints({
       transformResponse: (response: any) => response.data,
     }),
 
-    updateSystemSettings: build.mutation<ISystemSettings, Partial<ISystemSettings>>({
+    updateSystemSettings: build.mutation<
+      ISystemSettings,
+      Partial<ISystemSettings>
+    >({
       query: (data) => ({
         url: `/super-admin/system-settings`,
         method: "PATCH",
@@ -39,7 +42,10 @@ export const settingsApi = baseApi.injectEndpoints({
       transformResponse: (response: any) => response.data,
     }),
 
-    updatePlatformSettings: build.mutation<IPlatformSettings, Partial<IPlatformSettings>>({
+    updatePlatformSettings: build.mutation<
+      IPlatformSettings,
+      Partial<IPlatformSettings>
+    >({
       query: (data) => ({
         url: `/super-admin/platform-settings`,
         method: "PATCH",
@@ -48,7 +54,7 @@ export const settingsApi = baseApi.injectEndpoints({
       invalidatesTags: [tagTypes.settings],
     }),
 
-    // 3. Company Settings
+    // 3. Organization Settings
     getCompanySettings: build.query<ICompanySettings, string>({
       query: (companyId: string) => ({
         url: `/companies/${companyId}/settings`,
@@ -58,13 +64,18 @@ export const settingsApi = baseApi.injectEndpoints({
       transformResponse: (response: any) => response.data,
     }),
 
-    updateCompanySettings: build.mutation<ICompanySettings, { companyId: string, data: Partial<ICompanySettings> }>({
+    updateCompanySettings: build.mutation<
+      ICompanySettings,
+      { companyId: string; data: Partial<ICompanySettings> }
+    >({
       query: ({ companyId, data }) => ({
         url: `/companies/${companyId}/settings`,
         method: "PATCH",
         data: data,
       }),
-      invalidatesTags: (result, error, arg) => [{ type: tagTypes.settings, id: arg.companyId }],
+      invalidatesTags: (result, error, arg) => [
+        { type: tagTypes.settings, id: arg.companyId },
+      ],
     }),
 
     // 4. Business Unit Settings
@@ -77,13 +88,18 @@ export const settingsApi = baseApi.injectEndpoints({
       transformResponse: (response: any) => response.data,
     }),
 
-    updateBusinessUnitSettings: build.mutation<IBusinessUnitSettings, { businessUnitId: string, data: Partial<IBusinessUnitSettings> }>({
+    updateBusinessUnitSettings: build.mutation<
+      IBusinessUnitSettings,
+      { businessUnitId: string; data: Partial<IBusinessUnitSettings> }
+    >({
       query: ({ businessUnitId, data }) => ({
         url: `/business-units/${businessUnitId}/settings`,
         method: "PATCH",
         data: data,
       }),
-      invalidatesTags: (result, error, arg) => [{ type: tagTypes.settings, id: arg.businessUnitId }],
+      invalidatesTags: (result, error, arg) => [
+        { type: tagTypes.settings, id: arg.businessUnitId },
+      ],
     }),
 
     // 5. Outlet Settings
@@ -96,13 +112,18 @@ export const settingsApi = baseApi.injectEndpoints({
       transformResponse: (response: any) => response.data,
     }),
 
-    updateOutletSettings: build.mutation<IOutletSettings, { outletId: string, data: Partial<IOutletSettings> }>({
+    updateOutletSettings: build.mutation<
+      IOutletSettings,
+      { outletId: string; data: Partial<IOutletSettings> }
+    >({
       query: ({ outletId, data }) => ({
         url: `/outlets/${outletId}/settings`,
         method: "PATCH",
         data: data,
       }),
-      invalidatesTags: (result, error, arg) => [{ type: tagTypes.settings, id: arg.outletId }],
+      invalidatesTags: (result, error, arg) => [
+        { type: tagTypes.settings, id: arg.outletId },
+      ],
     }),
   }),
 });

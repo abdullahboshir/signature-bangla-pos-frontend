@@ -55,12 +55,12 @@ export interface User {
   context?: {
     primary?: {
       businessUnit?: { _id: string; slug: string; id: string };
-      company?: { _id: string; name: string; slug: string };
+      organization?: { _id: string; name: string; slug: string };
       outlet?: { _id: string; name: string };
       role?: string;
     };
     available?: Array<{
-      company: { _id: string; slug: string; id: string; name: string };
+      organization: { _id: string; slug: string; id: string; name: string };
       businessUnit: { _id: string; slug: string; id: string; name: string };
       outlets: Array<{ _id: string; name: string }>;
       outletCount: number;

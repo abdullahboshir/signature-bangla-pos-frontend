@@ -21,8 +21,8 @@ import { DataPageLayout } from "@/components/shared/DataPageLayout";
 
 export default function BusinessUnitList() {
     const searchParams = useSearchParams();
-    const companyIdFromUrl = searchParams.get("company-admin") || searchParams.get("company");
-    const { data: rawUnits, isLoading } = useGetBusinessUnitsQuery(companyIdFromUrl ? { company: companyIdFromUrl } : {}) as any;
+    const companyIdFromUrl = searchParams.get("organization-admin") || searchParams.get("organization");
+    const { data: rawUnits, isLoading } = useGetBusinessUnitsQuery(companyIdFromUrl ? { organization: companyIdFromUrl } : {}) as any;
     const router = useRouter();
     const pathname = usePathname();
     const params = useParams();
@@ -34,7 +34,7 @@ export default function BusinessUnitList() {
 
     const filteredUnits = Array.isArray(businessUnits) ? businessUnits.filter((unit: any) => {
         if (!companyIdFromUrl) return true;
-        const buCompanyId = unit.company?._id || unit.company?.id || unit.company;
+        const buCompanyId = unit.organization?._id || unit.organization?.id || unit.organization;
         return buCompanyId === companyIdFromUrl;
     }) : [];
 
@@ -53,13 +53,13 @@ export default function BusinessUnitList() {
             )
         },
         {
-            accessorKey: "company",
-            header: "Company",
+            accessorKey: "organization",
+            header: "Organization",
             cell: ({ row }) => (
                 <div className="flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium text-sm">
-                        {row.original.company?.name || <span className="text-red-500 italic">Unlinked</span>}
+                        {row.original.organization?.name || <span className="text-red-500 italic">Unlinked</span>}
                     </span>
                 </div>
             )
@@ -135,19 +135,19 @@ export default function BusinessUnitList() {
                             <DropdownMenuItem onClick={() => {
                                 const identifier = unit.slug || unit.id || unit._id;
                                 const url = `/${identifier}/overview`;
-                                router.push(companyIdFromUrl ? `${url}?company=${companyIdFromUrl}` : url);
+                                router.push(companyIdFromUrl ? `${url}?organization=${companyIdFromUrl}` : url);
                             }}>
                                 <Eye className="mr-2 h-4 w-4" /> View Dashboard
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => {
-                                const targetCompanyId = companyIdFromUrl || (typeof unit.company === 'object' ? unit.company?._id || unit.company?.id : unit.company);
+                                const targetCompanyId = companyIdFromUrl || (typeof unit.organization === 'object' ? unit.organization?._id || unit.organization?.id : unit.organization);
                                 const identifier = unit.slug || unit.id || unit._id;
-                                const globalUrl = `/global/business-units/${identifier}/edit`;
-                                const companyAdminUrl = `/company-admin/business-units/${identifier}/edit`;
+                                const globalUrl = `/platform/business-units/${identifier}/edit`;
+                                const companyAdminUrl = `/organization/business-units/${identifier}/edit`;
                                 
-                                // Check if we are in a company admin context (either by URL param or role)
-                                if (role === 'company-owner' || role === 'company-admin' || pathname?.includes('/company-admin')) {
-                                     const targetUrl = companyIdFromUrl ? `${companyAdminUrl}?company=${companyIdFromUrl}` : companyAdminUrl;
+                                // Check if we are in a organization admin context (either by URL param or role)
+                                if (role === 'organization-owner' || role === 'organization-admin' || pathname?.includes('/organization')) {
+                                     const targetUrl = companyIdFromUrl ? `${companyAdminUrl}?organization=${companyIdFromUrl}` : companyAdminUrl;
                                      router.push(targetUrl);
                                 } else {
                                     router.push(globalUrl);
@@ -158,13 +158,13 @@ export default function BusinessUnitList() {
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => {
                                 const identifier = unit.slug || unit.id || unit._id;
-                                router.push(`/global/user-management/business-users/add?business-unit=${identifier}`);
+                                router.push(`/platform/user-management/business-users/add?business-unit=${identifier}`);
                             }}>
                                 <Plus className="mr-2 h-4 w-4" /> Add Staff
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => {
                                 const identifier = unit.slug || unit.id || unit._id;
-                                router.push(`/global/business-units/${identifier}/outlets/new`);
+                                router.push(`/platform/business-units/${identifier}/outlets/new`);
                             }}>
                                 <Store className="mr-2 h-4 w-4" /> Add Outlet
                             </DropdownMenuItem>
@@ -187,7 +187,7 @@ export default function BusinessUnitList() {
                 label: "Add Business Unit",
                 onClick: () => {
                     const queryString = searchParams.toString();
-                    router.push(`/global/business-units/new${queryString ? `?${queryString}` : ''}`);
+                    router.push(`/platform/business-units/new${queryString ? `?${queryString}` : ''}`);
                 }
             }}
         >
@@ -223,7 +223,7 @@ export default function BusinessUnitList() {
                                                 title="Add Staff to this Outlet"
                                                 onClick={() => {
                                                     const identifier = original.slug || original.id || original._id;
-                                                    router.push(`/global/user-management/business-users/add?business-unit=${identifier}&outlet=${outlet._id}`);
+                                                    router.push(`/platform/user-management/business-users/add?business-unit=${identifier}&outlet=${outlet._id}`);
                                                 }}
                                             >
                                                 <UserPlus className="h-4 w-4" />

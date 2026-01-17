@@ -100,7 +100,7 @@ interface OutletFormProps {
 export function OutletForm({ preSelectedSlug, initialData, isEditMode = false }: OutletFormProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const companyId = searchParams.get("company");
+    const companyId = searchParams.get("organization");
     const [createOutlet, { isLoading: isCreating }] = useCreateOutletMutation();
     const [updateOutlet, { isLoading: isUpdating }] = useUpdateOutletMutation();
     const { data: businessUnitsData, isLoading: loadingBU } = useGetBusinessUnitsQuery(undefined);
@@ -212,10 +212,10 @@ export function OutletForm({ preSelectedSlug, initialData, isEditMode = false }:
     const onSubmit = async (values: FormValues) => {
         try {
             const selectedBU = businessUnits.find((bu: any) => bu._id?.toString() === values.businessUnitId || bu.id === values.businessUnitId);
-            const derivedCompanyId = companyId || localStorage.getItem("active-company-id") || selectedBU?.company?._id || selectedBU?.company || selectedBU?.companyId;
+            const derivedCompanyId = companyId || localStorage.getItem("active-organization-id") || selectedBU?.organization?._id || selectedBU?.organization || selectedBU?.companyId;
 
             if (!derivedCompanyId) {
-                toast.error("Critical Error: Company Identity missing. Please reload or select a valid Business Unit.");
+                toast.error("Critical Error: Organization Identity missing. Please reload or select a valid Business Unit.");
                 return;
             }
 
@@ -223,7 +223,7 @@ export function OutletForm({ preSelectedSlug, initialData, isEditMode = false }:
                 ...values,
                 code: values.code.toUpperCase(),
                 businessUnit: values.businessUnitId,
-                company: derivedCompanyId, // [FIX] Inject Company ID from best available source
+                organization: derivedCompanyId, // [FIX] Inject Organization ID from best available source
                 location: {
                     ...values.location,
                     coordinates: values.location.coordinates?.lat && values.location.coordinates?.lng
@@ -241,7 +241,7 @@ export function OutletForm({ preSelectedSlug, initialData, isEditMode = false }:
             }
 
             // Redirect to All Outlets page with context
-            const redirectBase = preSelectedSlug ? `/${preSelectedSlug}/outlets` : "/global/outlets";
+            const redirectBase = preSelectedSlug ? `/${preSelectedSlug}/outlets` : "/platform/outlets";
 
             // If we are already in a scoped path (containing outlets), just go back to that list
             const currentPath = window.location.pathname;
@@ -249,7 +249,7 @@ export function OutletForm({ preSelectedSlug, initialData, isEditMode = false }:
                 ? currentPath.replace('/outlets/new', '/outlets')
                 : redirectBase;
 
-            const redirectUrl = companyId ? `${targetPath}?company=${companyId}` : targetPath;
+            const redirectUrl = companyId ? `${targetPath}?organization=${companyId}` : targetPath;
             router.push(redirectUrl);
         } catch (error: any) {
             toast.error(error?.data?.message || "Operation failed");

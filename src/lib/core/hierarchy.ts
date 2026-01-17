@@ -1,14 +1,14 @@
 // ========================================
 // ENTERPRISE HIERARCHY TYPES
 // ========================================
-// Strict type definitions for Company > Business Unit > Outlet structure
+// Strict type definitions for Organization > Business Unit > Outlet structure
 // This ensures future multi-country / franchise support
 
 /**
- * Company (Top Level)
+ * Organization (Top Level)
  * Represents the entire business entity
  */
-export interface Company {
+export interface Organization {
   id: string;
   name: string;
   slug: string;
@@ -20,7 +20,7 @@ export interface Company {
 
 /**
  * Business Unit (Second Level)
- * Represents a branch, division, or department within a company
+ * Represents a branch, division, or department within a organization
  * Examples: "Dhaka Branch", "Chittagong Division"
  */
 export interface BusinessUnit {
@@ -28,7 +28,7 @@ export interface BusinessUnit {
   companyId: string;
   name: string;
   slug: string;
-  type: 'branch' | 'division' | 'franchise' | 'department';
+  type: "branch" | "division" | "franchise" | "department";
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -43,7 +43,7 @@ export interface Outlet {
   businessUnitId: string;
   name: string;
   code: string;
-  type: 'retail' | 'wholesale' | 'kiosk' | 'popup';
+  type: "retail" | "wholesale" | "kiosk" | "popup";
   address?: {
     street?: string;
     city?: string;
@@ -131,11 +131,11 @@ export function validateWarehouseOwnership(
  * Hierarchy Level Enum
  */
 export enum HierarchyLevel {
-  COMPANY = 'company',
-  BUSINESS_UNIT = 'business_unit',
-  OUTLET = 'outlet',
-  WAREHOUSE = 'warehouse',
-  STOREFRONT = 'storefront'
+  COMPANY = "organization",
+  BUSINESS_UNIT = "business_unit",
+  OUTLET = "outlet",
+  WAREHOUSE = "warehouse",
+  STOREFRONT = "storefront",
 }
 
 /**

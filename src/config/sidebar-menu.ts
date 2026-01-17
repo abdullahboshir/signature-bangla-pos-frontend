@@ -29,7 +29,7 @@ export const sidebarMenuConfig = {
     // Should ONLY contain platform-level items, NOT business-level items
     [USER_ROLES.SUPER_ADMIN]: [
       MENU_MODULES.DASHBOARD,
-      MENU_MODULES.COMPANIES,
+      MENU_MODULES.ORGANIZATIONS,
       {
         // Platform Finance - SaaS billing, subscription revenue
         title: "SaaS Finance",
@@ -60,25 +60,25 @@ export const sidebarMenuConfig = {
         children: [
           {
             title: "Platform Users",
-            path: "/global/user-management/platform-users",
+            path: "/platform/user-management/platform-users",
           },
           {
             title: "Platform Roles",
-            path: "/global/user-management/platform-roles",
+            path: "/platform/user-management/platform-roles",
           },
         ],
       },
       MENU_MODULES.SUPPORT,
       {
-        // Platform Reports - company stats, usage analytics
+        // Platform Reports - organization stats, usage analytics
         title: "Platform Reports",
         path: "reports",
         icon: BarChart3,
         module: "platform",
         children: [
           {
-            title: "Company Analytics",
-            path: "reports/companies",
+            title: "Organization Analytics",
+            path: "reports/organizations",
             resource: RESOURCE_KEYS.ANALYTICS_REPORT,
           },
           {
@@ -313,8 +313,8 @@ export const sidebarMenuConfig = {
       },
     ],
 
-    // 🏢 COMPANY OWNER - Group MD / Chairman
-    [USER_ROLES.COMPANY_OWNER]: [
+    // 🏢 ORGANIZATION OWNER - Group MD / Chairman
+    [USER_ROLES.ORGANIZATION_OWNER]: [
       MENU_MODULES.DASHBOARD,
       {
         title: "Governance",
@@ -342,7 +342,7 @@ export const sidebarMenuConfig = {
       },
       { ...MENU_MODULES.BUSINESS_UNITS, path: "business-units" },
       {
-        title: "Company Access",
+        title: "Organization Access",
         path: "user-management",
         icon: Users,
         children: [
@@ -355,7 +355,7 @@ export const sidebarMenuConfig = {
       },
       {
         ...MENU_MODULES.FINANCE,
-        title: "Company Finance",
+        title: "Organization Finance",
         children: [
           { title: "Revenue Summary", path: "finance/revenue" },
           {
@@ -367,7 +367,7 @@ export const sidebarMenuConfig = {
         ],
       },
       MENU_MODULES.REPORTS,
-      { ...MENU_MODULES.COMPANY_SETTINGS, title: "Company Settings" },
+      { ...MENU_MODULES.ORGANIZATION_SETTINGS, title: "Organization Settings" },
     ],
 
     // 💰 SHAREHOLDER - Investor View
@@ -676,8 +676,8 @@ export const sidebarMenuConfig = {
         resource: RESOURCE_KEYS.PLATFORM_SETTING,
       },
       {
-        ...MENU_MODULES.COMPANY_SETTINGS,
-        resource: RESOURCE_KEYS.COMPANY_SETTING,
+        ...MENU_MODULES.ORGANIZATION_SETTINGS,
+        resource: RESOURCE_KEYS.ORGANIZATION_SETTING,
       },
       {
         ...MENU_MODULES.BUSINESS_SETTINGS,
@@ -716,15 +716,15 @@ export const getSidebarMenu = (
   isCompanyAdminRoute?: boolean
 ) => {
   // Determine base URL based on role and route context
-  let baseUrl = "/global";
+  let baseUrl = "/platform";
 
-  // Company owners should use /company-admin path
+  // Organization owners should use /organization path
   if (
     isCompanyAdminRoute ||
-    (matchesRole(role, USER_ROLES.COMPANY_OWNER) &&
+    (matchesRole(role, USER_ROLES.ORGANIZATION_OWNER) &&
       !matchesRole(role, [USER_ROLES.SUPER_ADMIN, USER_ROLES.PLATFORM_ADMIN]))
   ) {
-    baseUrl = "/company-admin";
+    baseUrl = "/organization";
   }
 
   if (businessUnit) {
@@ -745,12 +745,12 @@ export const getSidebarMenu = (
           newItem.path = `${baseUrl}/${newItem.path}`;
         }
 
-        // 🔗 PERSIST COMPANY CONTEXT: Ensure global management links retain active companyId
-        if (companyId && newItem.path && newItem.path.startsWith("/global")) {
+        // 🔗 PERSIST COMPANY CONTEXT: Ensure platform management links retain active companyId
+        if (companyId && newItem.path && newItem.path.startsWith("/platform")) {
           const hasParams = newItem.path.includes("?");
           newItem.path = `${newItem.path}${
             hasParams ? "&" : "?"
-          }company=${companyId}`;
+          }organization=${companyId}`;
         }
       }
       if (newItem.children)
@@ -766,7 +766,7 @@ export const getSidebarMenu = (
   if (outletId && businessUnit) {
     const isPrivileged = matchesRole(role, [
       USER_ROLES.SUPER_ADMIN,
-      USER_ROLES.COMPANY_OWNER,
+      USER_ROLES.ORGANIZATION_OWNER,
       "business-admin",
       USER_ROLES.ADMIN,
     ]);
@@ -831,7 +831,7 @@ export const getSidebarMenu = (
     // Ensure Outlet Settings is present for those who should see it
     const shouldSeeSettings = matchesRole(role, [
       USER_ROLES.SUPER_ADMIN,
-      USER_ROLES.COMPANY_OWNER,
+      USER_ROLES.ORGANIZATION_OWNER,
       "business-admin",
       "store-manager",
       USER_ROLES.ADMIN,
@@ -868,8 +868,8 @@ export const getSidebarMenu = (
       const newItem = { ...item };
       if (newItem.path) {
         const separator = newItem.path.includes("?") ? "&" : "?";
-        if (!newItem.path.includes("company="))
-          newItem.path = `${newItem.path}${separator}company=${companyId}`;
+        if (!newItem.path.includes("organization="))
+          newItem.path = `${newItem.path}${separator}organization=${companyId}`;
       }
       if (newItem.children)
         newItem.children = appendCompanyToMenu(newItem.children);
@@ -877,7 +877,7 @@ export const getSidebarMenu = (
     });
   };
 
-  // 1. Context switching for Super Admin & Company Owner
+  // 1. Context switching for Super Admin & Organization Owner
   if (matchesRole(role, USER_ROLES.SUPER_ADMIN)) {
     if (businessUnit) {
       const businessAdminMenu = sidebarMenuConfig.menus["business-admin"];
@@ -885,15 +885,15 @@ export const getSidebarMenu = (
         prefixMenuPaths([...businessAdminMenu, ...commonMenu])
       );
     } else if (companyId) {
-      const companyOwnerMenu =
-        sidebarMenuConfig.menus[USER_ROLES.COMPANY_OWNER];
+      const organizationOwnerMenu =
+        sidebarMenuConfig.menus[USER_ROLES.ORGANIZATION_OWNER];
       return appendCompanyToMenu(
-        prefixMenuPaths([...companyOwnerMenu, ...commonMenu])
+        prefixMenuPaths([...organizationOwnerMenu, ...commonMenu])
       );
     }
   }
 
-  if (matchesRole(role, USER_ROLES.COMPANY_OWNER) && businessUnit) {
+  if (matchesRole(role, USER_ROLES.ORGANIZATION_OWNER) && businessUnit) {
     const businessAdminMenu = sidebarMenuConfig.menus["business-admin"];
     return appendCompanyToMenu(
       prefixMenuPaths([...businessAdminMenu, ...commonMenu])
@@ -905,7 +905,7 @@ export const getSidebarMenu = (
 
   if (
     !businessUnit &&
-    !matchesRole(role, [USER_ROLES.SUPER_ADMIN, USER_ROLES.COMPANY_OWNER])
+    !matchesRole(role, [USER_ROLES.SUPER_ADMIN, USER_ROLES.ORGANIZATION_OWNER])
   ) {
     roleMenu = sidebarMenuConfig.menus["multi-unit-admin"];
   } else if (

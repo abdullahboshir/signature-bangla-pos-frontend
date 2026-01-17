@@ -105,7 +105,7 @@ export default function VehicleList() {
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">Vehicles</h1>
                     <p className="text-muted-foreground">
-                        Manage company vehicles.
+                        Manage organization vehicles.
                     </p>
                 </div>
                 <Button onClick={() => {

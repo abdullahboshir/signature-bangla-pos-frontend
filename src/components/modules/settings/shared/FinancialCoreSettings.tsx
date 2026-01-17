@@ -211,7 +211,7 @@ export default function FinancialCoreSettings({ data, onChange }: FinancialCoreS
                             <Building className="h-5 w-5 text-blue-500" />
                             Bank Accounts
                         </CardTitle>
-                        <CardDescription>Manage company bank accounts for payments and settlements.</CardDescription>
+                        <CardDescription>Manage organization bank accounts for payments and settlements.</CardDescription>
                     </div>
                     <Button variant="outline" size="sm" onClick={handleAddAccount}>
                         <Plus className="h-4 w-4 mr-2" /> Add Bank

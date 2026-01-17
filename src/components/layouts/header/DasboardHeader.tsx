@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { UserMenu } from "./UserMenu";
 import { Notifications } from "./Notifications";
 import { BusinessUnitSwitcher } from "./BusinessUnitSwitcher";
-import { CompanySwitcher } from "./CompanySwitcher";
+import { OrganizationSwitcher } from "./OrganizationSwitcher";
 import { OutletSwitcher } from "./OutletSwitcher";
 import { cn } from "@/lib/utils";
 import { ModeToggle } from "@/components/mode-toggle";
@@ -21,12 +21,12 @@ import { CommandPalette } from "@/components/shared/CommandPalette";
 import { useGetOutletQuery } from "@/redux/api/organization/outletApi";
 import { useCurrentRole } from "@/hooks/useCurrentRole";
 import { useGetSystemSettingsQuery } from "@/redux/api/system/settingsApi";
-import { useGetAllCompaniesQuery } from "@/redux/api/platform/companyApi";
+import { useGetAllOrganizationsQuery } from "@/redux/api/platform/organizationApi";
 import {
   normalizeAuthString,
   USER_ROLES,
   isSuperAdmin as checkIsSuperAdminHelper,
-  isCompanyOwner as checkIsCompanyOwnerHelper
+  isOrganizationOwner as checkIsOrganizationOwnerHelper
 } from "@/config/auth-constants";
 
 interface DashboardHeaderProps {
@@ -60,7 +60,7 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
     }
   }
 
-  const urlCompanyId = searchParams.get('company');
+  const urlCompanyId = searchParams.get('organization');
   let outletId = searchParams.get('outlet');
 
   if (!outletId && pathname.includes('/outlets/')) {
@@ -75,26 +75,26 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
     checkIsSuperAdminHelper(typeof r === 'string' ? r : r.slug || r.name)
   );
 
-  const isCompanyOwner = (user?.globalRoles || []).some((r: any) =>
-    checkIsCompanyOwnerHelper(typeof r === 'string' ? r : r.slug || r.name)
-  ) || normalizeAuthString(role) === USER_ROLES.COMPANY_OWNER;
+  const isOrganizationOwner = (user?.globalRoles || []).some((r: any) =>
+    checkIsOrganizationOwnerHelper(typeof r === 'string' ? r : r.slug || r.name)
+  ) || normalizeAuthString(role) === USER_ROLES.ORGANIZATION_OWNER;
 
-  const { data: allCompanies, isLoading: isCompaniesLoading } = useGetAllCompaniesQuery(undefined, {
-    skip: !(isSuperAdmin || isCompanyOwner)
+  const { data: allOrganizations, isLoading: isOrganizationsLoading } = useGetAllOrganizationsQuery(undefined, {
+    skip: !(isSuperAdmin || isOrganizationOwner)
   });
 
   const { data: systemSettings } = useGetSystemSettingsQuery(undefined);
   const isValidOutletId = outletId && outletId !== 'undefined' && outletId !== 'null' && outletId !== '[object Object]';
   const { data: outletData } = useGetOutletQuery(outletId as string, { skip: !isValidOutletId });
 
-  const companies = Array.isArray(allCompanies) ? allCompanies : (allCompanies as any)?.data || (allCompanies as any)?.result || [];
+  const organizations = Array.isArray(allOrganizations) ? allOrganizations : (allOrganizations as any)?.data || (allOrganizations as any)?.result || [];
   const activeOutlet = outletData?.data || outletData || null;
 
   const contextAvailable = user?.context?.available || [];
   let uniqueUserBUs: any[] = [];
   if (contextAvailable.length > 0) {
     uniqueUserBUs = contextAvailable.map((ctx: any) => ({
-      ...(ctx.businessUnit || ctx.company),
+      ...(ctx.businessUnit || ctx.organization),
       outlets: ctx.outlets || []
     }));
   } else {
@@ -102,42 +102,42 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
   }
 
   const { data: allBusinessUnits } = useGetBusinessUnitsQuery(
-    (isSuperAdmin || isCompanyOwner) && urlCompanyId ? { company: urlCompanyId } : undefined,
-    { skip: !(isSuperAdmin || isCompanyOwner) }
+    (isSuperAdmin || isOrganizationOwner) && urlCompanyId ? { organization: urlCompanyId } : undefined,
+    { skip: !(isSuperAdmin || isOrganizationOwner) }
   );
 
   const businessUnits = Array.isArray(allBusinessUnits) ? allBusinessUnits : (allBusinessUnits as any)?.data || (allBusinessUnits as any)?.result || [];
-  const fullPotentialUnits = (isSuperAdmin || isCompanyOwner) ? businessUnits : uniqueUserBUs;
+  const fullPotentialUnits = (isSuperAdmin || isOrganizationOwner) ? businessUnits : uniqueUserBUs;
 
   const activeUnitFromUrl = businessUnitSlug
     ? fullPotentialUnits.find((u: any) => u.id === businessUnitSlug || u.slug === businessUnitSlug || u._id?.toString() === businessUnitSlug)
     : null;
 
-  // Determine if current route is a global route or company-admin route
-  const isGlobalRoute = pathname.startsWith('/global');
-  const isCompanyAdminRoute = pathname.startsWith('/company-admin');
+  // Determine if current route is a platform route or organization route
+  const isGlobalRoute = pathname.startsWith('/platform');
+  const isCompanyAdminRoute = pathname.startsWith('/organization');
 
-  // Derive company ID from active unit
-  const derivedCompanyId = activeUnitFromUrl?.company
-    ? (typeof activeUnitFromUrl.company === 'object'
-      ? (activeUnitFromUrl.company._id?.toString() || activeUnitFromUrl.company.id?.toString())
-      : activeUnitFromUrl.company?.toString())
+  // Derive organization ID from active unit
+  const derivedOrganizationId = activeUnitFromUrl?.organization
+    ? (typeof activeUnitFromUrl.organization === 'object'
+      ? (activeUnitFromUrl.organization._id?.toString() || activeUnitFromUrl.organization.id?.toString())
+      : activeUnitFromUrl.organization?.toString())
     : null;
 
-  // Get single company ID if only one company exists
-  const singleCompanyId = (companies?.length === 1)
-    ? (companies[0]._id?.toString() || companies[0].id?.toString())
+  // Get single organization ID if only one organization exists
+  const singleOrganizationId = (organizations?.length === 1)
+    ? (organizations[0]._id?.toString() || organizations[0].id?.toString())
     : null;
 
-  const rawEffectiveCompanyId = (isGlobalRoute && !urlCompanyId && isSuperAdmin)
+  const rawEffectiveOrganizationId = (isGlobalRoute && !urlCompanyId && isSuperAdmin)
     ? null
-    : (urlCompanyId || derivedCompanyId || (isCompanyOwner ? (singleCompanyId || localStorage.getItem('active-company-id')) : null));
+    : (urlCompanyId || derivedOrganizationId || (isOrganizationOwner ? (singleOrganizationId || localStorage.getItem('active-organization-id')) : null));
 
-  const effectiveCompanyId = (rawEffectiveCompanyId && typeof rawEffectiveCompanyId === 'object')
-    ? (rawEffectiveCompanyId._id?.toString() || rawEffectiveCompanyId.id?.toString() || rawEffectiveCompanyId.toString())
-    : rawEffectiveCompanyId?.toString();
+  const effectiveOrganizationId = (rawEffectiveOrganizationId && typeof rawEffectiveOrganizationId === 'object')
+    ? (rawEffectiveOrganizationId._id?.toString() || rawEffectiveOrganizationId.id?.toString() || rawEffectiveOrganizationId.toString())
+    : rawEffectiveOrganizationId?.toString();
 
-  let availableUnits = (isSuperAdmin || isCompanyOwner)
+  let availableUnits = (isSuperAdmin || isOrganizationOwner)
     ? (businessUnits || [])
     : (uniqueUserBUs || []);
 
@@ -147,12 +147,12 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
     )
     : null;
 
-  if ((isSuperAdmin || isCompanyOwner) && effectiveCompanyId) {
+  if ((isSuperAdmin || isOrganizationOwner) && effectiveOrganizationId) {
     availableUnits = availableUnits.filter((u: any) => {
-      const uCompanyId = typeof u.company === 'object'
-        ? (u.company._id?.toString() || u.company.id?.toString())
-        : u.company?.toString();
-      return uCompanyId === effectiveCompanyId;
+      const uOrganizationId = typeof u.organization === 'object'
+        ? (u.organization._id?.toString() || u.organization.id?.toString())
+        : u.organization?.toString();
+      return uOrganizationId === effectiveOrganizationId;
     });
   }
 
@@ -194,20 +194,20 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
     localStorage.removeItem('active-business-unit');
     setActiveBusinessUnit(null);
     if (isSuperAdmin) {
-      router.push('/global/dashboard');
-    } else if (isCompanyOwner || normalizeAuthString(role) === USER_ROLES.COMPANY_OWNER) {
-      router.push('/company-admin/dashboard');
+      router.push('/platform/dashboard');
+    } else if (isOrganizationOwner || normalizeAuthString(role) === USER_ROLES.ORGANIZATION_OWNER) {
+      router.push('/organization/dashboard');
     }
   };
 
-  const isImpersonating = isSuperAdmin && effectiveCompanyId;
-  const activeCompany = companies?.find((c: any) => c._id === effectiveCompanyId);
-  const impersonatedName = activeUnit?.name || activeCompany?.name || "Lower Context";
+  const isImpersonating = isSuperAdmin && effectiveOrganizationId;
+  const activeOrganization = organizations?.find((c: any) => c._id === effectiveOrganizationId);
+  const impersonatedName = activeUnit?.name || activeOrganization?.name || "Lower Context";
   const contextType = businessUnitSlug ? "Business Unit" : "All Units (Overview)";
 
   const outletModules = activeOutlet?.activeModules;
-  const unitModules = activeUnit?.activeModules || activeUnit?.company?.activeModules;
-  const userModules = (user as any)?.company?.activeModules;
+  const unitModules = activeUnit?.activeModules || activeUnit?.organization?.activeModules;
+  const userModules = (user as any)?.organization?.activeModules;
   const activeModules = outletModules || unitModules || userModules || systemSettings?.enabledModules || {};
 
   return (
@@ -227,14 +227,14 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps = 
             <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick} type="button">
               <Menu className="h-5 w-5" />
             </Button>
-            {(isSuperAdmin || (companies?.length > 1)) && (
-              <CompanySwitcher currentCompanyId={effectiveCompanyId} companies={companies} />
+            {(isSuperAdmin || (organizations?.length > 1)) && (
+              <OrganizationSwitcher currentCompanyId={effectiveOrganizationId} companies={organizations} />
             )}
-            {effectiveCompanyId && (
-              <BusinessUnitSwitcher currentBusinessUnit={businessUnitSlug || 'all'} effectiveCompanyId={effectiveCompanyId} currentRole={role} availableUnits={availableUnits} />
+            {effectiveOrganizationId && (
+              <BusinessUnitSwitcher currentBusinessUnit={businessUnitSlug || 'all'} effectiveCompanyId={effectiveOrganizationId} currentRole={role} availableUnits={availableUnits} />
             )}
             {businessUnitSlug && (
-              <OutletSwitcher currentBusinessUnitSlug={businessUnitSlug} effectiveCompanyId={effectiveCompanyId} activeUnit={activeUnit || activeUnitFromUrl} />
+              <OutletSwitcher currentBusinessUnitSlug={businessUnitSlug} effectiveCompanyId={effectiveOrganizationId} activeUnit={activeUnit || activeUnitFromUrl} />
             )}
           </div>
           <div className="flex-1 flex justify-center items-center px-4">

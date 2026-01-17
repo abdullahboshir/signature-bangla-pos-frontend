@@ -1,5 +1,18 @@
 # Signature Bangla POS Frontend
 
+> [!CAUTION]
+> **Project Status: Legacy & Inactive**
+> This repository is no longer under active development. It represents an earlier version of the system that has since evolved into a modern architecture under the **Manoxen** project.
+
+## Successor Project
+
+This project has been succeeded and reimplemented as part of the **Manoxen Enterprise Platform**.
+
+- **Successor:** [Manoxen](https://github.com/abdullahboshir/business-platform) (Private Monorepo)
+- **Status:** Archived as historical and authorship proof.
+
+---
+
 A comprehensive Point of Sale (POS) system built with Next.js 16, React 19, TypeScript, and Tailwind CSS.
 
 ## Features
@@ -55,34 +68,39 @@ src/
 
 ### Prerequisites
 
-- Node.js 20+ 
+- Node.js 20+
 - npm or yarn
 
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone <repository-url>
 cd signature-bangla-pos-frontend
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Set up environment variables:
+
 ```bash
 cp .env.example .env.local
 ```
 
 4. Update `.env.local` with your configuration:
+
 ```env
 NEXT_PUBLIC_BACKEND_BASE_API_URL=http://localhost:5000/api/v1
 NEXT_PUBLIC_API_BASE_URL_LIVE=https://api.example.com/api/v1
 ```
 
 5. Run the development server:
+
 ```bash
 npm run dev
 ```
@@ -113,6 +131,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 ## Key Features
 
 ### Dashboard
+
 - Overview statistics (Revenue, Orders, Products, Customers)
 - Sales and revenue charts
 - Recent orders widget
@@ -120,17 +139,20 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 - Quick actions based on user role
 
 ### Authentication
+
 - JWT-based authentication
 - Role-based access control
 - Protected routes
 - Token refresh mechanism
 
 ### Business Units
+
 - Multi-business unit support
 - Business unit switching
 - Unit-specific dashboards
 
 ### Role-Based Access
+
 - Super Admin - Full system access
 - Business Admin - Business unit management
 - Store Manager - Inventory and staff management

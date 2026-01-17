@@ -1,7 +1,6 @@
-
 export const API_ENDPOINTS = {
   PLATFORM: {
-    COMPANIES: "/platform/companies",
+    ORGANIZATIONS: "/platform/organizations",
     PACKAGES: "/platform/packages",
     SUBSCRIPTIONS: "/platform/subscriptions",
   },

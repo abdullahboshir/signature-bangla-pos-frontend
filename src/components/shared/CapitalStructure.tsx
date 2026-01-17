@@ -41,7 +41,7 @@ export function CapitalStructure({ value, onChange }: CapitalStructureProps) {
                     Capital Structure
                 </CardTitle>
                 <CardDescription>
-                    Define the company's capital allocation and structure
+                    Define the organization's capital allocation and structure
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -83,7 +83,7 @@ export function CapitalStructure({ value, onChange }: CapitalStructureProps) {
                             />
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            Maximum capital the company is authorized to issue
+                            Maximum capital the organization is authorized to issue
                         </p>
                     </div>
 

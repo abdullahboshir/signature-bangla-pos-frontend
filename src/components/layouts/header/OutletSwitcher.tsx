@@ -69,12 +69,12 @@ export function OutletSwitcher({
         const params = new URLSearchParams();
 
         // Use the normalized effectiveCompanyId from props if available, otherwise extract from unit
-        const effectiveCompanyRaw = effectiveCompanyId || activeUnit?.company?._id || activeUnit?.company;
+        const effectiveCompanyRaw = effectiveCompanyId || activeUnit?.organization?._id || activeUnit?.organization;
         const effectiveCompany = (effectiveCompanyRaw && typeof effectiveCompanyRaw === 'object')
             ? (effectiveCompanyRaw._id?.toString() || effectiveCompanyRaw.id?.toString() || effectiveCompanyRaw.toString())
             : effectiveCompanyRaw?.toString();
 
-        if (effectiveCompany && effectiveCompany !== '[object Object]') params.set('company', effectiveCompany);
+        if (effectiveCompany && effectiveCompany !== '[object Object]') params.set('organization', effectiveCompany);
 
         if (outletId === 'add-new') {
             router.push(`/${targetSlug}/outlets/new${params.toString() ? `?${params.toString()}` : ''}`);

@@ -101,7 +101,7 @@ export default function LicenseForm({ initialData, isEdit = false }: LicenseForm
                 await createLicense(data).unwrap()
                 toast.success("License created successfully")
             }
-            router.push("/global/licenses")
+            router.push("/platform/licenses")
             router.refresh()
         } catch (error: any) {
             console.error(error)

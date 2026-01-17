@@ -98,7 +98,7 @@ function SetupPasswordContent() {
                                 type="email"
                                 value={resendEmail}
                                 onChange={(e) => setResendEmail(e.target.value)}
-                                placeholder="name@company.com"
+                                placeholder="name@organization.com"
                                 required
                             />
                         </div>

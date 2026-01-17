@@ -115,7 +115,7 @@ export default function ContactSettings({ data, onChange }: ContactSettingsProps
                             <Input
                                 value={data.socialMedia?.linkedin || ""}
                                 onChange={(e) => onChange("contact", "socialMedia", "linkedin", e.target.value)}
-                                placeholder="https://linkedin.com/company/yourcompany"
+                                placeholder="https://linkedin.com/organization/yourcompany"
                             />
                         </div>
                         <div className="space-y-2 md:col-span-2">

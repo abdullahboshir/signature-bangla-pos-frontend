@@ -68,12 +68,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         if (isSuperAdminContext) {
             // Super Admin Routes - Global Access
             routes.push(
-                { title: "Super Admin Dashboard", icon: Hash, path: `/global`, description: "Main dashboard" },
-                { title: "All Business Units", icon: Package, path: `/global/business-units`, description: "Manage all business units" },
-                { title: "All Outlets", icon: Package, path: `/global/outlets`, description: "View all outlets across units" },
-                { title: "All Products", icon: Package, path: `/global/products`, description: "Global product catalog" },
-                { title: "User Management", icon: Users, path: `/global/user-management`, description: "Manage system users" },
-                { title: "Roles & Permissions", icon: Shield, path: `/global/user-management/roles-permissions`, description: "Configure access control" }
+                { title: "Super Admin Dashboard", icon: Hash, path: `/platform`, description: "Main dashboard" },
+                { title: "All Business Units", icon: Package, path: `/platform/business-units`, description: "Manage all business units" },
+                { title: "All Outlets", icon: Package, path: `/platform/outlets`, description: "View all outlets across units" },
+                { title: "All Products", icon: Package, path: `/platform/products`, description: "Global product catalog" },
+                { title: "User Management", icon: Users, path: `/platform/user-management`, description: "Manage system users" },
+                { title: "Roles & Permissions", icon: Shield, path: `/platform/user-management/roles-permissions`, description: "Configure access control" }
             )
         } else if (businessUnit) {
             // Business Unit Scoped Routes

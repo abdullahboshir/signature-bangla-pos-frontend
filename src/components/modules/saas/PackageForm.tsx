@@ -75,7 +75,7 @@ const packageFormSchema = z.object({
 
     // --- New Backend Parity Fields ---
     features: z.string().optional(), // Multi-line bullet points
-    appliesTo: z.enum(["company", "business-unit"]).default("business-unit"),
+    appliesTo: z.enum(["organization", "business-unit"]).default("business-unit"),
     trialPeriodDays: z.coerce.number().default(0),
     sortOrder: z.coerce.number().default(0),
 
@@ -200,7 +200,7 @@ export default function PackageForm({ initialData, isEdit = false }: PackageForm
                 await createPackage(payload).unwrap()
                 toast.success("Package created successfully")
             }
-            router.push("/global/packages")
+            router.push("/platform/packages")
             router.refresh()
         } catch (error: any) {
             toast.error(error?.data?.message || "Something went wrong")
@@ -339,7 +339,7 @@ export default function PackageForm({ initialData, isEdit = false }: PackageForm
                                                             <SelectTrigger><SelectValue /></SelectTrigger>
                                                         </FormControl>
                                                         <SelectContent>
-                                                            <SelectItem value="company">Entire Company</SelectItem>
+                                                            <SelectItem value="organization">Entire Organization</SelectItem>
                                                             <SelectItem value="business-unit">Individual Outlet/BU</SelectItem>
                                                         </SelectContent>
                                                     </Select>

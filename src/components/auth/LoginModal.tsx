@@ -84,7 +84,7 @@ export default function LoginModal({ open = false, onOpenChange }: LoginModalPro
                         : access.businessUnit;
                     router.push(`/${roleName}/${slug}/dashboard`);
                 } else {
-                    router.push("/global/companies");
+                    router.push("/platform/companies");
                 }
             }
             setFormData({ firstName: "", lastName: "", email: "", password: "" });

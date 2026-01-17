@@ -75,10 +75,10 @@ export function SettingsInterface() {
 
     const { theme, isLoading: themeLoading, updateTheme } = useThemeSettings()
 
-    // Robust check for Company Settings context using proper hooks
-    const isCompanySettings = searchParams.get('context') === 'company' || pathname?.includes('company-settings');
+    // Robust check for Organization Settings context using proper hooks
+    const isCompanySettings = searchParams.get('context') === 'organization' || pathname?.includes('organization-settings');
 
-    const companyId = (user as any)?.companyId || searchParams.get('company');
+    const companyId = (user as any)?.companyId || searchParams.get('organization');
     const { data: companySettingsData, isLoading: companySettingsLoading } = useGetCompanySettingsQuery(companyId, { skip: !isCompanySettings || !companyId });
 
     // Fetch Business Unit settings
@@ -107,7 +107,7 @@ export function SettingsInterface() {
 
     const updateLoading = updateBULoading || updatePlatformLoading || updateCompanyLoading || updateOutletLoading;
 
-    const [localSettings, setLocalSettings] = useState<any>(null); // Platform or Company/BU Settings
+    const [localSettings, setLocalSettings] = useState<any>(null); // Platform or Organization/BU Settings
 
     useEffect(() => {
         if (settingsLoading) return;
@@ -151,7 +151,7 @@ export function SettingsInterface() {
         router.push(`${pathname}?${newParams.toString()}`, { scroll: false });
     };
 
-    // --- State Handlers for Company/BU Settings (localSettings) ---
+    // --- State Handlers for Organization/BU Settings (localSettings) ---
     const handleZenithChange = (section: string, ...args: any[]) => {
         setLocalSettings((prev: any) => {
             if (!prev) return prev;
@@ -218,10 +218,10 @@ export function SettingsInterface() {
             <div className="mb-6 flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">
-                        {outletId ? "Outlet Settings" : (businessUnit ? "Business Settings" : (isCompanySettings ? "Company Settings" : "Global Settings"))}
+                        {outletId ? "Outlet Settings" : (businessUnit ? "Business Settings" : (isCompanySettings ? "Organization Settings" : "Global Settings"))}
                     </h1>
                     <p className="text-muted-foreground mt-1">
-                        {outletId ? "Configure settings specific to this outlet" : (businessUnit ? "Manage your Business Unit configuration" : (isCompanySettings ? "Manage Company preferences" : "Manage complete platform configuration"))}
+                        {outletId ? "Configure settings specific to this outlet" : (businessUnit ? "Manage your Business Unit configuration" : (isCompanySettings ? "Manage Organization preferences" : "Manage complete platform configuration"))}
                     </p>
                 </div>
                 <Button onClick={saveSettings} disabled={updateLoading || !localSettings || !canSave}>
@@ -397,7 +397,7 @@ export function SettingsInterface() {
                                 <BrandingSettings
                                     data={localSettings?.branding}
                                     onChange={handleZenithChange}
-                                    context="company"
+                                    context="organization"
                                 />
                             </TabsContent>
 

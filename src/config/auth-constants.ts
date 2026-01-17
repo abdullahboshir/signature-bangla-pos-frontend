@@ -15,8 +15,8 @@ export const USER_ROLES = {
   PLATFORM_LEGAL: "platform-legal",
   SYSTEM_INTEGRATION: "system-integration",
 
-  // COMPANY LEVEL (Company/Tenant Scope)
-  COMPANY_OWNER: "company-owner",
+  // ORGANIZATION LEVEL (Organization/Tenant Scope)
+  ORGANIZATION_OWNER: "organization-owner",
 
   // BUSINESS LEVEL (Business Unit Scope)
   ADMIN: "admin",
@@ -67,7 +67,7 @@ export const USER_STATUS = {
  */
 export const ROLE_SCOPE = {
   GLOBAL: "GLOBAL",
-  COMPANY: "COMPANY",
+  ORGANIZATION: "ORGANIZATION",
   BUSINESS: "BUSINESS",
   OUTLET: "OUTLET",
 } as const;
@@ -115,9 +115,9 @@ export const isSuperAdmin = (
   role: string | string[] | null | undefined
 ): boolean => matchesRole(role, USER_ROLES.SUPER_ADMIN);
 
-export const isCompanyOwner = (
+export const isOrganizationOwner = (
   role: string | string[] | null | undefined
-): boolean => matchesRole(role, USER_ROLES.COMPANY_OWNER);
+): boolean => matchesRole(role, USER_ROLES.ORGANIZATION_OWNER);
 
 export const isBusinessAdmin = (
   role: string | string[] | null | undefined

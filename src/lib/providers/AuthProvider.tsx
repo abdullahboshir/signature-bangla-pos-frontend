@@ -21,7 +21,7 @@ import {
 } from "@/redux/api/iam/authApi";
 import { jwtDecode } from "jwt-decode";
 import { authKey } from "@/constant/authKey";
-import { USER_ROLES, matchesRole, isSuperAdmin as checkIsSuperAdmin, isCompanyOwner as checkIsCompanyOwner } from "@/config/auth-constants";
+import { USER_ROLES, matchesRole, isSuperAdmin as checkIsSuperAdmin, isOrganizationOwner as checkIsOrganizationOwner } from "@/config/auth-constants";
 
 interface AuthContextType {
     user: User | null;
@@ -43,8 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [activeBusinessUnit, setActiveBusinessUnitState] = useState<string | null>(() => {
         if (typeof window !== 'undefined') {
             const path = window.location.pathname;
-            // If we land on a global or company-admin path, ignore persisted context on boot
-            if (path.startsWith('/global') || path.startsWith('/super-admin') || path.startsWith('/company-admin')) {
+            // If we land on a global or organization-admin path, ignore persisted context on boot
+            if (path.startsWith('/platform') || path.startsWith('/super-admin') || path.startsWith('/organization')) {
                 return null;
             }
             return localStorage.getItem('active-business-unit');
@@ -79,16 +79,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const setActiveBusinessUnit = (idOrObj: string | any | null) => {
         if (idOrObj) {
             const id = typeof idOrObj === 'string' ? idOrObj : (idOrObj._id?.toString() || idOrObj.id?.toString() || idOrObj.toString());
-            const companyId = typeof idOrObj === 'object' ? (idOrObj.company?._id?.toString() || idOrObj.company?.id?.toString() || idOrObj.company?.toString()) : null;
+            const companyId = typeof idOrObj === 'object' ? (idOrObj.organization?._id?.toString() || idOrObj.organization?.id?.toString() || idOrObj.organization?.toString()) : null;
 
             localStorage.setItem('active-business-unit', id);
             if (companyId && typeof companyId === 'string' && companyId !== '[object Object]') {
-                localStorage.setItem('active-company-id', companyId);
+                localStorage.setItem('active-organization-id', companyId);
             }
             setActiveBusinessUnitState(id);
         } else {
             localStorage.removeItem('active-business-unit');
-            localStorage.removeItem('active-company-id');
+            localStorage.removeItem('active-organization-id');
             setActiveBusinessUnitState(null);
         }
     };
@@ -112,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const decoded = jwtDecode(accessToken) as any;
             console.log("JWT DECODED INFO:", decoded);
 
-            let redirect = "/global/dashboard";
+            let redirect = "/platform/dashboard";
             const context = decoded?.context;
             const roles = Array.isArray(decoded?.role) ? decoded.role : [decoded?.role || ""];
 
@@ -121,12 +121,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 USER_ROLES.ADMIN,
                 USER_ROLES.SUPER_ADMIN,
                 USER_ROLES.MANAGER,
-                USER_ROLES.COMPANY_OWNER,
+                USER_ROLES.ORGANIZATION_OWNER,
                 "owner", "ceo", "director", "business-admin"
             ]);
 
             if (checkIsSuperAdmin(roles) || decoded?.isSuperAdmin) {
-                redirect = "/global/dashboard";
+                redirect = "/platform/dashboard";
                 // Super Admins should always start at Platform Global without context
                 setActiveBusinessUnit(null);
                 localStorage.removeItem('active-business-unit');
@@ -134,16 +134,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const { businessUnit, outlet, scope } = context.primary;
 
                 // LOGIC: Redirection based on Scope
-                if (scope === 'COMPANY') {
-                    // Company Owner/Manager -> Go to Company Admin View (not global)
-                    redirect = "/company-admin/dashboard";
+                if (scope === 'ORGANIZATION') {
+                    // Organization Owner/Manager -> Go to Organization Admin View (not global)
+                    redirect = "/organization/dashboard";
                 } else {
-                    const slug = businessUnit?.slug || businessUnit?._id || context.primary.company?.slug || "unknown";
+                    const slug = businessUnit?.slug || businessUnit?._id || context.primary.organization?.slug || "unknown";
 
                     // Find the full details in available list to check outlet counts
                     const availableEntry = context.available?.find((a: any) =>
                         (a.businessUnit?._id === businessUnit?._id || a.businessUnit?.id === businessUnit?.id) ||
-                        (a.company?._id === context.primary.company?._id)
+                        (a.organization?._id === context.primary.organization?._id)
                     );
 
                     const outletCount = availableEntry?.outletCount || 0;

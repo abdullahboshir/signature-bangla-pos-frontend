@@ -1,6 +1,6 @@
 import {
   isSuperAdmin as checkIsSuperAdminHelper,
-  isCompanyOwner,
+  isOrganizationOwner,
 } from "@/config/auth-constants";
 
 export interface UserPermission {
@@ -73,15 +73,15 @@ export const checkPermission = (
 ): boolean => {
   if (!user) return false;
 
-  // 1. Super Admin or Company Owner Bypass
-  // Company Owners typically need full access to their company's resources
+  // 1. Super Admin or Organization Owner Bypass
+  // Organization Owners typically need full access to their organization's resources
   const allRoles = [
     ...(user.roles || []),
     ...(user.globalRoles || []),
     ...(user.role || []), // Handle flat role array from backend
   ].map((r: any) => (typeof r === "string" ? r : r.slug || r.name));
 
-  if (checkIsSuperAdmin(user) || isCompanyOwner(allRoles)) return true;
+  if (checkIsSuperAdmin(user) || isOrganizationOwner(allRoles)) return true;
 
   // 2. Check Modern Effective Permissions (Priority)
   if (user.effectivePermissions && Array.isArray(user.effectivePermissions)) {

@@ -267,7 +267,7 @@ const getResourceIcon = (resource: string) => {
 };
 
 interface RolePermissionManagementProps {
-    viewScope?: 'platform' | 'company' | 'business' | 'all';
+    viewScope?: 'platform' | 'organization' | 'business' | 'all';
 }
 
 export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionManagementProps) {
@@ -413,7 +413,7 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
             // Filter Roles based on View Scope using valid roleScope property
             if (viewScope === 'platform') {
                 fetchedRoles = fetchedRoles.filter(r => r.roleScope === RoleScope.GLOBAL);
-            } else if (viewScope === 'company') {
+            } else if (viewScope === 'organization') {
                 fetchedRoles = fetchedRoles.filter(r => r.roleScope === RoleScope.COMPANY);
             } else if (viewScope === 'business') {
                 fetchedRoles = fetchedRoles.filter(r => r.roleScope === RoleScope.BUSINESS || r.roleScope === RoleScope.OUTLET);
@@ -887,7 +887,7 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value={RoleScope.GLOBAL}>Global (Platform)</SelectItem>
-                                                    <SelectItem value={RoleScope.COMPANY}>Company (Tenant)</SelectItem>
+                                                    <SelectItem value={RoleScope.COMPANY}>Organization (Tenant)</SelectItem>
                                                     <SelectItem value={RoleScope.BUSINESS}>Business (Standard)</SelectItem>
                                                     <SelectItem value={RoleScope.OUTLET}>Outlet (Branch)</SelectItem>
                                                 </SelectContent>
@@ -1281,7 +1281,7 @@ export function RolePermissionManagement({ viewScope = 'all' }: RolePermissionMa
                                                                         <span className="font-medium truncate">{role.name}</span>
                                                                         <div className='w-full flex gap-1'>
                                                                             {role.roleScope === RoleScope.GLOBAL && <Badge className="text-[10px] h-5 bg-purple-600">Global</Badge>}
-                                                                            {role.roleScope === RoleScope.COMPANY && <Badge className="text-[10px] h-5 bg-blue-600">Company</Badge>}
+                                                                            {role.roleScope === RoleScope.COMPANY && <Badge className="text-[10px] h-5 bg-blue-600">Organization</Badge>}
                                                                             {role.roleScope === RoleScope.OUTLET && <Badge className="text-[10px] h-5 bg-orange-500">Outlet</Badge>}
                                                                             {checkIsSuperAdmin(role.id) ?
                                                                                 <Badge className="text-[10px] h-5 bg-purple-600">Super Admin</Badge>

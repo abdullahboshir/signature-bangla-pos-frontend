@@ -81,7 +81,7 @@ export default function LicenseList() {
             header: "Actions",
             cell: ({ row }: any) => (
                 <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => router.push(`/global/licenses/${row.original.id}/edit`)}>Edit</Button>
+                    <Button variant="ghost" size="sm" onClick={() => router.push(`/platform/licenses/${row.original.id}/edit`)}>Edit</Button>
                     <Button variant="ghost" size="sm" className="text-red-500" onClick={() => handleDelete(row.original.id)}>Revoke</Button>
                 </div>
             )
@@ -99,7 +99,7 @@ export default function LicenseList() {
                         </CardTitle>
                         <CardDescription>Manage software licenses and keys.</CardDescription>
                     </div>
-                    <Button size="sm" onClick={() => router.push('/global/licenses/new')}>
+                    <Button size="sm" onClick={() => router.push('/platform/licenses/new')}>
                         <Plus className="h-4 w-4 mr-2" /> Issue License
                     </Button>
                 </div>

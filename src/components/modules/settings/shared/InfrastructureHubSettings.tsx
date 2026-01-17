@@ -17,7 +17,7 @@ const InfrastructureHubSettings: React.FC<InfrastructureHubSettingsProps> = ({ d
     const sso = data?.ssoHub || {};
     const webhooks = data?.webhookOrchestrator || {};
     const api = data?.apiDeveloperRegistry || {};
-    // Handle both Platform (blueprint) and Company (enforcement) naming
+    // Handle both Platform (blueprint) and Organization (enforcement) naming
     const quota = data?.resourceQuotaBlueprint || data?.resourceQuotaEnforcement || {};
     const smtp = data?.smtp || {};
     const storage = data?.storageRegistry || {};

@@ -1,5 +1,5 @@
 "use client"
-import AddBusinessUserPage from "@/app/(protected)/global/user-management/business-users/add/page"
+import AddBusinessUserPage from "@/app/(protected)/platform/user-management/business-users/add/page"
 
 // Re-export the GLOBAL Add User page logic so we don't duplicate code.
 // The global page uses "useGetBusinessUnitsQuery" which is fine.

@@ -71,7 +71,7 @@ export default function StaffList() {
                         if (params["business-unit"]) {
                             router.push(`/${params["business-unit"]}/user-management/business-users/add`);
                         } else {
-                            router.push('/global/user-management/business-users/add');
+                            router.push('/platform/user-management/business-users/add');
                         }
                     }}>
                         <Plus className="mr-2 h-4 w-4" />
